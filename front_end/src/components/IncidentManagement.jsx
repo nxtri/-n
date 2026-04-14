@@ -1,0 +1,268 @@
+import React, { useState, useEffect } from 'react';
+import axiosClient from '../api/axiosClient';
+
+const IncidentManagement = ({ user, rooms, contracts = [] }) => {
+  const [incidents, setIncidents] = useState([]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedIncident, setSelectedIncident] = useState(null);
+
+  // Form Data (Tenant)
+  const [formData, setFormData] = useState({ roomCode: '', title: '', description: '' });
+  const [files, setFiles] = useState([]);
+
+  // Form Reply (Landlord)
+  const [replyData, setReplyData] = useState({ status: '', landlordReply: '' });
+  
+  // Filter
+  const [statusFilter, setStatusFilter] = useState('ALL');
+
+  const fetchIncidents = async () => {
+    try {
+      const res = await axiosClient.get('/incidents');
+      setIncidents(res.incidents);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchIncidents();
+  }, []);
+
+  const handleCreateSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.roomCode) return alert("Vui lòng nhập mã phòng!");
+    
+    const data = new FormData();
+    data.append('roomCode', formData.roomCode);
+    data.append('title', formData.title);
+    data.append('description', formData.description);
+    files.forEach(f => data.append('images', f));
+
+    try {
+      await axiosClient.post('/incidents', data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      alert('Đã báo cáo sự cố thành công!');
+      setShowCreateModal(false);
+      setFormData({ roomCode: '', title: '', description: '' });
+      setFiles([]);
+      fetchIncidents();
+    } catch (e) {
+      alert(e.response?.data?.message || 'Có lỗi khi hệ thống xử lý thao tác này!');
+    }
+  };
+
+  const handleUpdateStatus = async (e) => {
+    e.preventDefault();
+    try {
+      await axiosClient.put(`/incidents/${selectedIncident.id}`, replyData);
+      alert('Đã phản hồi/cập nhật sự cố!');
+      setShowDetailModal(false);
+      fetchIncidents();
+    } catch (e) {
+      alert(e.response?.data?.message || 'Lỗi cập nhật!');
+    }
+  };
+
+  // Các phòng đang thuê (Dành cho combobox)
+  const tenantActiveRooms = rooms.filter(r => r.status === 'RENTED');
+
+  const getStatusBadge = (status) => {
+    switch(status) {
+      case 'Pending': return <span style={{ background: '#dc3545', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '13px' }}>Chờ xử lý</span>;
+      case 'In Progress': return <span style={{ background: '#ffc107', color: '#000', padding: '4px 8px', borderRadius: '4px', fontSize: '13px' }}>Đang xử lý</span>;
+      case 'Resolved': return <span style={{ background: '#198754', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '13px' }}>Đã giải quyết</span>;
+      case 'Rejected': return <span style={{ background: '#6c757d', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '13px' }}>Từ chối</span>;
+      default: return null;
+    }
+  };
+
+  let displayedIncidents = incidents;
+  if (statusFilter !== 'ALL') {
+    displayedIncidents = displayedIncidents.filter(i => i.status === statusFilter);
+  }
+
+  return (
+    <div style={{ background: '#fff', padding: '25px', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #0b5ed7', paddingBottom: '10px' }}>
+        <h2 style={{ margin: 0, color: '#333' }}>Quản lý Sự cố & Hỗ trợ</h2>
+        {user.role === 'TENANT' && (
+          <button 
+            onClick={() => setShowCreateModal(true)} 
+            style={{ padding: '8px 15px', background: '#0b5ed7', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}
+          >
+            + Báo cáo sự cố mới
+          </button>
+        )}
+      </div>
+
+      {/* Lọc */}
+      <div style={{ marginBottom: '15px' }}>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}>
+          <option value="ALL">Tất cả trạng thái</option>
+          <option value="Pending">Chờ xử lý</option>
+          <option value="In Progress">Đang xử lý</option>
+          <option value="Resolved">Đã giải quyết</option>
+          <option value="Rejected">Từ chối</option>
+        </select>
+      </div>
+
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', textAlign: 'left' }}>
+        <thead>
+          <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #ddd' }}>
+            <th style={{ padding: '12px', textAlign: 'left' }}>Phòng</th>
+            {user.role === 'LANDLORD' && <th style={{ padding: '12px', textAlign: 'left' }}>Người gửi</th>}
+            <th style={{ padding: '12px', textAlign: 'left' }}>Tiêu đề</th>
+            <th style={{ padding: '12px', textAlign: 'left' }}>Ngày gửi</th>
+            <th style={{ padding: '12px', textAlign: 'center' }}>Trạng thái</th>
+            <th style={{ padding: '12px', textAlign: 'center' }}>Hành động</th>
+          </tr>
+        </thead>
+        <tbody>
+          {displayedIncidents.length === 0 ? (
+            <tr><td colSpan={user.role === 'LANDLORD' ? 6 : 5} style={{ textAlign: 'center', padding: '20px' }}>Không có báo cáo nào.</td></tr>
+          ) : displayedIncidents.map(inc => (
+            <tr key={inc.id} style={{ borderBottom: '1px solid #eee' }}>
+              <td style={{ padding: '12px' }}>{inc.room?.roomNumber} {inc.room?.roomCode ? `(${inc.room.roomCode})` : ''}</td>
+              {user.role === 'LANDLORD' && <td style={{ padding: '12px' }}>{inc.tenant?.fullName}<br/><small>{inc.tenant?.phone}</small></td>}
+              <td style={{ padding: '12px', fontWeight: 'bold' }}>{inc.title}</td>
+              <td style={{ padding: '12px' }}>{new Date(inc.createdAt).toLocaleDateString('vi-VN')}</td>
+              <td style={{ padding: '12px', textAlign: 'center' }}>{getStatusBadge(inc.status)}</td>
+              <td style={{ padding: '12px', textAlign: 'center' }}>
+                <button 
+                  onClick={() => { setSelectedIncident(inc); setReplyData({ status: inc.status, landlordReply: inc.landlordReply || '' }); setShowDetailModal(true); }}
+                  style={{ padding: '6px 12px', background: '#17a2b8', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  Xem chi tiết
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* MODAL TẠO SỰ CỐ (TENANT) */}
+      {showCreateModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
+          <div style={{ background: '#fff', width: '500px', borderRadius: '8px', padding: '20px', position: 'relative' }}>
+            <button onClick={() => setShowCreateModal(false)} style={{ position: 'absolute', top: 15, right: 15, border: 'none', background: 'transparent', fontSize: '20px', cursor: 'pointer' }}>✖</button>
+            <h3 style={{ marginTop: 0, color: '#dc3545', borderBottom: '1px solid #eee', paddingBottom: 10 }}>Báo cáo Sự cố mới</h3>
+            <form onSubmit={handleCreateSubmit}>
+              <div style={{ marginBottom: 15 }}>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5, color: '#333' }}>Phòng gặp sự cố:</label>
+                <select 
+                  required 
+                  value={formData.roomCode} 
+                  onChange={e => setFormData({...formData, roomCode: e.target.value})} 
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box', backgroundColor: '#fff', color: '#000' }} 
+                >
+                  <option value="">-- Chọn phòng bạn đang thuê --</option>
+                  {contracts
+                    .filter(c => c.tenantId === user?.id && c.status === 'ACTIVE')
+                    .map(c => c.room)
+                    .filter(r => r) // Lọc bỏ trường hợp room rỗng
+                    .map(r => (
+                      <option key={r.id} value={r.roomCode || r.roomNumber}>
+                        {/^ph[oò]ng/i.test(String(r.roomNumber).trim()) ? `${String(r.roomNumber).charAt(0).toUpperCase()}${String(r.roomNumber).slice(1)}` : `Phòng ${r.roomNumber}`} {r.roomCode ? `(${r.roomCode})` : ''}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <div style={{ marginBottom: 15 }}>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5, color: '#333' }}>Tiêu đề tóm tắt:</label>
+                <input type="text" maxLength="100" placeholder="VD: Điều hòa kêu to, Rỉ nước bồn cầu..." required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box', backgroundColor: '#fff', color: '#000' }} />
+              </div>
+              <div style={{ marginBottom: 15 }}>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5, color: '#333' }}>Mô tả chi tiết:</label>
+                <textarea rows="4" placeholder="Mô tả hoàn cảnh, tình trạng hiện tại..." required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box', backgroundColor: '#fff', color: '#000' }}></textarea>
+              </div>
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5, color: '#333' }}>Hình ảnh đính kèm (Tối đa 5 ảnh):</label>
+                <input type="file" multiple accept="image/*" onChange={(e) => setFiles(Array.from(e.target.files).slice(0, 5))} style={{ width: '100%', padding: '8px', background: '#f8f9fa', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box', color: '#000' }} />
+                <small style={{ color: '#888' }}>Chủ nhà sẽ nhận diện nguyên nhân dễ hơn nếu có ảnh.</small>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <button type="button" onClick={() => setShowCreateModal(false)} style={{ padding: '10px 20px', background: '#e9ecef', color: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', marginRight: '10px' }}>Hủy bỏ</button>
+                <button type="submit" style={{ padding: '10px 20px', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Gửi Sự cố</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CHI TIẾT & PHẢN HỒI (CẢ 2 ROLE DÙNG CHUNG) */}
+      {showDetailModal && selectedIncident && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
+          <div style={{ background: '#fff', width: '600px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '8px', padding: '20px', position: 'relative', textAlign: 'left', color: '#000' }}>
+            <button onClick={() => setShowDetailModal(false)} style={{ position: 'absolute', top: 15, right: 15, border: 'none', background: 'transparent', fontSize: '20px', cursor: 'pointer' }}>✖</button>
+            <h3 style={{ marginTop: 0, color: '#0b5ed7', borderBottom: '1px solid #eee', paddingBottom: 10, textAlign: 'center' }}>Chi tiết báo cáo sự cố</h3>
+            
+            <div style={{ padding: '15px', background: '#f8f9fa', borderRadius: '6px', marginBottom: '20px' }}>
+              <p><strong>Tiêu đề:</strong> {selectedIncident.title}</p>
+              <p><strong>Ngày gửi báo cáo:</strong> {new Date(selectedIncident.createdAt).toLocaleString('vi-VN')}</p>
+              <p><strong>Phòng:</strong> {selectedIncident.room?.roomNumber} {selectedIncident.room?.roomCode ? `(${selectedIncident.room?.roomCode})` : ''}</p>
+              <p><strong>Mô tả của người thuê:</strong></p>
+              <p style={{ whiteSpace: 'pre-wrap', color: '#555', background: '#fff', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}>
+                {selectedIncident.description}
+              </p>
+              
+              {selectedIncident.images && selectedIncident.images.length > 0 && (
+                <div style={{ marginTop: 10 }}>
+                  <strong>Hình ảnh đính kèm:</strong>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: 10, flexWrap: 'wrap' }}>
+                    {selectedIncident.images.map((img, idx) => (
+                      <a key={idx} href={`http://localhost:5000/uploads/${img}`} target="_blank" rel="noopener noreferrer">
+                        <img src={`http://localhost:5000/uploads/${img}`} alt="suco" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ccc' }} />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {user.role === 'LANDLORD' ? (
+              <form onSubmit={handleUpdateStatus}>
+                <h4 style={{ margin: '0 0 10px 0' }}>Phản hồi cho khách thuê & Cập nhật trạng thái</h4>
+                <div style={{ marginBottom: 15 }}>
+                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5 }}>Trạng thái quá trình xử lý:</label>
+                  <select value={replyData.status} onChange={e => setReplyData({...replyData, status: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}>
+                    <option value="Pending">Chờ xử lý (Mới nhận báo cáo)</option>
+                    <option value="In Progress">Đang xử lý (Đã gọi thợ / Đang sửa)</option>
+                    <option value="Resolved">Đã giải quyết (Đã sửa xong)</option>
+                    <option value="Rejected">Từ chối (Lý do không hợp lý)</option>
+                  </select>
+                </div>
+                <div style={{ marginBottom: 15 }}>
+                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5 }}>Lời nhắn / Ghi chú phản hồi:</label>
+                  <textarea rows="3" placeholder="Ví dụ: Chiều mai thợ sẽ qua kiểm tra..." required value={replyData.landlordReply} onChange={e => setReplyData({...replyData, landlordReply: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}></textarea>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <button type="button" onClick={() => setShowDetailModal(false)} style={{ padding: '10px 20px', background: '#e9ecef', color: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', marginRight: '10px' }}>Đóng</button>
+                  <button type="submit" style={{ padding: '10px 20px', background: '#28a745', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Cập nhật Sự cố</button>
+                </div>
+              </form>
+            ) : (
+              <div>
+                <div style={{ padding: '15px', background: '#e6f0fa', borderRadius: '6px' }}>
+                  <h4 style={{ margin: '0 0 10px 0', color: '#0b5ed7' }}>Phản hồi từ Chủ nhà</h4>
+                  <p><strong>Trạng thái:</strong> {getStatusBadge(selectedIncident.status)}</p>
+                  <p><strong>Lời nhắn:</strong></p>
+                  <p style={{ whiteSpace: 'pre-wrap', color: '#333', fontStyle: 'italic', background: '#fff', padding: '10px', borderRadius: '4px' }}>
+                    {selectedIncident.landlordReply || 'Chủ nhà chưa phản hồi.'}
+                  </p>
+                </div>
+                <div style={{ textAlign: 'right', marginTop: '20px' }}>
+                  <button type="button" onClick={() => setShowDetailModal(false)} style={{ padding: '10px 20px', background: '#e9ecef', color: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Đóng</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default IncidentManagement;
