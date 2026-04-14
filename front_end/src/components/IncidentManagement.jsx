@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axiosClient from '../api/axiosClient';
 
 const IncidentManagement = ({ user, rooms, contracts = [] }) => {
@@ -17,6 +17,13 @@ const IncidentManagement = ({ user, rooms, contracts = [] }) => {
   // Filter
   const [statusFilter, setStatusFilter] = useState('ALL');
 
+  // Chat
+  const [messages, setMessages] = useState([]);
+  const [chatInput, setChatInput] = useState('');
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const chatEndRef = useRef(null);
+
   const fetchIncidents = async () => {
     try {
       const res = await axiosClient.get('/incidents');
@@ -29,6 +36,25 @@ const IncidentManagement = ({ user, rooms, contracts = [] }) => {
   useEffect(() => {
     fetchIncidents();
   }, []);
+
+  const fetchMessages = async (incidentId) => {
+    setLoadingMessages(true);
+    try {
+      const res = await axiosClient.get(`/incidents/${incidentId}/messages`);
+      setMessages(res.messages || []);
+    } catch (e) {
+      console.error(e);
+      setMessages([]);
+    } finally {
+      setLoadingMessages(false);
+    }
+  };
+
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
@@ -64,6 +90,36 @@ const IncidentManagement = ({ user, rooms, contracts = [] }) => {
     } catch (e) {
       alert(e.response?.data?.message || 'Lỗi cập nhật!');
     }
+  };
+
+  const handleSendMessage = async () => {
+    if (!chatInput.trim() || sendingMessage) return;
+    setSendingMessage(true);
+    try {
+      const res = await axiosClient.post(`/incidents/${selectedIncident.id}/messages`, { message: chatInput.trim() });
+      setMessages(prev => [...prev, res.data]);
+      setChatInput('');
+    } catch (e) {
+      alert(e.response?.data?.message || 'Lỗi gửi tin nhắn!');
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  const handleChatKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  const openDetailModal = (inc) => {
+    setSelectedIncident(inc);
+    setReplyData({ status: inc.status, landlordReply: inc.landlordReply || '' });
+    setMessages([]);
+    setChatInput('');
+    setShowDetailModal(true);
+    fetchMessages(inc.id);
   };
 
   // Các phòng đang thuê (Dành cho combobox)
@@ -132,7 +188,7 @@ const IncidentManagement = ({ user, rooms, contracts = [] }) => {
               <td style={{ padding: '12px', textAlign: 'center' }}>{getStatusBadge(inc.status)}</td>
               <td style={{ padding: '12px', textAlign: 'center' }}>
                 <button 
-                  onClick={() => { setSelectedIncident(inc); setReplyData({ status: inc.status, landlordReply: inc.landlordReply || '' }); setShowDetailModal(true); }}
+                  onClick={() => openDetailModal(inc)}
                   style={{ padding: '6px 12px', background: '#17a2b8', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                 >
                   Xem chi tiết
@@ -195,11 +251,11 @@ const IncidentManagement = ({ user, rooms, contracts = [] }) => {
       {/* MODAL CHI TIẾT & PHẢN HỒI (CẢ 2 ROLE DÙNG CHUNG) */}
       {showDetailModal && selectedIncident && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
-          <div style={{ background: '#fff', width: '600px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '8px', padding: '20px', position: 'relative', textAlign: 'left', color: '#000' }}>
+          <div style={{ background: '#fff', width: '680px', maxHeight: '92vh', overflowY: 'auto', borderRadius: '10px', padding: '24px', position: 'relative', textAlign: 'left', color: '#000' }}>
             <button onClick={() => setShowDetailModal(false)} style={{ position: 'absolute', top: 15, right: 15, border: 'none', background: 'transparent', fontSize: '20px', cursor: 'pointer' }}>✖</button>
             <h3 style={{ marginTop: 0, color: '#0b5ed7', borderBottom: '1px solid #eee', paddingBottom: 10, textAlign: 'center' }}>Chi tiết báo cáo sự cố</h3>
             
-            <div style={{ padding: '15px', background: '#f8f9fa', borderRadius: '6px', marginBottom: '20px' }}>
+            <div style={{ padding: '15px', background: '#f8f9fa', borderRadius: '6px', marginBottom: '16px' }}>
               <p><strong>Tiêu đề:</strong> {selectedIncident.title}</p>
               <p><strong>Ngày gửi báo cáo:</strong> {new Date(selectedIncident.createdAt).toLocaleString('vi-VN')}</p>
               <p><strong>Phòng:</strong> {selectedIncident.room?.roomNumber} {selectedIncident.room?.roomCode ? `(${selectedIncident.room?.roomCode})` : ''}</p>
@@ -222,10 +278,11 @@ const IncidentManagement = ({ user, rooms, contracts = [] }) => {
               )}
             </div>
 
-            {user.role === 'LANDLORD' ? (
-              <form onSubmit={handleUpdateStatus}>
-                <h4 style={{ margin: '0 0 10px 0' }}>Phản hồi cho khách thuê & Cập nhật trạng thái</h4>
-                <div style={{ marginBottom: 15 }}>
+            {/* Phần chỉ dành cho Landlord: cập nhật trạng thái */}
+            {user.role === 'LANDLORD' && (
+              <form onSubmit={handleUpdateStatus} style={{ marginBottom: '16px' }}>
+                <h4 style={{ margin: '0 0 10px 0' }}>Phản hồi & Cập nhật trạng thái</h4>
+                <div style={{ marginBottom: 12 }}>
                   <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5 }}>Trạng thái quá trình xử lý:</label>
                   <select value={replyData.status} onChange={e => setReplyData({...replyData, status: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}>
                     <option value="Pending">Chờ xử lý (Mới nhận báo cáo)</option>
@@ -234,30 +291,150 @@ const IncidentManagement = ({ user, rooms, contracts = [] }) => {
                     <option value="Rejected">Từ chối (Lý do không hợp lý)</option>
                   </select>
                 </div>
-                <div style={{ marginBottom: 15 }}>
+                <div style={{ marginBottom: 12 }}>
                   <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5 }}>Lời nhắn / Ghi chú phản hồi:</label>
                   <textarea rows="3" placeholder="Ví dụ: Chiều mai thợ sẽ qua kiểm tra..." required value={replyData.landlordReply} onChange={e => setReplyData({...replyData, landlordReply: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}></textarea>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <button type="button" onClick={() => setShowDetailModal(false)} style={{ padding: '10px 20px', background: '#e9ecef', color: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', marginRight: '10px' }}>Đóng</button>
-                  <button type="submit" style={{ padding: '10px 20px', background: '#28a745', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Cập nhật Sự cố</button>
+                  <button type="submit" style={{ padding: '8px 18px', background: '#28a745', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Cập nhật Sự cố</button>
                 </div>
               </form>
-            ) : (
-              <div>
-                <div style={{ padding: '15px', background: '#e6f0fa', borderRadius: '6px' }}>
-                  <h4 style={{ margin: '0 0 10px 0', color: '#0b5ed7' }}>Phản hồi từ Chủ nhà</h4>
-                  <p><strong>Trạng thái:</strong> {getStatusBadge(selectedIncident.status)}</p>
-                  <p><strong>Lời nhắn:</strong></p>
-                  <p style={{ whiteSpace: 'pre-wrap', color: '#333', fontStyle: 'italic', background: '#fff', padding: '10px', borderRadius: '4px' }}>
-                    {selectedIncident.landlordReply || 'Chủ nhà chưa phản hồi.'}
-                  </p>
-                </div>
-                <div style={{ textAlign: 'right', marginTop: '20px' }}>
-                  <button type="button" onClick={() => setShowDetailModal(false)} style={{ padding: '10px 20px', background: '#e9ecef', color: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Đóng</button>
-                </div>
+            )}
+
+            {/* Phần chỉ dành cho Tenant: Xem phản hồi */}
+            {user.role === 'TENANT' && (
+              <div style={{ padding: '14px', background: '#e6f0fa', borderRadius: '6px', marginBottom: '16px' }}>
+                <h4 style={{ margin: '0 0 10px 0', color: '#0b5ed7' }}>Phản hồi từ Chủ nhà</h4>
+                <p><strong>Trạng thái:</strong> {getStatusBadge(selectedIncident.status)}</p>
+                <p style={{ margin: '6px 0 4px 0' }}><strong>Lời nhắn:</strong></p>
+                <p style={{ whiteSpace: 'pre-wrap', color: '#333', fontStyle: 'italic', background: '#fff', padding: '10px', borderRadius: '4px', margin: 0 }}>
+                  {selectedIncident.landlordReply || 'Chủ nhà chưa phản hồi.'}
+                </p>
               </div>
             )}
+
+            {/* ===== KHUNG CHAT TRAO ĐỔI ===== */}
+            <div style={{ border: '1px solid #dee2e6', borderRadius: '8px', overflow: 'hidden' }}>
+              {/* Header chat */}
+              <div style={{ background: 'linear-gradient(135deg, #0b5ed7, #0d6efd)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '16px' }}>💬</span>
+                <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '15px' }}>Trao đổi trực tiếp</span>
+                <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '12px', marginLeft: 4 }}>
+                  {user.role === 'TENANT' ? 'với Chủ nhà' : 'với Khách thuê'}
+                </span>
+              </div>
+
+              {/* Danh sách tin nhắn */}
+              <div style={{
+                height: '220px',
+                overflowY: 'auto',
+                padding: '12px',
+                background: '#f8f9fa',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px'
+              }}>
+                {loadingMessages ? (
+                  <div style={{ textAlign: 'center', color: '#888', paddingTop: '60px' }}>Đang tải tin nhắn...</div>
+                ) : messages.length === 0 ? (
+                  <div style={{ textAlign: 'center', color: '#aaa', paddingTop: '60px', fontSize: '14px' }}>
+                    Chưa có tin nhắn nào. Hãy bắt đầu trao đổi!
+                  </div>
+                ) : (
+                  messages.map((msg) => {
+                    const isMe = msg.senderId === user.id;
+                    return (
+                      <div key={msg.id} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
+                        <div style={{ maxWidth: '72%' }}>
+                          {/* Tên người gửi */}
+                          <div style={{ fontSize: '11px', color: '#888', marginBottom: '3px', textAlign: isMe ? 'right' : 'left' }}>
+                            {isMe ? 'Bạn' : msg.sender?.fullName}
+                            {' · '}
+                            {new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                            {' '}
+                            {new Date(msg.createdAt).toLocaleDateString('vi-VN')}
+                          </div>
+                          {/* Bong bóng chat */}
+                          <div style={{
+                            padding: '9px 13px',
+                            borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                            background: isMe ? '#0b5ed7' : '#fff',
+                            color: isMe ? '#fff' : '#333',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+                            fontSize: '14px',
+                            lineHeight: '1.5',
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                            border: isMe ? 'none' : '1px solid #e0e0e0'
+                          }}>
+                            {msg.message}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+                <div ref={chatEndRef} />
+              </div>
+
+              {/* Ô nhập tin nhắn */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'flex-end',
+                gap: '8px',
+                padding: '10px 12px',
+                background: '#fff',
+                borderTop: '1px solid #dee2e6'
+              }}>
+                <textarea
+                  rows="2"
+                  placeholder="Nhập tin nhắn... (Enter để gửi, Shift+Enter xuống dòng)"
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  onKeyDown={handleChatKeyDown}
+                  style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    border: '1px solid #ccc',
+                    borderRadius: '20px',
+                    resize: 'none',
+                    outline: 'none',
+                    fontSize: '14px',
+                    lineHeight: '1.4',
+                    boxSizing: 'border-box',
+                    fontFamily: 'inherit',
+                    color: '#000',
+                    backgroundColor: '#f8f9fa',
+                    transition: 'border-color 0.2s'
+                  }}
+                  onFocus={e => e.target.style.borderColor = '#0b5ed7'}
+                  onBlur={e => e.target.style.borderColor = '#ccc'}
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!chatInput.trim() || sendingMessage}
+                  style={{
+                    padding: '9px 18px',
+                    background: chatInput.trim() && !sendingMessage ? '#0b5ed7' : '#ccc',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '20px',
+                    cursor: chatInput.trim() && !sendingMessage ? 'pointer' : 'not-allowed',
+                    fontWeight: 'bold',
+                    fontSize: '14px',
+                    whiteSpace: 'nowrap',
+                    transition: 'background 0.2s'
+                  }}
+                >
+                  {sendingMessage ? '...' : '🚀 Gửi'}
+                </button>
+              </div>
+            </div>
+            {/* ============================= */}
+
+            <div style={{ textAlign: 'right', marginTop: '16px' }}>
+              <button type="button" onClick={() => setShowDetailModal(false)} style={{ padding: '10px 20px', background: '#e9ecef', color: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Đóng</button>
+            </div>
           </div>
         </div>
       )}
