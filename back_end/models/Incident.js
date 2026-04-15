@@ -46,6 +46,15 @@ const Incident = sequelize.define('Incident', {
   landlordReply: {
     type: DataTypes.TEXT,
     allowNull: true
+  },
+  repairDescription: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  repairCost: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0
   }
 }, {
   tableName: 'incidents',

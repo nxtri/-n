@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axiosClient from '../api/axiosClient';
 
-const IncidentManagement = ({ user, rooms, contracts = [] }) => {
+const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }) => {
   const [incidents, setIncidents] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState(null);
+  const [viewCostModal, setViewCostModal] = useState(null); // Modal for viewing cost detail
 
   // Form Data (Tenant)
   const [formData, setFormData] = useState({ roomCode: '', title: '', description: '' });
@@ -23,6 +24,12 @@ const IncidentManagement = ({ user, rooms, contracts = [] }) => {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   const chatEndRef = useRef(null);
+
+  // Chi phí phát sinh (Landlord)
+  const [showRepairModal, setShowRepairModal] = useState(false);
+  const [repairIncident, setRepairIncident] = useState(null);
+  const [repairData, setRepairData] = useState({ repairDescription: '', repairCost: '' });
+  const [savingRepair, setSavingRepair] = useState(false);
 
   const fetchIncidents = async () => {
     try {
@@ -122,8 +129,38 @@ const IncidentManagement = ({ user, rooms, contracts = [] }) => {
     fetchMessages(inc.id);
   };
 
-  // Các phòng đang thuê (Dành cho combobox)
-  const tenantActiveRooms = rooms.filter(r => r.status === 'RENTED');
+  const openRepairModal = (inc) => {
+    setRepairIncident(inc);
+    setRepairData({
+      repairDescription: inc.repairDescription || '',
+      repairCost: inc.repairCost || ''
+    });
+    setShowRepairModal(true);
+  };
+
+  const handleSaveRepairCost = async (e) => {
+    e.preventDefault();
+    if (!repairData.repairCost || Number(repairData.repairCost) < 0) {
+      return alert('Vui lòng nhập chi phí hợp lệ (≥ 0)!');
+    }
+    setSavingRepair(true);
+    try {
+      await axiosClient.put(`/incidents/${repairIncident.id}/repair-cost`, {
+        repairDescription: repairData.repairDescription,
+        repairCost: Number(repairData.repairCost)
+      });
+      alert('Đã lưu chi phí phát sinh thành công!');
+      setShowRepairModal(false);
+      fetchIncidents();
+      if (onRepairCostUpdated) {
+        onRepairCostUpdated();
+      }
+    } catch (e) {
+      alert(e.response?.data?.message || 'Lỗi khi lưu chi phí!');
+    } finally {
+      setSavingRepair(false);
+    }
+  };
 
   const getStatusBadge = (status) => {
     switch(status) {
@@ -173,12 +210,13 @@ const IncidentManagement = ({ user, rooms, contracts = [] }) => {
             <th style={{ padding: '12px', textAlign: 'left' }}>Tiêu đề</th>
             <th style={{ padding: '12px', textAlign: 'left' }}>Ngày gửi</th>
             <th style={{ padding: '12px', textAlign: 'center' }}>Trạng thái</th>
+            {user.role === 'LANDLORD' && <th style={{ padding: '12px', textAlign: 'center' }}>Chi phí</th>}
             <th style={{ padding: '12px', textAlign: 'center' }}>Hành động</th>
           </tr>
         </thead>
         <tbody>
           {displayedIncidents.length === 0 ? (
-            <tr><td colSpan={user.role === 'LANDLORD' ? 6 : 5} style={{ textAlign: 'center', padding: '20px' }}>Không có báo cáo nào.</td></tr>
+            <tr><td colSpan={user.role === 'LANDLORD' ? 7 : 5} style={{ textAlign: 'center', padding: '20px' }}>Không có báo cáo nào.</td></tr>
           ) : displayedIncidents.map(inc => (
             <tr key={inc.id} style={{ borderBottom: '1px solid #eee' }}>
               <td style={{ padding: '12px' }}>{inc.room?.roomNumber} {inc.room?.roomCode ? `(${inc.room.roomCode})` : ''}</td>
@@ -186,6 +224,30 @@ const IncidentManagement = ({ user, rooms, contracts = [] }) => {
               <td style={{ padding: '12px', fontWeight: 'bold' }}>{inc.title}</td>
               <td style={{ padding: '12px' }}>{new Date(inc.createdAt).toLocaleDateString('vi-VN')}</td>
               <td style={{ padding: '12px', textAlign: 'center' }}>{getStatusBadge(inc.status)}</td>
+              
+              {/* CỘT CHI PHÍ - CHỈ LANDLORD */}
+              {user.role === 'LANDLORD' && (
+                <td style={{ padding: '12px', textAlign: 'center' }}>
+                  {inc.repairCost > 0 ? (
+                    <div>
+                      <button
+                        onClick={() => setViewCostModal(inc)}
+                        style={{ padding: '6px 12px', background: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                      >
+                        📄 Xem chi tiết
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => openRepairModal(inc)}
+                      style={{ padding: '5px 10px', background: '#e65c00', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                    >
+                      🔧 Ghi chi phí
+                    </button>
+                  )}
+                </td>
+              )}
+
               <td style={{ padding: '12px', textAlign: 'center' }}>
                 <button 
                   onClick={() => openDetailModal(inc)}
@@ -218,7 +280,7 @@ const IncidentManagement = ({ user, rooms, contracts = [] }) => {
                   {contracts
                     .filter(c => c.tenantId === user?.id && c.status === 'ACTIVE')
                     .map(c => c.room)
-                    .filter(r => r) // Lọc bỏ trường hợp room rỗng
+                    .filter(r => r)
                     .map(r => (
                       <option key={r.id} value={r.roomCode || r.roomNumber}>
                         {/^ph[oò]ng/i.test(String(r.roomNumber).trim()) ? `${String(r.roomNumber).charAt(0).toUpperCase()}${String(r.roomNumber).slice(1)}` : `Phòng ${r.roomNumber}`} {r.roomCode ? `(${r.roomCode})` : ''}
@@ -244,6 +306,97 @@ const IncidentManagement = ({ user, rooms, contracts = [] }) => {
                 <button type="submit" style={{ padding: '10px 20px', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Gửi Sự cố</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL GHI CHI PHÍ PHÁT SINH (CHỈ LANDLORD) */}
+      {showRepairModal && repairIncident && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
+          <div style={{ background: '#fff', width: '480px', borderRadius: '10px', padding: '24px', position: 'relative' }}>
+            <button onClick={() => setShowRepairModal(false)} style={{ position: 'absolute', top: 15, right: 15, border: 'none', background: 'transparent', fontSize: '20px', cursor: 'pointer' }}>✖</button>
+            
+            <h3 style={{ marginTop: 0, color: '#e65c00', borderBottom: '2px solid #fde8d0', paddingBottom: 10 }}>
+              🔧 Ghi Chi Phí Phát Sinh
+            </h3>
+            
+            <div style={{ padding: '10px 14px', background: '#f8f9fa', borderRadius: '6px', marginBottom: '16px', fontSize: '14px', color: '#555' }}>
+              <strong>Sự cố:</strong> {repairIncident.title}<br/>
+              <strong>Phòng:</strong> {repairIncident.room?.roomNumber} {repairIncident.room?.roomCode ? `(${repairIncident.room.roomCode})` : ''}<br/>
+              <strong>Ngày báo cáo:</strong> {new Date(repairIncident.createdAt).toLocaleDateString('vi-VN')}
+            </div>
+
+            <form onSubmit={handleSaveRepairCost}>
+              <div style={{ marginBottom: 15 }}>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5, color: '#333' }}>
+                  Nội dung sửa chữa:
+                </label>
+                <textarea
+                  rows="4"
+                  placeholder="VD: Thay dàn lạnh điều hòa, gọi thợ điện vào kiểm tra và sửa chữa..."
+                  value={repairData.repairDescription}
+                  onChange={e => setRepairData({ ...repairData, repairDescription: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box', fontSize: '14px', color: '#000', backgroundColor: '#fff', resize: 'vertical' }}
+                />
+              </div>
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5, color: '#333' }}>
+                  Chi phí phát sinh (VNĐ): <span style={{ color: '#dc3545' }}>*</span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1000"
+                  required
+                  placeholder="VD: 500000"
+                  value={repairData.repairCost}
+                  onChange={e => setRepairData({ ...repairData, repairCost: e.target.value })}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box', fontSize: '16px', fontWeight: 'bold', color: '#e65c00', backgroundColor: '#fff' }}
+                />
+                {repairData.repairCost && (
+                  <small style={{ color: '#666', marginTop: '4px', display: 'block' }}>
+                    = {Number(repairData.repairCost).toLocaleString('vi-VN')} đồng
+                  </small>
+                )}
+              </div>
+              <div style={{ textAlign: 'right', gap: '10px', display: 'flex', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setShowRepairModal(false)} style={{ padding: '10px 20px', background: '#e9ecef', color: '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+                  Hủy
+                </button>
+                <button type="submit" disabled={savingRepair} style={{ padding: '10px 20px', background: savingRepair ? '#ccc' : '#e65c00', color: '#fff', border: 'none', borderRadius: '6px', cursor: savingRepair ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}>
+                  {savingRepair ? 'Đang lưu...' : '💾 Lưu Chi Phí'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL VIEW COST DETAIL */}
+      {viewCostModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000}}>
+          <div style={{ background: '#fff', width: '450px', padding: '25px', borderRadius: '8px', position: 'relative' }}>
+            <button onClick={() => setViewCostModal(null)} style={{ position: 'absolute', top: 15, right: 15, background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#888' }}>✖</button>
+            <h3 style={{ margin: '0 0 15px 0', color: '#e65c00', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>🔧 Chi tiết chi phí sửa chữa</h3>
+            <div style={{ background: '#fdf3e2', padding: '15px', borderRadius: '6px', border: '1px solid #fbe0b3', marginBottom: '20px', textAlign: 'left' }}>
+              {/* <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>ID Sự cố: <strong>{viewCostModal.id}</strong></p> */}
+              <p style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#333' }}>Tổng chi phí: <strong style={{ color: '#e65c00', fontSize: '22px' }}>{Number(viewCostModal.repairCost).toLocaleString('vi-VN')} đ</strong></p>
+              {viewCostModal.repairDescription && (
+                <div>
+                  <p style={{ margin: '0 0 5px 0', fontSize: '18px', color: '#333' }}>Nội dung sửa chữa:</p>
+                  <p style={{ margin: 0, background: '#fff', padding: '10px', borderRadius: '4px', border: '1px solid #eee', color: '#333', whiteSpace: 'pre-wrap' }}>{viewCostModal.repairDescription}</p>
+                </div>
+              )}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button onClick={() => setViewCostModal(null)} style={{ padding: '8px 15px', background: '#6c757d', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Đóng</button>
+              <button 
+                onClick={() => { setViewCostModal(null); openRepairModal(viewCostModal); }} 
+                style={{ padding: '8px 15px', background: '#e65c00', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                ✎ Sửa chi phí
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -277,6 +430,17 @@ const IncidentManagement = ({ user, rooms, contracts = [] }) => {
                 </div>
               )}
             </div>
+
+            {/* Chi phí phát sinh (chỉ hiển thị cho Chủ nhà) */}
+            {user.role === 'LANDLORD' && selectedIncident.repairCost > 0 && (
+              <div style={{ padding: '12px 16px', background: '#fff3e0', border: '1px solid #ffcc80', borderRadius: '6px', marginBottom: '16px' }}>
+                <h4 style={{ margin: '0 0 8px 0', color: '#e65c00' }}>Chi Phí Phát Sinh</h4>
+                <p style={{ margin: '4px 0' }}><strong>Chi phí:</strong> <span style={{ color: '#e65c00', fontWeight: 'bold', fontSize: '16px' }}>{Number(selectedIncident.repairCost).toLocaleString('vi-VN')} đ</span></p>
+                {selectedIncident.repairDescription && (
+                  <p style={{ margin: '4px 0' }}><strong>Nội dung:</strong> {selectedIncident.repairDescription}</p>
+                )}
+              </div>
+            )}
 
             {/* Phần chỉ dành cho Landlord: cập nhật trạng thái */}
             {user.role === 'LANDLORD' && (
@@ -315,7 +479,6 @@ const IncidentManagement = ({ user, rooms, contracts = [] }) => {
 
             {/* ===== KHUNG CHAT TRAO ĐỔI ===== */}
             <div style={{ border: '1px solid #dee2e6', borderRadius: '8px', overflow: 'hidden' }}>
-              {/* Header chat */}
               <div style={{ background: 'linear-gradient(135deg, #0b5ed7, #0d6efd)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '16px' }}>💬</span>
                 <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '15px' }}>Trao đổi trực tiếp</span>
@@ -324,16 +487,7 @@ const IncidentManagement = ({ user, rooms, contracts = [] }) => {
                 </span>
               </div>
 
-              {/* Danh sách tin nhắn */}
-              <div style={{
-                height: '220px',
-                overflowY: 'auto',
-                padding: '12px',
-                background: '#f8f9fa',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px'
-              }}>
+              <div style={{ height: '220px', overflowY: 'auto', padding: '12px', background: '#f8f9fa', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {loadingMessages ? (
                   <div style={{ textAlign: 'center', color: '#888', paddingTop: '60px' }}>Đang tải tin nhắn...</div>
                 ) : messages.length === 0 ? (
@@ -346,7 +500,6 @@ const IncidentManagement = ({ user, rooms, contracts = [] }) => {
                     return (
                       <div key={msg.id} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
                         <div style={{ maxWidth: '72%' }}>
-                          {/* Tên người gửi */}
                           <div style={{ fontSize: '11px', color: '#888', marginBottom: '3px', textAlign: isMe ? 'right' : 'left' }}>
                             {isMe ? 'Bạn' : msg.sender?.fullName}
                             {' · '}
@@ -354,7 +507,6 @@ const IncidentManagement = ({ user, rooms, contracts = [] }) => {
                             {' '}
                             {new Date(msg.createdAt).toLocaleDateString('vi-VN')}
                           </div>
-                          {/* Bong bóng chat */}
                           <div style={{
                             padding: '9px 13px',
                             borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
@@ -377,60 +529,26 @@ const IncidentManagement = ({ user, rooms, contracts = [] }) => {
                 <div ref={chatEndRef} />
               </div>
 
-              {/* Ô nhập tin nhắn */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'flex-end',
-                gap: '8px',
-                padding: '10px 12px',
-                background: '#fff',
-                borderTop: '1px solid #dee2e6'
-              }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', padding: '10px 12px', background: '#fff', borderTop: '1px solid #dee2e6' }}>
                 <textarea
                   rows="2"
                   placeholder="Nhập tin nhắn... (Enter để gửi, Shift+Enter xuống dòng)"
                   value={chatInput}
                   onChange={e => setChatInput(e.target.value)}
                   onKeyDown={handleChatKeyDown}
-                  style={{
-                    flex: 1,
-                    padding: '8px 12px',
-                    border: '1px solid #ccc',
-                    borderRadius: '20px',
-                    resize: 'none',
-                    outline: 'none',
-                    fontSize: '14px',
-                    lineHeight: '1.4',
-                    boxSizing: 'border-box',
-                    fontFamily: 'inherit',
-                    color: '#000',
-                    backgroundColor: '#f8f9fa',
-                    transition: 'border-color 0.2s'
-                  }}
+                  style={{ flex: 1, padding: '8px 12px', border: '1px solid #ccc', borderRadius: '20px', resize: 'none', outline: 'none', fontSize: '14px', lineHeight: '1.4', boxSizing: 'border-box', fontFamily: 'inherit', color: '#000', backgroundColor: '#f8f9fa' }}
                   onFocus={e => e.target.style.borderColor = '#0b5ed7'}
                   onBlur={e => e.target.style.borderColor = '#ccc'}
                 />
                 <button
                   onClick={handleSendMessage}
                   disabled={!chatInput.trim() || sendingMessage}
-                  style={{
-                    padding: '9px 18px',
-                    background: chatInput.trim() && !sendingMessage ? '#0b5ed7' : '#ccc',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '20px',
-                    cursor: chatInput.trim() && !sendingMessage ? 'pointer' : 'not-allowed',
-                    fontWeight: 'bold',
-                    fontSize: '14px',
-                    whiteSpace: 'nowrap',
-                    transition: 'background 0.2s'
-                  }}
+                  style={{ padding: '9px 18px', background: chatInput.trim() && !sendingMessage ? '#0b5ed7' : '#ccc', color: '#fff', border: 'none', borderRadius: '20px', cursor: chatInput.trim() && !sendingMessage ? 'pointer' : 'not-allowed', fontWeight: 'bold', fontSize: '14px', whiteSpace: 'nowrap' }}
                 >
                   {sendingMessage ? '...' : '🚀 Gửi'}
                 </button>
               </div>
             </div>
-            {/* ============================= */}
 
             <div style={{ textAlign: 'right', marginTop: '16px' }}>
               <button type="button" onClick={() => setShowDetailModal(false)} style={{ padding: '10px 20px', background: '#e9ecef', color: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Đóng</button>

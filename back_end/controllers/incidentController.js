@@ -75,7 +75,7 @@ const incidentController = {
       const incidents = await Incident.findAll({
         where: whereCondition,
         include: [
-          { model: User, as: 'tenant', attributes: ['fullName', 'phone'] },
+          { model: User, as: 'tenant', attributes: ['fullName', 'phone', 'email'] },
           { model: Room, as: 'room', attributes: ['roomNumber', 'roomCode'] }
         ],
         order: [['createdAt', 'DESC']]
@@ -129,6 +129,36 @@ const incidentController = {
     } catch (error) {
       console.error('Lỗi khi cập nhật sự cố:', error);
       res.status(500).json({ message: 'Lỗi server khi cập nhật sự cố.' });
+    }
+  },
+  // 4. Cập nhật chi phí sửa chữa (Dành cho Landlord)
+  updateRepairCost: async (req, res) => {
+    try {
+      if (req.user.role !== 'LANDLORD') {
+        return res.status(403).json({ message: 'Chỉ chủ nhà mới có thể ghi chi phí sự cố.' });
+      }
+
+      const incidentId = req.params.id;
+      const { repairDescription, repairCost } = req.body;
+
+      const incident = await Incident.findByPk(incidentId);
+      if (!incident) {
+        return res.status(404).json({ message: 'Không tìm thấy sự cố này.' });
+      }
+
+      if (incident.landlordId !== req.user.id) {
+        return res.status(403).json({ message: 'Bạn không có quyền cập nhật sự cố này.' });
+      }
+
+      await incident.update({
+        repairDescription: repairDescription || incident.repairDescription,
+        repairCost: repairCost !== undefined ? Number(repairCost) : incident.repairCost
+      });
+
+      res.status(200).json({ message: 'Đã lưu chi phí phát sinh thành công.', incident });
+    } catch (error) {
+      console.error('Lỗi khi cập nhật chi phí sự cố:', error);
+      res.status(500).json({ message: 'Lỗi server khi cập nhật chi phí.' });
     }
   }
 };

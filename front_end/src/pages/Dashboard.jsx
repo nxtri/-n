@@ -190,6 +190,7 @@ const Dashboard = () => {
   const [editingRoomId, setEditingRoomId] = useState(null);
   const [viewRoomDetails, setViewRoomDetails] = useState(null); // State bật/tắt Popup Chi tiết phòng
   const [viewBillDetails, setViewBillDetails] = useState(null); // State mới để xem chi tiết hóa đơn
+  const [viewIncidentCostDetails, setViewIncidentCostDetails] = useState(null); // Modal xem chi tiết chi phí phát sinh
   // State lưu ảnh bằng chứng thanh toán
   const [proofFiles, setProofFiles] = useState([]);
 
@@ -280,9 +281,20 @@ const Dashboard = () => {
   const fetchBills = async () => { try { const res = await billApi.getAllBills(); setBills(res.bills || []); } catch (e) { setBills([]); } };
   const fetchProvinces = async () => { try { const res = await axios.get('https://provinces.open-api.vn/api/v2/p/'); setProvinces(res.data); } catch (e) {} };
 
+  // --- FETCH SỰ CỐ (CHO BÁO CÁO DOANH THU - CHỦ NHÀ) ---
+  const [landlordIncidents, setLandlordIncidents] = useState([]);
+  const fetchLandlordIncidents = async () => {
+    if (user?.role !== 'LANDLORD') return;
+    try {
+      const res = await axiosClient.get('/incidents');
+      setLandlordIncidents(res.incidents || []);
+    } catch (e) { setLandlordIncidents([]); }
+  };
+
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
     fetchRooms(); fetchProvinces(); fetchContracts(); fetchBills(); fetchNotifications(); fetchMyReviews();
+    if (user?.role === 'LANDLORD') fetchLandlordIncidents();
   }, [navigate]);
 
   // --- CÁC HÀM TÀI KHOẢN ---
@@ -1385,7 +1397,7 @@ const handleCreateRoom = async (e) => {
 
           {/* TAB BÁO CÁO & SỰ CỐ */}
           {activeTab === 'INCIDENTS' && (
-            <IncidentManagement user={user} rooms={rooms} contracts={contracts} />
+            <IncidentManagement user={user} rooms={rooms} contracts={contracts} onRepairCostUpdated={fetchLandlordIncidents} />
           )}
 
           {/* TAB THÊM/SỬA PHÒNG */}
@@ -1857,6 +1869,7 @@ const handleCreateRoom = async (e) => {
                             Tháng {bill.month}/{bill.year}
                           </td>
                           
+                          
                           {/* 3. Cột Khách Thuê (Ưu tiên dùng Snapshot) */}
                           <td style={{ padding: '12px' }}>
                             <span style={{ fontWeight: 'bold' }}>
@@ -1866,9 +1879,8 @@ const handleCreateRoom = async (e) => {
                             <span style={{ color: '#888', fontSize: '12px' }}>SĐT: {bill.contract?.tenantPhone || bill.contract?.tenant?.phone || '...'}</span>
                           </td>
                           
-                          {/* 4. Cột loại hóa đơn*/}
+                          {/* 4. Cột Loại Hóa Đơn */}
                           <td style={{ padding: '12px', color: 'red', fontWeight: 'bold', textAlign: 'center', fontSize: '15px' }}>
-                          {/* <td style={{ padding: '15px', verticalAlign: 'middle', textAlign: 'center' }}> */}
                             {bill.billType === 'ROOM' ? (
                                <span style={{ background: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', display: 'inline-block' }}>
                               🏠 Tiền phòng
@@ -1895,7 +1907,7 @@ const handleCreateRoom = async (e) => {
                             )}
                           </td>
 
-                          {/* 6. Cột Hành Động (Nút Xem Hóa Đơn NẰM Ở ĐÂY LÀ CHUẨN) */}
+                          {/* 6. Cột Hành Động */}
                           <td style={{ padding: '12px', textAlign: 'center' }}>
                             <button 
                               onClick={() => setViewBillDetails(bill)} 
@@ -1913,10 +1925,6 @@ const handleCreateRoom = async (e) => {
               </div>
             </div>
           )}
-
-          {/* ================= GIAO DIỆN BÁO CÁO DOANH THU ================= */}
-        {/* {activeTab === 'LANDLORD_REVENUE' && ( */}
-        {/* ================= GIAO DIỆN BÁO CÁO DOANH THU (PHIÊN BẢN MỚI ACCORDION) ================= */}
         {activeTab === 'LANDLORD_REVENUE' && user?.role === 'LANDLORD' && (() => {
           
           // 1. LỌC HÓA ĐƠN THEO THÁNG/NĂM CHỦ NHÀ ĐANG CHỌN
@@ -1925,8 +1933,19 @@ const handleCreateRoom = async (e) => {
             (reportYear === 'ALL' || Number(b.year) === Number(reportYear))
           );
 
-          // 2. TÍNH TỔNG 4 THẺ CHỈ SỐ
-          let grandTotalRevenue = 0;
+          // 2. LỌC SỰ CỐ CÓ CHI PHÍ THEO THÁNG/NĂM (dựa vào createdAt của sự cố)
+          const filteredIncidents = landlordIncidents.filter(inc => {
+            if (!inc.repairCost || inc.repairCost <= 0) return false;
+            const incDate = new Date(inc.createdAt);
+            const incMonth = incDate.getMonth() + 1;
+            const incYear = incDate.getFullYear();
+            return (
+              (reportMonth === 'ALL' || Number(incMonth) === Number(reportMonth)) &&
+              (reportYear === 'ALL' || Number(incYear) === Number(reportYear))
+            );
+          });
+
+          // 3. TÍNH TỔNG CÁC THẺ CHỈ SỐ
           let totalRoomRevenue = 0;
           let totalUtilityRevenue = 0;
           let grandTotalDebt = 0;
@@ -1934,7 +1953,6 @@ const handleCreateRoom = async (e) => {
           filteredBills.forEach(bill => {
             const amount = bill.totalAmount || 0;
             if (bill.status === 'PAID') {
-              grandTotalRevenue += amount;
               if (bill.billType === 'UTILITY') totalUtilityRevenue += amount;
               else totalRoomRevenue += amount;
             } else {
@@ -1942,30 +1960,54 @@ const handleCreateRoom = async (e) => {
             }
           });
 
-          // 3. GHÉP HÓA ĐƠN VÀO TỪNG PHÒNG & LỌC TÌM KIẾM
-          // 3. GHÉP HÓA ĐƠN VÀO TỪNG PHÒNG DỰA TRÊN SNAPSHOT (Chống mất dữ liệu khi phòng bị xóa)
+          // Tổng chi phí phát sinh
+          const totalRepairCost = filteredIncidents.reduce((sum, inc) => sum + (Number(inc.repairCost) || 0), 0);
+
+          // TỔNG DOANH THU = Tiền phòng + Điện nước - Chi phí phát sinh
+          const grandTotalRevenue = totalRoomRevenue + totalUtilityRevenue - totalRepairCost;
+
+          // 4. GHÉP HÓA ĐƠN VÀO TỪNG PHÒNG DỰA TRÊN SNAPSHOT
           const roomGroups = {};
           
           filteredBills.forEach(bill => {
-            // Lấy tên phòng từ Snapshot (Nếu là phòng xóa rồi thì dùng tên chụp lại)
             const rName = bill.roomNumberSnapshot || (bill.contract?.room ? `Phòng ${bill.contract.room.roomNumber}` : 'Phòng đã xóa');
-            
-            // Nếu nhóm phòng này chưa tồn tại trong danh sách thì tạo mới
             if (!roomGroups[rName]) {
               roomGroups[rName] = { 
-                id: rName, // Dùng tên phòng làm ID ảo
+                id: rName,
                 roomNumber: rName, 
                 address: bill.contract?.room?.address || '', 
                 bills: [], 
+                incidentCosts: [],
                 roomTotalRevenue: 0 
               };
             }
-            
-            // Nhét hóa đơn vào nhóm
             roomGroups[rName].bills.push(bill);
             if (bill.status === 'PAID') {
               roomGroups[rName].roomTotalRevenue += (bill.totalAmount || 0);
             }
+          });
+
+          // GÁN SỰ CỐ CHI PHÍ VÀO NHÓM PHÒNG TƯƠNG ỨNG
+          filteredIncidents.forEach(inc => {
+            const incRoomNum = String(inc.room?.roomNumber || '');
+            // Tìm key phòng khớp trong roomGroups
+            const matchedKey = Object.keys(roomGroups).find(k =>
+              k.toLowerCase().includes(incRoomNum.toLowerCase()) && incRoomNum !== ''
+            );
+            const targetKey = matchedKey || `Phòng ${incRoomNum || 'không rõ'}`;
+
+            if (!roomGroups[targetKey]) {
+              roomGroups[targetKey] = {
+                id: targetKey,
+                roomNumber: targetKey,
+                address: inc.room?.address || '',
+                bills: [],
+                incidentCosts: [],
+                roomTotalRevenue: 0
+              };
+            }
+            if (!roomGroups[targetKey].incidentCosts) roomGroups[targetKey].incidentCosts = [];
+            roomGroups[targetKey].incidentCosts.push(inc);
           });
 
           // Biến object thành mảng để hiển thị
@@ -1980,13 +2022,10 @@ const handleCreateRoom = async (e) => {
             );
           }
 
-          
-
           return (
             <div>
               {/* THANH TÌM KIẾM & BỘ LỌC */}
               <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', alignItems: 'center', background: '#fff', padding: '15px', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
-                
                 <div style={{ flex: '1 1 300px', position: 'relative' }}>
                   <span style={{ position: 'absolute', left: '15px', top: '10px' }}>📍</span>
                   <input 
@@ -1997,14 +2036,12 @@ const handleCreateRoom = async (e) => {
                     style={{ width: '100%', padding: '10px 10px 10px 40px', borderRadius: '5px', border: '1px solid #ced4da', backgroundColor: '#f8f9fa', color: '#333', boxSizing: 'border-box' }} 
                   />
                 </div>
-
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <select value={reportMonth} onChange={(e) => setReportMonth(e.target.value)} style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ced4da', backgroundColor: '#fff', color: '#333', cursor: 'pointer', }}>
+                  <select value={reportMonth} onChange={(e) => setReportMonth(e.target.value)} style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ced4da', backgroundColor: '#fff', color: '#333', cursor: 'pointer' }}>
                     <option value="ALL">Cả năm</option>
                     {[...Array(12)].map((_, i) => <option key={i+1} value={i+1}>Tháng {i+1}</option>)}
                   </select>
-                  
-                  <select value={reportYear} onChange={(e) => setReportYear(e.target.value)} style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ced4da', backgroundColor: '#fff', color: '#333', cursor: 'pointer', }}>
+                  <select value={reportYear} onChange={(e) => setReportYear(e.target.value)} style={{ padding: '10px', borderRadius: '5px', border: '1px solid #ced4da', backgroundColor: '#fff', color: '#333', cursor: 'pointer' }}>
                     <option value="ALL">Tất cả các năm</option>
                     <option value="2026">Năm 2026</option>
                     <option value="2025">Năm 2025</option>
@@ -2017,23 +2054,29 @@ const handleCreateRoom = async (e) => {
                 📊 Báo cáo Doanh thu Chi tiết
               </h2>
 
-              {/* 4 THẺ TỔNG QUAN */}
-              <div style={{ display: 'flex', gap: '15px', marginBottom: '30px' }}>
-                <div style={{ flex: 1, background: '#fff', padding: '15px', borderRadius: '8px', borderLeft: '4px solid #0d6efd', textAlign: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
-                  <div style={{ color: '#6c757d', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Tổng Doanh Thu</div>
-                  <div style={{ color: '#0d6efd', fontSize: '22px', fontWeight: 'bold', marginTop: '5px' }}>{grandTotalRevenue.toLocaleString('vi-VN')} đ</div>
+              {/* 5 THẺ TỔNG QUAN */}
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '30px', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: '140px', background: '#fff', padding: '15px', borderRadius: '8px', borderLeft: '4px solid #0d6efd', textAlign: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
+                  <div style={{ color: '#6c757d', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>Tổng Doanh Thu</div>
+                  <div style={{ color: '#0d6efd', fontSize: '20px', fontWeight: 'bold', marginTop: '5px' }}>{grandTotalRevenue.toLocaleString('vi-VN')} đ</div>
+                  <div style={{ color: '#999', fontSize: '10px', marginTop: '3px' }}>= Phòng + Điện nước - Chi phí</div>
                 </div>
-                <div style={{ flex: 1, background: '#fff', padding: '15px', borderRadius: '8px', borderLeft: '4px solid #198754', textAlign: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
-                  <div style={{ color: '#6c757d', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Từ Tiền Phòng</div>
-                  <div style={{ color: '#198754', fontSize: '22px', fontWeight: 'bold', marginTop: '5px' }}>{totalRoomRevenue.toLocaleString('vi-VN')} đ</div>
+                <div style={{ flex: 1, minWidth: '140px', background: '#fff', padding: '15px', borderRadius: '8px', borderLeft: '4px solid #198754', textAlign: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
+                  <div style={{ color: '#6c757d', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>Từ Tiền Phòng</div>
+                  <div style={{ color: '#198754', fontSize: '20px', fontWeight: 'bold', marginTop: '5px' }}>{totalRoomRevenue.toLocaleString('vi-VN')} đ</div>
                 </div>
-                <div style={{ flex: 1, background: '#fff', padding: '15px', borderRadius: '8px', borderLeft: '4px solid #0dcaf0', textAlign: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
-                  <div style={{ color: '#6c757d', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Từ Điện Nước</div>
-                  <div style={{ color: '#0dcaf0', fontSize: '22px', fontWeight: 'bold', marginTop: '5px' }}>{totalUtilityRevenue.toLocaleString('vi-VN')} đ</div>
+                <div style={{ flex: 1, minWidth: '140px', background: '#fff', padding: '15px', borderRadius: '8px', borderLeft: '4px solid #0dcaf0', textAlign: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
+                  <div style={{ color: '#6c757d', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>Từ Điện Nước</div>
+                  <div style={{ color: '#0dcaf0', fontSize: '20px', fontWeight: 'bold', marginTop: '5px' }}>{totalUtilityRevenue.toLocaleString('vi-VN')} đ</div>
                 </div>
-                <div style={{ flex: 1, background: '#fff', padding: '15px', borderRadius: '8px', borderLeft: '4px solid #dc3545', textAlign: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
-                  <div style={{ color: '#6c757d', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Khách Đang Nợ</div>
-                  <div style={{ color: '#dc3545', fontSize: '22px', fontWeight: 'bold', marginTop: '5px' }}>{grandTotalDebt.toLocaleString('vi-VN')} đ</div>
+                <div style={{ flex: 1, minWidth: '140px', background: '#fff', padding: '15px', borderRadius: '8px', borderLeft: '4px solid #dc3545', textAlign: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
+                  <div style={{ color: '#6c757d', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>Khách Đang Nợ</div>
+                  <div style={{ color: '#dc3545', fontSize: '20px', fontWeight: 'bold', marginTop: '5px' }}>{grandTotalDebt.toLocaleString('vi-VN')} đ</div>
+                </div>
+                <div style={{ flex: 1, minWidth: '140px', background: '#fff', padding: '15px', borderRadius: '8px', borderLeft: '4px solid #e65c00', textAlign: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
+                  <div style={{ color: '#6c757d', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>Chi Phí Phát Sinh</div>
+                  <div style={{ color: '#e65c00', fontSize: '20px', fontWeight: 'bold', marginTop: '5px' }}>{totalRepairCost.toLocaleString('vi-VN')} đ</div>
+                  <div style={{ color: '#999', fontSize: '10px', marginTop: '3px' }}>{filteredIncidents.length} sự cố</div>
                 </div>
               </div>
 
@@ -2073,57 +2116,90 @@ const handleCreateRoom = async (e) => {
                               </tr>
                             </thead>
                             <tbody>
-                              {room.bills.length === 0 ? (
+                              {/* HÀNG HÓA ĐƠN THÔNG THƯỜNG */}
+                              {room.bills.map((bill, bIdx) => (
+                                <tr key={bill.id} style={{ borderBottom: '1px solid #eee', background: '#fff' }}>
+                                  <td style={{ padding: '15px', color: '#555', fontWeight: 'bold' }}>
+                                    Tháng {bill.month}/{bill.year}
+                                  </td>
+                                  <td style={{ padding: '15px' }}>
+                                    <span style={{ fontWeight: 'bold' }}>{bill.contract?.tenantName || bill.contract?.tenant?.fullName || 'Không rõ'}</span> <br/>
+                                    <span style={{ color: '#666', fontSize: '12px' }}>{bill.contract?.tenantEmail}</span> <br/>
+                                    <span style={{ color: '#888', fontSize: '12px' }}>SĐT: {bill.contract?.tenantPhone || bill.contract?.tenant?.phone || '...'}</span>
+                                  </td>
+                                  <td style={{ padding: '15px', textAlign: 'center' }}>
+                                    <span style={{ 
+                                      background: bill.billType === 'UTILITY' ? '#d1e7dd' : '#e0e7ff', 
+                                      color: bill.billType === 'UTILITY' ? '#0f5132' : '#3730a3', 
+                                      padding: '4px 10px', borderRadius: '15px', fontSize: '12px', fontWeight: 'bold' 
+                                    }}>
+                                      {bill.billType === 'UTILITY' ? '⚡ Tiền điện nước' : '🏠 Tiền phòng'}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '15px', textAlign: 'center' }}>
+                                    <span style={{ 
+                                      background: bill.status === 'PAID' ? '#d1e7dd' : '#fff3cd', 
+                                      color: bill.status === 'PAID' ? '#0f5132' : '#856404', 
+                                      padding: '4px 10px', borderRadius: '5px', fontSize: '12px', fontWeight: 'bold', border: `1px solid ${bill.status === 'PAID' ? '#badbcc' : '#ffeeba'}`
+                                    }}>
+                                      {bill.status === 'PAID' ? '✅ Đã thu tiền' : '⏳ Chờ thanh toán'}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '15px', textAlign: 'center' }}>
+                                    <button 
+                                      onClick={() => setViewBillDetails(bill)} 
+                                      style={{ background: '#17a2b8', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                                    >
+                                      📄 Xem Hóa Đơn
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+
+                              {/* HÀNG CHI PHÍ PHÁT SINH TỪ SỰ CỐ */}
+                              {(room.incidentCosts || []).map((inc) => {
+                                const incDate = new Date(inc.createdAt);
+                                const incMonth = incDate.getMonth() + 1;
+                                const incYear = incDate.getFullYear();
+                                return (
+                                  <tr key={`inc-${inc.id}`} style={{ borderBottom: '1px solid #eee', background: '#fff9f0' }}>
+                                    <td style={{ padding: '15px', color: '#e65c00', fontWeight: 'bold' }}>
+                                      Tháng {incMonth}/{incYear}
+                                    </td>
+                                    <td style={{ padding: '15px' }}>
+                                      <span style={{ fontWeight: 'bold' }}>{inc.tenant?.fullName || 'Không rõ'}</span><br/>
+                                      <span style={{ color: '#666', fontSize: '12px' }}>{inc.tenant?.email || 'Không có email'}</span><br/>
+                                      <span style={{ color: '#888', fontSize: '12px' }}>SĐT: {inc.tenant?.phone || '...'}</span>
+                                    </td>
+                                    <td style={{ padding: '15px', textAlign: 'center' }}>
+                                      <span style={{ background: '#fde8d0', color: '#e65c00', border: '1px solid #ffcc80', padding: '4px 10px', borderRadius: '15px', fontSize: '12px', fontWeight: 'bold' }}>
+                                        🔧 Chi phí phát sinh
+                                      </span>
+                                    </td>
+                                    <td style={{ padding: '15px', textAlign: 'center' }}>
+                                      <span style={{ background: '#d1e7dd', color: '#0f5132', padding: '4px 10px', borderRadius: '5px', fontSize: '12px', fontWeight: 'bold', border: '1px solid #badbcc' }}>
+                                        ✅ Hoàn thành
+                                      </span>
+                                    </td>
+                                    <td style={{ padding: '15px', textAlign: 'center' }}>
+                                      <button
+                                        onClick={() => setViewIncidentCostDetails(inc)}
+                                        style={{ background: '#17a2b8', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                                      >
+                                        📄 Xem chi tiết
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+
+                              {/* Thông báo nếu không có hóa đơn lẫn chi phí */}
+                              {room.bills.length === 0 && (room.incidentCosts || []).length === 0 && (
                                 <tr>
                                   <td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#777' }}>
                                     Phòng này chưa có phát sinh hóa đơn nào trong kỳ này.
                                   </td>
                                 </tr>
-                              ) : (
-                                room.bills.map((bill, bIdx) => (
-                                  <tr key={bill.id} style={{ borderBottom: bIdx === room.bills.length - 1 ? 'none' : '1px solid #eee' }}>
-                                    
-                                    <td style={{ padding: '15px', color: '#555', fontWeight: 'bold' }}>
-                                      Tháng {bill.month}/{bill.year}
-                                    </td>
-                                    
-                                    <td style={{ padding: '15px' }}>
-                                      <span style={{ fontWeight: 'bold' }}>{bill.contract?.tenantName || bill.contract?.tenant?.fullName || 'Không rõ'}</span> <br/>
-                                      <span style={{ color: '#666', fontSize: '12px' }}>{bill.contract?.tenantEmail}</span> <br/>
-                                      <span style={{ color: '#888', fontSize: '12px' }}>SĐT: {bill.contract?.tenantPhone || bill.contract?.tenant?.phone || '...'}</span>
-                                    </td>
-                                    
-                                    <td style={{ padding: '15px', textAlign: 'center' }}>
-                                      <span style={{ 
-                                        background: bill.billType === 'UTILITY' ? '#d1e7dd' : '#e0e7ff', 
-                                        color: bill.billType === 'UTILITY' ? '#0f5132' : '#3730a3', 
-                                        padding: '4px 10px', borderRadius: '15px', fontSize: '12px', fontWeight: 'bold' 
-                                      }}>
-                                        {bill.billType === 'UTILITY' ? '⚡ Tiền điện nước' : '🏠 Tiền phòng'}
-                                      </span>
-                                    </td>
-                                    
-                                    <td style={{ padding: '15px', textAlign: 'center' }}>
-                                      <span style={{ 
-                                        background: bill.status === 'PAID' ? '#d1e7dd' : '#fff3cd', 
-                                        color: bill.status === 'PAID' ? '#0f5132' : '#856404', 
-                                        padding: '4px 10px', borderRadius: '5px', fontSize: '12px', fontWeight: 'bold', border: `1px solid ${bill.status === 'PAID' ? '#badbcc' : '#ffeeba'}`
-                                      }}>
-                                        {bill.status === 'PAID' ? '✅ Đã thu tiền' : '⏳ Chờ thanh toán'}
-                                      </span>
-                                    </td>
-                                    
-                                    <td style={{ padding: '15px', textAlign: 'center' }}>
-                                      <button 
-                                        onClick={() => setViewBillDetails(bill)} 
-                                        style={{ background: '#17a2b8', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                                      >
-                                        📄 Xem Hóa Đơn
-                                      </button>
-                                    </td>
-
-                                  </tr>
-                                ))
                               )}
                             </tbody>
                           </table>
@@ -2765,6 +2841,72 @@ const handleCreateRoom = async (e) => {
       
 
 
+
+      {/* ======================================================= */}
+      {/* MODAL: XEM CHI TIẾT CHI PHÍ PHÁT SINH                   */}
+      {/* ======================================================= */}
+      {viewIncidentCostDetails && (
+        <div
+          style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.75)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}
+          onClick={() => setViewIncidentCostDetails(null)}
+        >
+          <div
+            style={{ background: '#fff', width: '480px', borderRadius: '12px', padding: '28px', position: 'relative', boxShadow: '0 10px 30px rgba(0,0,0,0.4)', color: '#333' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <button onClick={() => setViewIncidentCostDetails(null)} style={{ position: 'absolute', top: 14, right: 18, background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#888' }}>✖</button>
+
+            <h3 style={{ margin: '0 0 18px 0', color: '#e65c00', borderBottom: '2px solid #fde8d0', paddingBottom: '10px' }}>
+              🔧 Chi Tiết Chi Phí Phát Sinh
+            </h3>
+
+            {/* Thông tin sự cố */}
+            <div style={{ background: '#f8f9fa', borderRadius: '8px', padding: '14px', marginBottom: '16px' }}>
+              <div style={{ marginBottom: '8px' }}>
+                <span style={{ color: '#888', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Sự cố</span>
+                <div style={{ fontWeight: 'bold', fontSize: '15px', marginTop: '3px' }}>{viewIncidentCostDetails.title}</div>
+              </div>
+              <div style={{ marginBottom: '8px' }}>
+                <span style={{ color: '#888', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Phòng</span>
+                <div style={{ marginTop: '3px' }}>{viewIncidentCostDetails.room?.roomNumber} {viewIncidentCostDetails.room?.roomCode ? `(${viewIncidentCostDetails.room.roomCode})` : ''}</div>
+              </div>
+              <div style={{ marginBottom: '8px' }}>
+                <span style={{ color: '#888', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Khách thuê báo cáo</span>
+                <div style={{ marginTop: '3px' }}>{viewIncidentCostDetails.tenant?.fullName || 'Không rõ'}</div>
+                <div style={{ color: '#888', fontSize: '12px' }}>SĐT: {viewIncidentCostDetails.tenant?.phone || '...'}</div>
+              </div>
+              <div>
+                <span style={{ color: '#888', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Ngày sự cố</span>
+                <div style={{ marginTop: '3px' }}>{new Date(viewIncidentCostDetails.createdAt).toLocaleDateString('vi-VN')}</div>
+              </div>
+            </div>
+
+            {/* Chi phí */}
+            <div style={{ background: '#fff3e0', border: '1px solid #ffcc80', borderRadius: '8px', padding: '14px', marginBottom: '16px' }}>
+              <div style={{ marginBottom: '10px' }}>
+                <span style={{ color: '#888', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Chi phí phát sinh</span>
+                <div style={{ color: '#e65c00', fontWeight: 'bold', fontSize: '24px', marginTop: '4px' }}>
+                  {Number(viewIncidentCostDetails.repairCost).toLocaleString('vi-VN')} đ
+                </div>
+              </div>
+              {viewIncidentCostDetails.repairDescription && (
+                <div>
+                  <span style={{ color: '#888', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Nội dung sửa chữa</span>
+                  <div style={{ marginTop: '5px', whiteSpace: 'pre-wrap', lineHeight: '1.6', color: '#555' }}>
+                    {viewIncidentCostDetails.repairDescription}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div style={{ textAlign: 'right' }}>
+              <button onClick={() => setViewIncidentCostDetails(null)} style={{ padding: '10px 24px', background: '#e9ecef', color: '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================= */}
           {/* MODAL POPUP: XEM CHI TIẾT HÓA ĐƠN (BẢN ĐẦY ĐỦ)           */}

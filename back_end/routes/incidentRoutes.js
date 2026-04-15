@@ -33,6 +33,13 @@ router.post(
   incidentMessageController.sendMessage
 );
 
+// 5. Ghi chi phí sửa chữa (cũng đặt trước /:id wildcard)
+router.put(
+  '/:id/repair-cost',
+  authMiddleware.verifyToken,
+  incidentController.updateRepairCost
+);
+
 // 4. Dành cho Landlord: Cập nhật trạng thái và trả lời sự cố (wildcard, đặt sau)
 router.put(
   '/:id',
