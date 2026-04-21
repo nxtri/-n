@@ -36,7 +36,15 @@ app.use('/api/contracts', contractRoutes);
 
 const incidentRoutes = require('./routes/incidentRoutes');
 app.use('/api/incidents', incidentRoutes);
-// ----------------------------
+
+// --- ADMIN ROUTES ---
+const adminRoutes = require('./routes/adminRoutes');
+app.use('/api/admin', adminRoutes);
+
+const reportRoutes = require('./routes/reportRoutes');
+app.use('/api/reports', reportRoutes);
+// --------------------
+
 const { sequelize } = require('./models');
 sequelize.sync()
   .then(() => {

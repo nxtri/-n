@@ -1,6 +1,9 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { User } = require('../models');
+const sendEmail = require('../utils/sendEmail');
+const { Op } = require('sequelize');
 
 // Dùng một chuỗi bí mật để ký tạo Token (Trong thực tế nên để trong file .env)
 const JWT_SECRET = 'Bi_Mat_Cua_Du_An_Phong_Tro_2024'; 
@@ -55,6 +58,13 @@ const authController = {
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) {
         return res.status(400).json({ message: 'Mật khẩu không chính xác!' });
+      }
+
+      // KIỂM TRA XEM TÀI KHOẢN CÓ BỊ KHÓA KHÔNG
+      if (user.isActive === false) {
+        return res.status(403).json({ 
+          message: 'Tài khoản của bạn đã bị khóa! Vui lòng liên hệ Quản trị viên qua Email: admin@gmail.com hoặc Hotline: 0912.345.678 để được hỗ trợ.' 
+        });
       }
 
       // Tạo "thẻ ra vào" JWT
@@ -138,8 +148,77 @@ const authController = {
       res.status(500).json({ message: 'Lỗi server khi đổi mật khẩu!' });
     }
   },
+
+  // 5. Quên mật khẩu (Forgot Password)
+  forgotPassword: async (req, res) => {
+    try {
+      const { email } = req.body;
+      const user = await User.findOne({ where: { email } });
+
+      if (!user) {
+        return res.status(404).json({ message: 'Không tìm thấy người dùng với email này!' });
+      }
+
+      // Tạo token ngẫu nhiên
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      
+      // Lưu token vào DB và set thời gian hết hạn (1 giờ)
+      user.resetPasswordToken = resetToken;
+      user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+      await user.save();
+
+      // Gửi email
+      const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
+      const message = `Bạn nhận được email này vì bạn (hoặc ai đó) đã yêu cầu đặt lại mật khẩu cho tài khoản của mình.\n\n
+        Vui lòng nhấp vào liên kết sau hoặc dán vào trình duyệt của bạn để hoàn tất quá trình:\n\n
+        ${resetUrl}\n\n
+        Nếu bạn không yêu cầu điều này, vui lòng bỏ qua email này và mật khẩu của bạn sẽ không thay đổi.\n`;
+
+      await sendEmail(user.email, 'Đặt lại mật khẩu - Hệ Thống Quản Lý Phòng Trọ', message);
+
+      res.status(200).json({ message: 'Email đặt lại mật khẩu đã được gửi!' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Lỗi server khi gửi email đặt lại mật khẩu!' });
+    }
+  },
+
+  // 6. Đặt lại mật khẩu (Reset Password)
+  resetPassword: async (req, res) => {
+    try {
+      const { token } = req.params;
+      const { password } = req.body;
+
+      const user = await User.findOne({
+        where: {
+          resetPasswordToken: token,
+          resetPasswordExpires: { [Op.gt]: Date.now() }
+        }
+      });
+
+      if (!user) {
+        return res.status(400).json({ message: 'Token đặt lại mật khẩu không hợp lệ hoặc đã hết hạn!' });
+      }
+
+      // Mã hóa mật khẩu mới
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+
+      // Cập nhật mật khẩu và xóa token
+      user.password = hashedPassword;
+      user.resetPasswordToken = null;
+      user.resetPasswordExpires = null;
+      await user.save();
+
+      res.status(200).json({ message: 'Mật khẩu đã được đặt lại thành công!' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Lỗi server khi đặt lại mật khẩu!' });
+    }
+  },
+
   // Thêm hàm này vào userController.js
- getUserByEmail: async (req, res) => {
+  getUserByEmail: async (req, res) => {
     try {
       const { email } = req.query;
       if (!email) return res.status(400).json({ message: "Vui lòng cung cấp email" });

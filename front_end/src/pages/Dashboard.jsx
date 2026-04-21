@@ -6,6 +6,7 @@ import contractApi from '../api/contractApi';
 import billApi from '../api/billApi';
 import axiosClient from '../api/axiosClient';
 import notificationApi from '../api/notificationApi';
+import authApi from '../api/authApi';
 import IncidentManagement from '../components/IncidentManagement';
 
 // --- Component SVG cho Mắt ---
@@ -150,6 +151,82 @@ const Dashboard = () => {
     }
   };
 
+  // --- STATE & HÀM CHO MODAL XEM CHI TIẾT PHÒNG (KÈM REVIEWS) ---
+  const [viewRoomReviews, setViewRoomReviews] = useState([]);
+  const [activeReviewFilter, setActiveReviewFilter] = useState('ALL');
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyText, setReplyText] = useState('');
+
+  const handleViewRoomDetails = async (room) => {
+    setViewRoomDetails(room);
+    setCurrentImageIndex(0);
+    try {
+      const response = await roomApi.getRoomById(room.id);
+      setViewRoomReviews(response.reviews || []);
+    } catch (error) {
+      console.error(error);
+      setViewRoomReviews([]);
+    }
+  };
+
+  const handleReplySubmit = async (reviewId) => {
+    if (!replyText.trim()) return alert("Vui lòng nhập nội dung phản hồi!");
+    try {
+      await contractApi.replyReview(reviewId, { replyText });
+      alert("Đã gửi phản hồi thành công!");
+      setReplyingTo(null);
+      setReplyText('');
+      // Refresh reviews
+      const response = await roomApi.getRoomById(viewRoomDetails.id);
+      setViewRoomReviews(response.reviews || []);
+    } catch (error) {
+      alert("Lỗi khi gửi phản hồi!");
+    }
+  };
+
+  const maskName = (name) => {
+    if (!name) return "K******h";
+    const str = name.trim();
+    if (str.length <= 2) return str[0] + '***';
+    return str.charAt(0).toLowerCase() + '******' + str.charAt(str.length - 1).toLowerCase();
+  };
+
+  const renderStars = (rating, idPrefix = 'dashDetail', size = 18) => {
+    const stars = [];
+    const absoluteRating = Number(rating) || 0;
+    const roundedRating = Math.round(absoluteRating * 10) / 10;
+    
+    for (let i = 1; i <= 5; i++) {
+      if (i <= Math.floor(roundedRating)) {
+        stars.push(
+          <svg key={i} width={size} height={size} viewBox="0 0 24 24" fill="#ffc107" style={{ marginRight: '2px' }}>
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+          </svg>
+        );
+      } else if (i === Math.ceil(roundedRating) && roundedRating % 1 !== 0) {
+        const fraction = (roundedRating - Math.floor(roundedRating)) * 100;
+        stars.push(
+          <svg key={i} width={size} height={size} viewBox="0 0 24 24" style={{ marginRight: '2px' }}>
+            <defs>
+              <linearGradient id={`grad-${idPrefix}-${i}`}>
+                <stop offset={`${fraction}%`} stopColor="#ffc107" />
+                <stop offset={`${fraction}%`} stopColor="#e4e4e4" />
+              </linearGradient>
+            </defs>
+            <path fill={`url(#grad-${idPrefix}-${i})`} d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+          </svg>
+        );
+      } else {
+        stars.push(
+          <svg key={i} width={size} height={size} viewBox="0 0 24 24" fill="#e4e4e4" style={{ marginRight: '2px' }}>
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+          </svg>
+        );
+      }
+    }
+    return stars;
+  };
+
   // State cho Tab Báo Cáo Doanh Thu
   const [reportSearch, setReportSearch] = useState('');
   const [reportMonth, setReportMonth] = useState(new Date().getMonth() + 1); // Mặc định tháng hiện tại
@@ -166,6 +243,10 @@ const Dashboard = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  
+  // State cho Nội quy
+  const [showRuleModal, setShowRuleModal] = useState(false);
+  const [systemRules, setSystemRules] = useState([]);
 // State mới cho Tạm trú
   const [residenceFiles, setResidenceFiles] = useState({});
   const [residenceData, setResidenceData] = useState({});
@@ -281,6 +362,15 @@ const Dashboard = () => {
   const fetchBills = async () => { try { const res = await billApi.getAllBills(); setBills(res.bills || []); } catch (e) { setBills([]); } };
   const fetchProvinces = async () => { try { const res = await axios.get('https://provinces.open-api.vn/api/v2/p/'); setProvinces(res.data); } catch (e) {} };
 
+  const fetchRegulations = async () => {
+    try {
+      const res = await axiosClient.get('/admin/regulations'); // Host/Public role logic can be added if needed, but here we use admin routes which might need auth
+      // Filter regulations based on user role
+      const filtered = (res.regulations || []).filter(reg => reg.target === 'ALL' || reg.target === user.role);
+      setSystemRules(filtered);
+    } catch (e) { console.error("Lỗi lấy nội quy:", e); }
+  };
+
   // --- FETCH SỰ CỐ (CHO BÁO CÁO DOANH THU - CHỦ NHÀ) ---
   const [landlordIncidents, setLandlordIncidents] = useState([]);
   const fetchLandlordIncidents = async () => {
@@ -293,7 +383,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
-    fetchRooms(); fetchProvinces(); fetchContracts(); fetchBills(); fetchNotifications(); fetchMyReviews();
+    fetchRooms(); fetchProvinces(); fetchContracts(); fetchBills(); fetchNotifications(); fetchMyReviews(); fetchRegulations();
     if (user?.role === 'LANDLORD') fetchLandlordIncidents();
   }, [navigate]);
 
@@ -338,7 +428,7 @@ const Dashboard = () => {
 
   const handleSaveProfile = async () => {
     try {
-      const response = await axiosClient.put('/auth/profile', profileData);
+      const response = await authApi.updateProfile(profileData);
       localStorage.setItem('user', JSON.stringify(response.user));
       alert('Cập nhật thông tin thành công!');
       setIsEditingProfile(false); window.location.reload(); 
@@ -349,7 +439,7 @@ const Dashboard = () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) return alert('Mật khẩu mới không khớp nhau!');
     if (passwordData.newPassword.length < 6) return alert('Mật khẩu mới phải có ít nhất 6 ký tự!');
     try {
-      await axiosClient.put('/auth/change-password', { oldPassword: passwordData.oldPassword, newPassword: passwordData.newPassword });
+      await authApi.changePassword({ oldPassword: passwordData.oldPassword, newPassword: passwordData.newPassword });
       alert('Đổi mật khẩu thành công! Vui lòng đăng nhập lại.');
       localStorage.removeItem('user'); localStorage.removeItem('token'); window.location.href = '/login'; 
     } catch (error) { alert(error.response?.data?.message || 'Lỗi khi đổi mật khẩu!'); }
@@ -719,13 +809,15 @@ const handleCreateRoom = async (e) => {
   if (!user) return <p>Đang tải...</p>;
 
   let displayedRooms = rooms;
-  if (activeTab === 'AVAILABLE') displayedRooms = rooms.filter(r => r.status === 'AVAILABLE');
-  if (activeTab === 'RENTED') displayedRooms = rooms.filter(r => r.status === 'RENTED');
-  if (activeTab === 'MAINTENANCE') displayedRooms = rooms.filter(r => r.status === 'MAINTENANCE');
+  if (activeTab === 'AVAILABLE') displayedRooms = rooms.filter(r => r.status === 'AVAILABLE' && !r.isHidden && (!r.depositNote || r.depositNote.trim() === ''));
+  if (activeTab === 'RENTED') displayedRooms = rooms.filter(r => r.status === 'RENTED' && !r.isHidden);
+  if (activeTab === 'MAINTENANCE') displayedRooms = rooms.filter(r => r.status === 'MAINTENANCE' && !r.isHidden);
   // 🚨 THÊM DÒNG NÀY: Lọc ra những phòng đang cho thuê NHƯNG CÓ ngày báo chuyển đi
-  if (activeTab === 'UPCOMING') displayedRooms = rooms.filter(r => r.status === 'RENTED' && contracts.some(c => c.roomId === r.id && c.status === 'ACTIVE' && c.intendedMoveOutDate));
+  if (activeTab === 'UPCOMING') displayedRooms = rooms.filter(r => r.status === 'RENTED' && !r.isHidden && contracts.some(c => c.roomId === r.id && c.status === 'ACTIVE' && c.intendedMoveOutDate));
   // 🚨 THÊM LOGIC TAB "ĐÃ CỌC": Lấy những phòng có ghi chú cọc
-  if (activeTab === 'DEPOSITED') displayedRooms = rooms.filter(r => r.depositNote && r.depositNote.trim() !== '');
+  if (activeTab === 'DEPOSITED') displayedRooms = rooms.filter(r => r.depositNote && r.depositNote.trim() !== '' && !r.isHidden);
+  // 🚨 THÊM LOGIC TAB "PHÒNG BỊ ẨN"
+  if (activeTab === 'HIDDEN') displayedRooms = rooms.filter(r => r.isHidden);
 
   // 2. Lọc theo Thanh tìm kiếm (Lọc tiếp trên kết quả của Tab)
   if (roomSearchTerm.trim() !== '') {
@@ -777,7 +869,7 @@ const handleCreateRoom = async (e) => {
                       <div 
                         key={noti.id} 
                         onClick={() => handleReadNotification(noti.id)}
-                        style={{ padding: '15px', borderBottom: '1px solid #eee', background: noti.isRead ? '#fff' : '#e6f0fa', cursor: 'pointer', transition: '0.2s' }}
+                        style={{ padding: '15px', borderBottom: '1px solid #eee', background: noti.isRead ? '#fff' : '#e6f0fa', cursor: 'pointer', transition: '0.2s', textAlign: 'left' }}
                       >
                         <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#0b5ed7', marginBottom: '5px' }}>{noti.title}</div>
                         <div style={{ fontSize: '13px', color: '#555', whiteSpace: 'pre-wrap' }}>{noti.message}</div>
@@ -791,6 +883,31 @@ const handleCreateRoom = async (e) => {
               </div>
             )}
           </div>
+          
+          {/* NÚT XEM NỘI QUY */}
+          <button 
+            onClick={() => setShowRuleModal(true)}
+            style={{ 
+              background: 'rgba(255,255,255,0.2)', 
+              border: 'none', 
+              color: 'white', 
+              padding: '6px 12px', 
+              borderRadius: '20px', 
+              cursor: 'pointer', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '5px',
+              fontSize: '13px',
+              fontWeight: 'bold',
+              transition: '0.3s'
+            }}
+            onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.3)'}
+            onMouseLeave={(e) => e.target.style.background = 'rgba(255,255,255,0.2)'}
+            title="Xem nội quy hệ thống"
+          >
+            📜 Nội quy
+          </button>
+
           <div style={{ position: 'relative' }}>
             <div onClick={() => setShowDropdown(!showDropdown)} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#fff', padding: '6px 12px', borderRadius: '20px', background: 'rgba(255,255,255,0.2)' }}>
               <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#fff', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -826,17 +943,20 @@ const handleCreateRoom = async (e) => {
               {isRoomMenuOpen && (
                 <div style={{ paddingBottom: '10px' }}>
                   <div onClick={() => setActiveTab('ALL_ROOMS')} style={{ padding: '10px 20px 10px 40px', cursor: 'pointer', background: activeTab === 'ALL_ROOMS' ? '#e6f0fa' : 'transparent', color: activeTab === 'ALL_ROOMS' ? '#0b5ed7' : '#555' }}>• Tất cả phòng ({rooms.length})</div>
-                  <div onClick={() => setActiveTab('RENTED')} style={{ padding: '10px 20px 10px 40px', cursor: 'pointer', background: activeTab === 'RENTED' ? '#e6f0fa' : 'transparent', color: activeTab === 'RENTED' ? '#0b5ed7' : '#555' }}>• Đang cho thuê ({rooms.filter(r=>r.status === 'RENTED').length})</div>
-                  <div onClick={() => setActiveTab('AVAILABLE')} style={{ padding: '10px 20px 10px 40px', cursor: 'pointer', background: activeTab === 'AVAILABLE' ? '#e6f0fa' : 'transparent', color: activeTab === 'AVAILABLE' ? '#0b5ed7' : '#555' }}>• Phòng trống ({rooms.filter(r=>r.status === 'AVAILABLE').length})</div>
+                  <div onClick={() => setActiveTab('RENTED')} style={{ padding: '10px 20px 10px 40px', cursor: 'pointer', background: activeTab === 'RENTED' ? '#e6f0fa' : 'transparent', color: activeTab === 'RENTED' ? '#0b5ed7' : '#555' }}>• Đang cho thuê ({rooms.filter(r=>r.status === 'RENTED' && !r.isHidden).length})</div>
+                  <div onClick={() => setActiveTab('AVAILABLE')} style={{ padding: '10px 20px 10px 40px', cursor: 'pointer', background: activeTab === 'AVAILABLE' ? '#e6f0fa' : 'transparent', color: activeTab === 'AVAILABLE' ? '#0b5ed7' : '#555' }}>• Phòng trống ({rooms.filter(r=>r.status === 'AVAILABLE' && !r.isHidden && (!r.depositNote || r.depositNote.trim() === '')).length})</div>
                   {/* Mục Phòng Đã Cọc */}
                   <div onClick={() => setActiveTab('DEPOSITED')} style={{ padding: '10px 20px 10px 40px', cursor: 'pointer', background: activeTab === 'DEPOSITED' ? '#e6f0fa' : 'transparent', color: activeTab === 'DEPOSITED' ? '#0b5ed7' : '#555' }}>
-                    • Phòng đã cọc ({rooms.filter(r => r.depositNote && r.depositNote.trim() !== '').length})
+                    • Phòng đã cọc ({rooms.filter(r => r.depositNote && r.depositNote.trim() !== '' && !r.isHidden).length})
                   </div>
                   {/* 🚨 THÊM DÒNG NÀY: MỤC PHÒNG SẮP TRỐNG (CÓ THỂ ĐĂNG TIN) */}
                   <div onClick={() => setActiveTab('UPCOMING')} style={{ padding: '10px 20px 10px 40px', cursor: 'pointer', background: activeTab === 'UPCOMING' ? '#e6f0fa' : 'transparent', color: activeTab === 'UPCOMING' ? '#0b5ed7' : '#555' }}>
-                    • Sắp trống / Đăng tin ({rooms.filter(r => r.status === 'RENTED' && contracts.some(c => c.roomId === r.id && c.status === 'ACTIVE' && c.intendedMoveOutDate)).length})
+                    • Sắp trống / Đăng tin ({rooms.filter(r => r.status === 'RENTED' && !r.isHidden && contracts.some(c => c.roomId === r.id && c.status === 'ACTIVE' && c.intendedMoveOutDate)).length})
                   </div>
-                  <div onClick={() => setActiveTab('MAINTENANCE')} style={{ padding: '10px 20px 10px 40px', cursor: 'pointer', background: activeTab === 'MAINTENANCE' ? '#e6f0fa' : 'transparent', color: activeTab === 'MAINTENANCE' ? '#0b5ed7' : '#555' }}>• Đang bảo trì ({rooms.filter(r=>r.status === 'MAINTENANCE').length})</div>
+                  <div onClick={() => setActiveTab('HIDDEN')} style={{ padding: '10px 20px 10px 40px', cursor: 'pointer', background: activeTab === 'HIDDEN' ? '#e6f0fa' : 'transparent', color: activeTab === 'HIDDEN' ? '#0b5ed7' : '#555' }}>
+                    • Phòng bị ẩn ({rooms.filter(r => r.isHidden).length})
+                  </div>
+                  <div onClick={() => setActiveTab('MAINTENANCE')} style={{ padding: '10px 20px 10px 40px', cursor: 'pointer', background: activeTab === 'MAINTENANCE' ? '#e6f0fa' : 'transparent', color: activeTab === 'MAINTENANCE' ? '#0b5ed7' : '#555' }}>• Đang bảo trì ({rooms.filter(r=>r.status === 'MAINTENANCE' && !r.isHidden).length})</div>
                 </div>
               )}
               <div onClick={() => setActiveTab('TENANTS')} style={{ padding: '12px 20px', cursor: 'pointer', fontWeight: 'bold', background: activeTab === 'TENANTS' ? '#e6f0fa' : 'transparent', color: activeTab === 'TENANTS' ? '#0b5ed7' : '#333' }}>👥 Danh sách người thuê</div>
@@ -947,7 +1067,7 @@ const handleCreateRoom = async (e) => {
         {/* 3. MAIN CONTENT */}
         <div style={{ flex: 1, padding: '30px', overflowY: 'auto' }}>
           
-          {(activeTab === 'ALL_ROOMS' || activeTab === 'AVAILABLE' || activeTab === 'RENTED' || activeTab === 'MAINTENANCE' || activeTab === 'UPCOMING' || activeTab === 'DEPOSITED') && (
+          {(activeTab === 'ALL_ROOMS' || activeTab === 'AVAILABLE' || activeTab === 'RENTED' || activeTab === 'MAINTENANCE' || activeTab === 'UPCOMING' || activeTab === 'DEPOSITED' || activeTab === 'HIDDEN') && (
             <div>
               {/* Đổi Tiêu đề tương ứng với Tab */}
               <h2 style={{ marginTop: 0, color: '#333' }}>
@@ -955,6 +1075,7 @@ const handleCreateRoom = async (e) => {
                 activeTab === 'AVAILABLE' ? 'DANH SÁCH PHÒNG TRỐNG' : 
                 activeTab === 'RENTED' ? 'DANH SÁCH PHÒNG ĐANG CHO THUÊ' : 
                 activeTab === 'MAINTENANCE' ? 'PHÒNG ĐANG BẢO TRÌ' : 
+                activeTab === 'HIDDEN' ? 'DANH SÁCH PHÒNG BỊ ẨN (VI PHẠM)' : 
                  activeTab === 'DEPOSITED' ? 'Quản lý phòng Đã nhận cọc' : 'Danh sách Phòng'}
               </h2>
 
@@ -1271,13 +1392,28 @@ const handleCreateRoom = async (e) => {
                     <div key={room.id} style={{ border: '1px solid #ddd', padding: '20px', borderRadius: '10px', width: '330px', backgroundColor: '#fff', boxShadow: '0 4px 10px rgba(0,0,0,0.06)', color: '#000', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
                       
                       {/* TIÊU ĐỀ PHÒNG */}
-                      <h3 onClick={() => { setViewRoomDetails(room); setCurrentImageIndex(0); }} style={{ margin: '0 0 15px 0', color: '#0b5ed7', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
-                        <span>Phòng {room.roomNumber} <br /> {room.roomCode && <span style={{ fontSize: '13px', color: '#6c757d', fontWeight: 'normal'  }}>Mã phòng: {room.roomCode}</span>}</span>
-                        <span title="Xem chi tiết" style={{ fontSize: '18px' }}>🔍</span>
+                      {/* TIÊU ĐỀ PHÒNG VÀ ĐÁNH GIÁ (GÓC PHẢI) */}
+                      <h3 onClick={() => handleViewRoomDetails(room)} style={{ margin: '0 0 15px 0', color: '#0b5ed7', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
+                        <span>
+                          Phòng {room.roomNumber} <br /> 
+                          {room.roomCode && <span style={{ fontSize: '13px', color: '#6c757d', fontWeight: 'normal'  }}>Mã phòng: {room.roomCode}</span>}
+                        </span>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {room.reviewCount > 0 && (
+                            <div style={{ display: 'flex', alignItems: 'center', background: '#fffbeb', padding: '4px 8px', borderRadius: '12px', border: '1px solid #fef3c7' }}>
+                              <span style={{ color: '#fbbf24', fontSize: '16px', marginRight: '4px' }}>★</span>
+                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#92400e' }}>
+                                {room.avgRating} <span style={{ fontSize: '12px', color: '#b45309', fontWeight: 'normal' }}>({room.reviewCount})</span>
+                              </span>
+                            </div>
+                          )}
+                          <span title="Xem chi tiết" style={{ fontSize: '18px' }}>🔍</span>
+                        </div>
                       </h3>
                       
                       {/* THÔNG TIN CHI TIẾT TRÊN THẺ (Khu vực này co giãn để đẩy nút xuống đáy) */}
-                      <div style={{ flex: 1, marginBottom: '15px', display: 'flex', flexDirection: 'column' }}>
+                      <div style={{ flex: 1, marginBottom: '15px', display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
                         <p style={{ color: '#dc3545', fontWeight: 'bold', fontSize: '20px', textAlign: 'center', margin: '0 0 15px 0' }}>
                           <strong>Giá phòng:</strong> {room.price?.toLocaleString()} đ<span style={{ fontSize: '14px', color: '#666', fontWeight: 'normal' }}>/tháng</span>
                         </p>
@@ -1292,8 +1428,8 @@ const handleCreateRoom = async (e) => {
                         
                         <p style={{ fontSize: '14px', margin: '10px 0 5px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <strong>Trạng thái:</strong> 
-                          <span style={{ background: room.status === 'AVAILABLE' ? '#d1e7dd' : room.status === 'RENTED' ? '#f8d7da' : '#fff3cd', color: room.status === 'AVAILABLE' ? '#0f5132' : room.status === 'RENTED' ? '#842029' : '#856404', padding: '4px 10px', borderRadius: '20px', fontWeight: 'bold', fontSize: '12px' }}>
-                            {room.status === 'AVAILABLE' ? 'Đang trống' : room.status === 'RENTED' ? 'Đã cho thuê' : 'Đang sửa'}
+                          <span style={{ background: room.isHidden ? '#f8d7da' : (room.status === 'AVAILABLE' ? '#d1e7dd' : room.status === 'RENTED' ? '#f8d7da' : '#fff3cd'), color: room.isHidden ? '#842029' : (room.status === 'AVAILABLE' ? '#0f5132' : room.status === 'RENTED' ? '#842029' : '#856404'), padding: '4px 10px', borderRadius: '20px', fontWeight: 'bold', fontSize: '12px' }}>
+                            {room.isHidden ? '🚫 Bị ẩn bởi Admin' : (room.status === 'AVAILABLE' ? 'Đang trống' : room.status === 'RENTED' ? 'Đã cho thuê' : 'Đang sửa')}
                           </span>
                         </p>
 
@@ -1309,82 +1445,92 @@ const handleCreateRoom = async (e) => {
                       {/* KHU VỰC CÁC NÚT HÀNH ĐỘNG (Ép nằm dưới cùng nhờ margin-top: auto) */}
                       <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         
-                        {/* 1. NÚT DÀNH CHO PHÒNG TRỐNG / ĐANG SỬA */}
-                        {user.role === 'LANDLORD' && room.status !== 'RENTED' && (
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button onClick={() => handleEditRoomClick(room)} style={{ flex: 1, padding: '8px', background: '#17a2b8', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>✏️ Sửa</button>
-                            <button onClick={() => handleDeleteRoom(room.id)} style={{ flex: 1, padding: '8px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>🗑️ Xóa</button>
-                          </div>
-                        )}
-
-                        {room.status === 'AVAILABLE' && (
-                          <button onClick={() => { /* logic setContractRoom cũ của bạn */ 
-                            setContractRoom(room);
-                            setContractData({
-                                ...contractData, landlordName: user?.fullName || '', landlordDob: user?.dob || '', landlordPhone: user?.phone || '', landlordIdentityNumber: user?.identityNumber || '', landlordHometown: user?.address || '',
-                                tenantEmail: '', tenantName: '', tenantDob: '', tenantPhone: '', tenantIdentityNumber: '', tenantHometown: '', startDate: '', endDate: '',
-                                price: room.price || 0, electricityPrice: room.electricityPrice || 0, waterPrice: room.waterPrice || 0, internetPrice: room.internetPrice || 0, parkingPrice: room.parkingPrice || 0, servicePrice: room.servicePrice || 0, members: [], conditionDescription: ''
-                            });
-                            setConditionImages([]);
-                            setConditionVideos([]);
-                            setContractImages([]);
-                          }} style={{ width: '100%', padding: '10px', background: '#198754', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>✍️ Làm Hợp Đồng</button>
+                        {room.isHidden && user.role === 'LANDLORD' && (
+                          <button onClick={() => alert('Vui lòng liên hệ số hotline Admin hoặc email admin@xyz.com để khiếu nại')} style={{ width: '100%', padding: '10px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
+                            ⚠️ Khiếu nại
+                          </button>
                         )}
                         
-                        {(room.status === 'AVAILABLE' || room.status === 'MAINTENANCE') && (
-                          <button onClick={() => roomApi.updateStatus(room.id, room.status === 'AVAILABLE' ? 'MAINTENANCE' : 'AVAILABLE').then(fetchRooms)} style={{ width: '100%', padding: '8px', background: room.status === 'AVAILABLE' ? '#fd7e14' : '#198754', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>{room.status === 'AVAILABLE' ? '🔧 Chuyển sang Bảo Trì' : '✅ Bảo Trì xong'}</button>
-                        )}
-
-                        {/* 2. NÚT DÀNH CHO PHÒNG ĐANG CHO THUÊ */}
-                        {room.status === 'RENTED' && activeContract && (
+                        {!room.isHidden && (
                           <>
-                            {/* Hàng 1: Chốt điện nước + Kết thúc (Chia đôi) */}
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                              <button onClick={() => setBillContract(activeContract)} style={{ flex: '1', padding: '10px 5px', background: '#ffc107', color: '#000', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
-                                🧾 Chốt Điện Nước
-                              </button>
-                              <button onClick={() => handleEndLease(room.id)} style={{ flex: '1', padding: '10px 5px', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
-                                ❌ Kết thúc
-                              </button>
-                            </div>
-
-                            {/* Hàng 2: Cập nhật HĐ + Xem HĐ (Chia đôi) */}
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                              <button onClick={() => handleEditContractClick(activeContract)} style={{ flex: 1, padding: '10px 5px', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
-                                ✏️ Cập nhật HĐ
-                              </button>
-                              <button onClick={() => setViewContract(activeContract)} style={{ flex: 1, padding: '10px 5px', background: '#17a2b8', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
-                                📄 Xem Hợp Đồng
-                              </button>
-                            </div>
-
-                            {/* Hàng 3: Báo trả phòng HOẶC Hủy (Độc quyền 1 trong 2) */}
-                            {!isReturningSoon ? (
-                              <button 
-                                onClick={() => { setTerminateData({ contractId: activeContract.id, moveOutDate: '', reason: '' }); setShowTerminateModal(true); }} 
-                                style={{ width: '100%', padding: '10px', background: '#fd7e14', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
-                              >
-                                ⚠️ Báo trước lấy lại phòng
-                              </button>
-                            ) : (
-                              <div style={{ background: '#fff3cd', color: '#856404', padding: '12px', borderRadius: '4px', fontSize: '13px', textAlign: 'center', border: '1px solid #ffeeba', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <span>⏳ Sắp trả phòng: <strong>{activeContract.intendedMoveOutDate}</strong></span>
-                                <button onClick={() => handleCancelTermination(activeContract.id)} style={{ width: '100%', padding: '8px', background: '#6c757d', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>
-                                  ✖ Hủy yêu cầu (Tiếp tục thuê)
-                                </button>
+                            {/* 1. NÚT DÀNH CHO PHÒNG TRỐNG / ĐANG SỬA */}
+                            {user.role === 'LANDLORD' && room.status !== 'RENTED' && (
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button onClick={() => handleEditRoomClick(room)} style={{ flex: 1, padding: '8px', background: '#17a2b8', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>✏️ Sửa</button>
+                                <button onClick={() => handleDeleteRoom(room.id)} style={{ flex: 1, padding: '8px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>🗑️ Xóa</button>
                               </div>
                             )}
-                          </>
-                        )}
 
-                        {/* 3. NÚT QUẢN LÝ CỌC (Chỉ hiện khi phòng Trống hoặc Sắp Trống) */}
-                        {user.role === 'LANDLORD' && (room.status === 'AVAILABLE' || isReturningSoon) && (
-                          <button 
-                            onClick={() => setDepositModal({ show: true, roomId: room.id, note: room.depositNote || '' })} 
-                            style={{ width: '100%', padding: '10px', background: room.depositNote ? '#6c757d' : '#20c997', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
-                          >
-                            {room.depositNote ? '📝 Sửa / Xóa Ghi Chú Cọc' : '💰 Nhận Cọc / Giữ Chỗ'}
-                          </button>
+                            {room.status === 'AVAILABLE' && (
+                              <button onClick={() => { /* logic setContractRoom cũ của bạn */ 
+                                setContractRoom(room);
+                                setContractData({
+                                    ...contractData, landlordName: user?.fullName || '', landlordDob: user?.dob || '', landlordPhone: user?.phone || '', landlordIdentityNumber: user?.identityNumber || '', landlordHometown: user?.address || '',
+                                    tenantEmail: '', tenantName: '', tenantDob: '', tenantPhone: '', tenantIdentityNumber: '', tenantHometown: '', startDate: '', endDate: '',
+                                    price: room.price || 0, electricityPrice: room.electricityPrice || 0, waterPrice: room.waterPrice || 0, internetPrice: room.internetPrice || 0, parkingPrice: room.parkingPrice || 0, servicePrice: room.servicePrice || 0, members: [], conditionDescription: ''
+                                });
+                                setConditionImages([]);
+                                setConditionVideos([]);
+                                setContractImages([]);
+                              }} style={{ width: '100%', padding: '10px', background: '#198754', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>✍️ Làm Hợp Đồng</button>
+                            )}
+                            
+                            {(room.status === 'AVAILABLE' || room.status === 'MAINTENANCE') && (
+                              <button onClick={() => roomApi.updateStatus(room.id, room.status === 'AVAILABLE' ? 'MAINTENANCE' : 'AVAILABLE').then(fetchRooms)} style={{ width: '100%', padding: '8px', background: room.status === 'AVAILABLE' ? '#fd7e14' : '#198754', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>{room.status === 'AVAILABLE' ? '🔧 Chuyển sang Bảo Trì' : '✅ Bảo Trì xong'}</button>
+                            )}
+
+                            {/* 2. NÚT DÀNH CHO PHÒNG ĐANG CHO THUÊ */}
+                            {room.status === 'RENTED' && activeContract && (
+                              <>
+                                {/* Hàng 1: Chốt điện nước + Kết thúc (Chia đôi) */}
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  <button onClick={() => setBillContract(activeContract)} style={{ flex: '1', padding: '10px 5px', background: '#ffc107', color: '#000', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
+                                    🧾 Chốt Điện Nước
+                                  </button>
+                                  <button onClick={() => handleEndLease(room.id)} style={{ flex: '1', padding: '10px 5px', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
+                                    ❌ Kết thúc
+                                  </button>
+                                </div>
+
+                                {/* Hàng 2: Cập nhật HĐ + Xem HĐ (Chia đôi) */}
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                  <button onClick={() => handleEditContractClick(activeContract)} style={{ flex: 1, padding: '10px 5px', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
+                                    ✏️ Cập nhật HĐ
+                                  </button>
+                                  <button onClick={() => setViewContract(activeContract)} style={{ flex: 1, padding: '10px 5px', background: '#17a2b8', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
+                                    📄 Xem Hợp Đồng
+                                  </button>
+                                </div>
+
+                                {/* Hàng 3: Báo trả phòng HOẶC Hủy (Độc quyền 1 trong 2) */}
+                                {!isReturningSoon ? (
+                                  <button 
+                                    onClick={() => { setTerminateData({ contractId: activeContract.id, moveOutDate: '', reason: '' }); setShowTerminateModal(true); }} 
+                                    style={{ width: '100%', padding: '10px', background: '#fd7e14', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+                                  >
+                                    ⚠️ Báo trước lấy lại phòng
+                                  </button>
+                                ) : (
+                                  <div style={{ background: '#fff3cd', color: '#856404', padding: '12px', borderRadius: '4px', fontSize: '13px', textAlign: 'center', border: '1px solid #ffeeba', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <span>⏳ Sắp trả phòng: <strong>{activeContract.intendedMoveOutDate}</strong></span>
+                                    <button onClick={() => handleCancelTermination(activeContract.id)} style={{ width: '100%', padding: '8px', background: '#6c757d', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>
+                                      ✖ Hủy yêu cầu (Tiếp tục thuê)
+                                    </button>
+                                  </div>
+                                )}
+                              </>
+                            )}
+
+                            {/* 3. NÚT QUẢN LÝ CỌC (Chỉ hiện khi phòng Trống hoặc Sắp Trống) */}
+                            {user.role === 'LANDLORD' && (room.status === 'AVAILABLE' || isReturningSoon) && (
+                              <button 
+                                onClick={() => setDepositModal({ show: true, roomId: room.id, note: room.depositNote || '' })} 
+                                style={{ width: '100%', padding: '10px', background: room.depositNote ? '#6c757d' : '#20c997', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}
+                              >
+                                {room.depositNote ? '📝 Sửa / Xóa Ghi Chú Cọc' : '💰 Nhận Cọc / Giữ Chỗ'}
+                              </button>
+                            )}
+                          </>
                         )}
 
                       </div>
@@ -1524,12 +1670,12 @@ const handleCreateRoom = async (e) => {
               <h2 style={{ marginTop: 0, color: '#333',  }}>Danh sách Người Thuê (Hợp đồng)</h2>
               <table style={{ width: '100%', borderCollapse: 'collapse', background: '#fff', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', textAlign: 'left' }}>
                 <thead>
-                  <tr style={{ background: '#0b5ed7', color: '#fff' }}>
-                    <th style={{ padding: '12px', textAlign: 'left' }}>Phòng</th>
-                    <th style={{ padding: '12px', textAlign: 'left' }}>Khách thuê</th>
-                    <th style={{ padding: '12px', textAlign: 'left' }}>Bắt đầu</th>
-                    <th style={{ padding: '12px', textAlign: 'left' }}>Kết thúc</th>
-                    <th style={{ padding: '12px', textAlign: 'center' }}>Trạng thái</th>
+                  <tr style={{ background: '#0b5ed7', color: '#fff', borderBottom: '2px solid #fff' }}>
+                    <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Phòng</th>
+                    <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Khách thuê</th>
+                    <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Thời hạn hợp đồng</th>
+                    <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Kết thúc thực tế</th>
+                    <th style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>Trạng thái</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1537,10 +1683,27 @@ const handleCreateRoom = async (e) => {
                   {contracts.length > 0 ? contracts.map(c => (
                     <tr key={c.id} style={{ borderBottom: '1px solid #eee' }}>
                       <td style={{ padding: '12px' }}>P.{c.room?.roomNumber}</td>
-                      <td style={{ padding: '12px' }}>{c.tenant?.fullName} <br/><small style={{color: '#888'}}>{c.tenantEmail}</small></td>
-                      <td style={{ padding: '12px' }}>{c.startDate}</td>
-                      <td style={{ padding: '12px' }}>{c.endDate}</td>
-                      <td style={{ padding: '12px', textAlign: 'center', color: c.status === 'ACTIVE' ? 'green' : 'red', fontWeight: 'bold' }}>{c.status}</td>
+                      <td style={{ padding: '12px', color: '#666', fontWeight: '500' }}>
+                        {c.tenantName || c.tenant?.fullName} <br/>
+                        {c.tenantEmail} <br/>
+                        SĐT: {c.tenantPhone}
+                      </td>
+                      <td style={{ padding: '12px' }}>{c.startDate} - {c.endDate}</td>
+                      <td style={{ padding: '12px' }}>{c.status === 'ACTIVE' ? '-' : new Date(c.updatedAt).toISOString().split('T')[0]}</td>
+                      <td style={{ padding: '12px', textAlign: 'center', color: c.status === 'ACTIVE' ? 'green' : 'red', fontWeight: 'bold' }}>
+                        {(() => {
+                          if (c.status === 'ACTIVE') return 'ĐANG THUÊ';
+                          if (c.status === 'TERMINATED') return 'HỦY HỢP ĐỒNG TRƯỚC HẠN';
+                          if (c.status === 'EXPIRED') {
+                            const updated = new Date(c.updatedAt);
+                            updated.setHours(0,0,0,0);
+                            const end = new Date(c.endDate);
+                            end.setHours(0,0,0,0);
+                            return updated < end ? 'HỦY HỢP ĐỒNG TRƯỚC HẠN' : 'ĐÃ KẾT THÚC';
+                          }
+                          return c.status;
+                        })()}
+                      </td>
                     </tr>
                   )) : (
                     <tr>
@@ -1588,7 +1751,7 @@ const handleCreateRoom = async (e) => {
                       </div>
 
                       {/* THÔNG TIN CƠ BẢN */}
-                      <div style={{ padding: '20px' }}>
+                      <div style={{ padding: '20px', textAlign: 'left' }}>
                         <p style={{ margin: '0 0 10px 0', color: '#555' }}>📍 <strong>Địa chỉ:</strong> {c.room?.houseNumber ? `${c.room.houseNumber}, ` : ''}{c.room?.address}</p>
                         <p style={{ margin: '0 0 10px 0', color: '#555' }}>⏳ <strong>Thời hạn:</strong> Từ {c.startDate} đến {c.endDate}</p>
                         <p style={{ margin: '0 0 15px 0', color: '#555' }}>💰 <strong>Giá thuê:</strong> <span style={{ color: 'red', fontWeight: 'bold' }}>{Number(c.price || 0).toLocaleString('vi-VN')} đ/tháng</span></p>
@@ -1843,15 +2006,15 @@ const handleCreateRoom = async (e) => {
                     Chưa có hóa đơn nào được tạo trên hệ thống.
                   </p>
                 ) : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px', textAlign: 'left' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', marginTop: '10px' }}>
                     <thead>
-                      <tr style={{ background: '#0b5ed7', color: 'white' }}>
-                        <th style={{ padding: '12px', borderTopLeftRadius: '6px' }}>Phòng</th>
-                        <th style={{ padding: '12px' }}>Kỳ Hóa Đơn</th>
-                        <th style={{ padding: '12px' }}>Khách Thuê</th>
-                        <th style={{ padding: '12px', textAlign: 'center' }}>Loại Hóa Đơn</th>
-                        <th style={{ padding: '12px', textAlign: 'center' }}>Trạng Thái</th>
-                        <th style={{ padding: '12px', textAlign: 'center', borderTopRightRadius: '6px' }}>Hành động</th> {/* Cột mới */}
+                      <tr style={{ background: '#0b5ed7', color: '#fff', borderBottom: '2px solid #fff' }}>
+                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Phòng</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Kỳ Hóa Đơn</th>
+                        <th style={{ padding: '12px', textAlign: 'left', fontWeight: 'bold' }}>Khách Thuê</th>
+                        <th style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>Loại Hóa Đơn</th>
+                        <th style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>Trạng Thái</th>
+                        <th style={{ padding: '12px', textAlign: 'center', fontWeight: 'bold' }}>Hành động</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1871,12 +2034,10 @@ const handleCreateRoom = async (e) => {
                           
                           
                           {/* 3. Cột Khách Thuê (Ưu tiên dùng Snapshot) */}
-                          <td style={{ padding: '12px' }}>
-                            <span style={{ fontWeight: 'bold' }}>
-                              {bill.tenantNameSnapshot || bill.contract?.tenantName || bill.contract?.tenant?.fullName || 'Khách cũ'}
-                            </span> <br/>
-                            <span style={{ color: '#666', fontSize: '12px' }}>{bill.contract?.tenantEmail || 'Đã ẩn email'}</span> <br/>
-                            <span style={{ color: '#888', fontSize: '12px' }}>SĐT: {bill.contract?.tenantPhone || bill.contract?.tenant?.phone || '...'}</span>
+                          <td style={{ padding: '12px', color: '#666', fontWeight: '500' }}>
+                            {bill.tenantNameSnapshot || bill.contract?.tenantName || bill.contract?.tenant?.fullName || 'Khách cũ'} <br/>
+                            {bill.contract?.tenantEmail || '...'} <br/>
+                            SĐT: {bill.contract?.tenantPhone || bill.contract?.tenant?.phone || '...'}
                           </td>
                           
                           {/* 4. Cột Loại Hóa Đơn */}
@@ -2230,9 +2391,9 @@ const handleCreateRoom = async (e) => {
           onClick={() => setViewRoomDetails(null)} /* CÁCH 1: Bấm ra vùng đen để tắt */
         >
           <div 
-            style={{ background: '#fff', width: '600px', borderRadius: '12px', padding: '30px', position: 'relative', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', color: '#333',
-              maxHeight: '90vh',      // Chiều cao tối đa bằng 90% màn hình
-              overflowY: 'auto',      // Tự động hiện thanh cuộn dọc nếu nội dung dài hơn 90vh
+            style={{ background: '#fff', width: '780px', borderRadius: '12px', padding: '30px', position: 'relative', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', color: '#333',
+              maxHeight: '92vh',      // Chiều cao tối đa bằng 92% màn hình
+              overflowY: 'auto',      // Tự động hiện thanh cuộn dọc nếu nội dung dài hơn 92vh
               boxSizing: 'border-box'
              }}
             onClick={(e) => e.stopPropagation()} /* Ngăn không cho click bên trong bảng bị tắt */
@@ -2255,7 +2416,7 @@ const handleCreateRoom = async (e) => {
 
 {/* THIẾT KẾ MỚI: 1 ẢNH LỚN TRÁI + LƯỚI 4 ẢNH NHỎ PHẢI (CÓ CHỨC NĂNG) */}
             {viewRoomDetails.images && JSON.parse(viewRoomDetails.images).length > 0 && (
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', height: '320px' }}>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', height: '420px' }}>
                 
                 {/* 1. KHUNG ẢNH LỚN BÊN TRÁI - GẮN SỰ KIỆN CLICK ĐỂ PHÓNG TO */}
                 <div style={{ flex: '2', position: 'relative', borderRadius: '8px', overflow: 'hidden' }}>
@@ -2346,6 +2507,113 @@ const handleCreateRoom = async (e) => {
               <p style={{ margin: 0, whiteSpace: 'pre-wrap', color: '#555', fontSize: '14px' }}>
                 {viewRoomDetails.description ? viewRoomDetails.description : <span style={{ fontStyle: 'italic', color: '#999' }}>Chưa có mô tả chi tiết cho phòng này.</span>}
               </p>
+            </div>
+
+            {/* ========================================= */}
+            {/* KHU VỰC ĐÁNH GIÁ TRONG MODAL CHI TIẾT     */}
+            {/* ========================================= */}
+            <div style={{ marginBottom: '20px', padding: '15px', background: '#fff', borderRadius: '8px', border: '1px solid #eaeaea', textAlign: 'left', maxHeight: '400px', overflowY: 'auto' }}>
+              <h4 style={{ margin: '0 0 15px 0', color: '#333', fontSize: '16px' }}>Đánh giá từ người thuê trước ({viewRoomReviews.length})</h4>
+              
+              {(() => {
+                const totalRev = viewRoomReviews.length;
+                const avgRev = totalRev > 0 ? (viewRoomReviews.reduce((s, r) => s + r.rating, 0) / totalRev).toFixed(1) : 0;
+                
+                const filteredRev = viewRoomReviews.filter(r => {
+                  if (activeReviewFilter === 'ALL') return true;
+                  if (activeReviewFilter === 'HAS_IMAGE') {
+                    return JSON.parse(r.images || '[]').length > 0 || JSON.parse(r.videos || '[]').length > 0;
+                  }
+                  return r.rating === parseInt(activeReviewFilter);
+                });
+
+                return (
+                  <>
+                    <div style={{ background: '#fffbf8', border: '1px solid #f9ede5', padding: '15px', display: 'flex', gap: '20px', alignItems: 'center', borderRadius: '4px', marginBottom: '15px', flexWrap: 'wrap' }}>
+                      <div style={{ textAlign: 'center', minWidth: '90px' }}>
+                        <div style={{ fontSize: '24px', color: '#ee4d2d', fontWeight: 'bold' }}>
+                          {Number(avgRev).toFixed(1)} <span style={{ fontSize: '14px', color: '#ee4d2d', fontWeight: 'normal' }}>trên 5</span>
+                        </div>
+                        <div style={{ color: '#ee4d2d', display: 'flex', justifyContent: 'center', marginTop: '5px' }}>
+                           {renderStars(avgRev, 'modal-avg', 16)}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        {[
+                          { label: 'Tất Cả', val: 'ALL' },
+                          { label: '5 Sao', val: '5', count: viewRoomReviews.filter(r => r.rating===5).length },
+                          { label: '4 Sao', val: '4', count: viewRoomReviews.filter(r => r.rating===4).length },
+                          { label: '3 Sao', val: '3', count: viewRoomReviews.filter(r => r.rating===3).length },
+                          { label: '2 Sao', val: '2', count: viewRoomReviews.filter(r => r.rating===2).length },
+                          { label: '1 Sao', val: '1', count: viewRoomReviews.filter(r => r.rating===1).length },
+                          { label: 'Có Hình/Video', val: 'HAS_IMAGE', count: viewRoomReviews.filter(r => JSON.parse(r.images||'[]').length>0 || JSON.parse(r.videos||'[]').length>0).length }
+                        ].map(f => (
+                          <button 
+                            key={f.val}
+                            onClick={() => setActiveReviewFilter(f.val)}
+                            style={{ padding: '4px 10px', background: '#fff', border: activeReviewFilter === f.val ? '1px solid #ee4d2d' : '1px solid #e0e0e0', color: activeReviewFilter === f.val ? '#ee4d2d' : '#333', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+                          >
+                            {f.label} {f.count !== undefined && `(${f.count})`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      {filteredRev.length === 0 ? (
+                        <div style={{ textAlign: 'center', color: '#888', padding: '15px' }}>Chưa có đánh giá nào phù hợp.</div>
+                      ) : (
+                        filteredRev.map((review) => (
+                          <div key={review.id} style={{ display: 'flex', gap: '10px', borderBottom: '1px solid #f0f0f0', paddingBottom: '15px', marginBottom: '15px' }}>
+                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#e0e0e0', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#888', fontSize: '16px', flexShrink: 0 }}>👤</div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: '13px', color: '#333', fontWeight: 'bold' }}>
+                                {review.isAnonymous ? maskName(review.tenant?.fullName) : (review.tenant?.fullName || 'Khách thuê')}
+                              </div>
+                              <div style={{ margin: '2px 0', display: 'flex' }}>
+                                {renderStars(review.rating, `m-r-${review.id}`, 12)}
+                              </div>
+                              <div style={{ fontSize: '11px', color: '#888', marginBottom: '5px' }}>Đăng ngày: {new Date(review.createdAt).toLocaleDateString('vi-VN')}</div>
+                              <div style={{ fontSize: '13px', color: '#333', lineHeight: '1.4', marginBottom: '10px', whiteSpace: 'pre-wrap' }}>{review.comment}</div>
+                              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                                {JSON.parse(review.images || "[]").map((img, idx) => (
+                                  <img key={`img-${idx}`} src={`http://localhost:5000/uploads/${img}`} alt="review" style={{ width: '50px', height: '50px', objectFit: 'cover', border: '1px solid #e0e0e0', borderRadius: '2px', cursor: 'pointer' }} onClick={() => window.open(`http://localhost:5000/uploads/${img}`)} />
+                                ))}
+                                {JSON.parse(review.videos || "[]").map((vid, idx) => (
+                                  <video key={`vid-${idx}`} src={`http://localhost:5000/uploads/${vid}`} style={{ width: '50px', height: '50px', objectFit: 'cover', border: '1px solid #e0e0e0', borderRadius: '2px', background: '#000' }} controls />
+                                ))}
+                              </div>
+                              {review.landlordReply ? (
+                                <div style={{ background: '#f8f9fa', padding: '10px', borderRadius: '4px', borderLeft: '3px solid #0b5ed7' }}>
+                                  <div style={{ fontWeight: 'bold', fontSize: '12px', color: '#0b5ed7', marginBottom: '3px' }}>Phản hồi của Chủ nhà:</div>
+                                  <div style={{ fontSize: '13px', color: '#444' }}>{review.landlordReply}</div>
+                                  <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px' }}>{new Date(review.replyDate).toLocaleDateString('vi-VN')}</div>
+                                </div>
+                              ) : (
+                                user?.role === 'LANDLORD' && user?.id === viewRoomDetails.landlordId && (
+                                  <div style={{ marginTop: '8px' }}>
+                                    {replyingTo === review.id ? (
+                                      <div style={{ display: 'flex', gap: '8px' }}>
+                                        <textarea value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Nhập phản hồi..." style={{ flex: 1, padding: '8px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '12px' }} rows="2" />
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                          <button onClick={() => handleReplySubmit(review.id)} style={{ padding: '6px', background: '#0b5ed7', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>Gửi</button>
+                                          <button onClick={() => { setReplyingTo(null); setReplyText(''); }} style={{ padding: '6px', background: '#e0e0e0', color: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>Hủy</button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <button onClick={() => setReplyingTo(review.id)} style={{ background: 'transparent', border: 'none', color: '#0b5ed7', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', padding: 0 }}>💬 Phản hồi</button>
+                                    )}
+                                  </div>
+                                )
+                              )}
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
 
             {/* CÁC NÚT HÀNH ĐỘNG BÊN DƯỚI */}
@@ -3361,6 +3629,102 @@ const handleCreateRoom = async (e) => {
         </div>
       
       )}
+
+      {/* MODAL HIỂN THỊ NỘI QUY HỆ THỐNG */}
+      {showRuleModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000, backdropFilter: 'blur(5px)' }}>
+          <div style={{ background: '#fff', width: '90%', maxWidth: '700px', maxHeight: '85vh', borderRadius: '15px', padding: '30px', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', position: 'relative', display: 'flex', flexDirection: 'column', animation: 'fadeInScale 0.3s ease-out' }}>
+            <button 
+              onClick={() => setShowRuleModal(false)}
+              style={{ position: 'absolute', top: '20px', right: '20px', background: '#f1f1f1', border: 'none', width: '35px', height: '35px', borderRadius: '50%', fontSize: '18px', cursor: 'pointer', color: '#666', display: 'flex', justifyContent: 'center', alignItems: 'center', transition: '0.3s' }}
+              onMouseEnter={(e) => e.target.style.background = '#e1e1e1'}
+              onMouseLeave={(e) => e.target.style.background = '#f1f1f1'}>✖</button>
+            
+            <h2 style={{ margin: '0 0 20px 0', color: '#1a1a1a', fontSize: '24px', borderBottom: '2px solid #0b5ed7', paddingBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              📜 Nội quy hệ thống & Quy định phòng trọ
+            </h2>
+            
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '10px', marginTop: '10px' }}>
+              {systemRules.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#888' }}>
+                  <div style={{ fontSize: '40px', marginBottom: '10px' }}>📋</div>
+                  Hiện chưa có nội quy cụ thể nào được thiết lập.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {systemRules.map((rule, idx) => (
+                    <div key={idx} style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                      <div style={{ 
+                        display: 'inline-block', padding: '4px 12px', background: '#0b5ed7', color: '#fff', 
+                        borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', marginBottom: '12px', textTransform: 'uppercase'
+                      }}>
+                        Cập nhật: {new Date(rule.updatedAt).toLocaleDateString('vi-VN')}
+                      </div>
+                      <div style={{ fontSize: '15px', color: '#334155', lineHeight: '1.6', whiteSpace: 'pre-wrap', textAlign: 'left' }}>
+                        {rule.value}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            <div style={{ marginTop: '25px', textAlign: 'center' }}>
+              <button 
+                onClick={() => setShowRuleModal(false)}
+                style={{ padding: '12px 30px', background: '#0b5ed7', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', transition: '0.3s' }}
+                onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+              >
+                Đã hiểu và chấp hành
+              </button>
+            </div>
+          </div>
+          <style>{`
+            @keyframes fadeInScale {
+              from { opacity: 0; transform: scale(0.95); }
+              to { opacity: 1; transform: scale(1); }
+            }
+          `}</style>
+        </div>
+      )}
+
+      {/* NÚT HỖ TRỢ ZALO GÓC TRÁI DƯỚI */}
+      <a 
+        href="https://zalo.me/0337377034" // 🚨 Thay bằng số điện thoại Zalo của Admin
+        target="_blank" 
+        rel="noopener noreferrer"
+        style={{
+          position: 'fixed',
+          bottom: '20px',
+          left: '12px',
+          backgroundColor: '#fff',
+          padding: '10px 15px',
+          borderRadius: '10px',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          textDecoration: 'none',
+          color: '#333',
+          zIndex: 9999, // Đảm bảo luôn nổi lên trên cùng
+          border: '1px solid #eee',
+          cursor: 'pointer'
+        }}
+      >
+        {/* Icon tai nghe (Bạn có thể thay bằng thẻ <img> chứa logo Zalo nếu muốn) */}
+        <div style={{ fontSize: '28px' }}>🎧</div>
+  
+        {/* Thông tin chữ */}
+        <div>
+          <p style={{ margin: '0 0 3px 0', fontSize: '12px', color: '#666' }}>
+            Nhân viên hỗ trợ của bạn:
+          </p>
+          <p style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: '#000' }}>
+            Admin - 0909 316 890
+          </p>
+        </div>
+      </a>
     </div>
 
   );

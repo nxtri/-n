@@ -9,4 +9,8 @@ router.put('/profile', authMiddleware.verifyToken, authController.updateProfile)
 // Thay đổi mật khẩu (Yêu cầu phải có token đăng nhập)
 router.put('/change-password', authMiddleware.verifyToken, authController.changePassword);
 router.get('/user/by-email', authController.getUserByEmail);
+
+// Quên mật khẩu
+router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password/:token', authController.resetPassword);
 module.exports = router;

@@ -180,10 +180,18 @@ const contractController = {
       
       if (!contract) return res.status(404).json({ message: 'Không tìm thấy hợp đồng!' });
 
-      // 1. Đổi trạng thái hợp đồng thành Đã kết thúc (EXPIRED)
-      await contract.update({ status: 'EXPIRED' });
+      // 1. Kiểm tra ngày kết thúc hiện tại so với ngày trên hợp đồng
+      const today = new Date();
+      // Reset time to start of day for accurate date comparison
+      today.setHours(0, 0, 0, 0); 
+      const contractEndDate = new Date(contract.endDate);
+      contractEndDate.setHours(0, 0, 0, 0);
 
-      // 2. Tự động tìm phòng đó và đổi về trạng thái Trống (AVAILABLE)
+      // Nếu kết thúc sớm hơn hạn hợp đồng -> TERMINATED, nếu đúng/quá hạn -> EXPIRED
+      const newStatus = today < contractEndDate ? 'TERMINATED' : 'EXPIRED';
+
+      // 2. Đổi trạng thái hợp đồng
+      await contract.update({ status: newStatus });
       const room = await Room.findByPk(contract.roomId);
       if (room) {
         await room.update({ status: 'AVAILABLE' });
@@ -407,7 +415,6 @@ const contractController = {
         if (videos.length > 0) updateData.videos = JSON.stringify(videos);
 
         await review.update(updateData);
-        return res.status(200).json({ message: 'Cập nhật đánh giá thành công!', review });
       } else {
         // NẾU CHƯA ĐÁNH GIÁ -> TẠO MỚI
         review = await Review.create({
@@ -415,8 +422,36 @@ const contractController = {
           rating: Number(rating), comment, isAnonymous: isAnonymous === 'true',
           images: JSON.stringify(images), videos: JSON.stringify(videos)
         });
-        return res.status(201).json({ message: 'Đánh giá thành công!', review });
       }
+
+      // 🚨 LOGIC TỰ ĐỘNG ẨN PHÒNG NẾU ĐÁNH GIÁ THẤP (< 2 SAO)
+      // Tính lại điểm trung bình của phòng
+      const allReviews = await Review.findAll({ where: { roomId: contract.roomId } });
+      
+      if (allReviews.length >= 3) {
+        const totalScore = allReviews.reduce((sum, r) => sum + r.rating, 0);
+        const avgRating = totalScore / allReviews.length;
+
+        if (avgRating < 2) {
+          const room = await Room.findByPk(contract.roomId);
+          if (room && !room.isHidden) {
+            await room.update({ isHidden: true });
+
+            // Gửi thông báo cho chủ nhà
+            await Notification.create({
+              userId: room.landlordId,
+              title: '🚫 Phòng bị ẩn tự động (Đánh giá thấp)',
+              message: `Phòng ${room.roomNumber} của bạn vừa bị hệ thống tự động ẩn do điểm đánh giá trung bình rơi xuống dưới ngưỡng an toàn (${avgRating.toFixed(1)}⭐). Mỗi phòng bị ẩn được tính là 1 lần vi phạm. Bạn có quyền gửi khiếu nại giải trình.`
+            });
+            console.log(`[Auto-Hide] Room ${room.roomNumber} hidden. Avg: ${avgRating.toFixed(1)}`);
+          }
+        }
+      }
+
+      return res.status(200).json({ 
+        message: review.isNewRecord ? 'Đánh giá thành công!' : 'Cập nhật đánh giá thành công!', 
+        review 
+      });
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'Lỗi server' });

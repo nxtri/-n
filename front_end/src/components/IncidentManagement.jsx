@@ -164,10 +164,10 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
 
   const getStatusBadge = (status) => {
     switch(status) {
-      case 'Pending': return <span style={{ background: '#dc3545', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '13px' }}>Chờ xử lý</span>;
-      case 'In Progress': return <span style={{ background: '#ffc107', color: '#000', padding: '4px 8px', borderRadius: '4px', fontSize: '13px' }}>Đang xử lý</span>;
-      case 'Resolved': return <span style={{ background: '#198754', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '13px' }}>Đã giải quyết</span>;
-      case 'Rejected': return <span style={{ background: '#6c757d', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '13px' }}>Từ chối</span>;
+      case 'Pending': return <span style={{ background: '#ef4444', color: '#1e293b', padding: '4px 8px', borderRadius: '4px', fontSize: '13px' }}>Chờ xử lý</span>;
+      case 'In Progress': return <span style={{ background: '#f59e0b', color: '#f8fafc', padding: '4px 8px', borderRadius: '4px', fontSize: '13px' }}>Đang xử lý</span>;
+      case 'Resolved': return <span style={{ background: '#10b981', color: '#1e293b', padding: '4px 8px', borderRadius: '4px', fontSize: '13px' }}>Đã giải quyết</span>;
+      case 'Rejected': return <span style={{ background: '#6c757d', color: '#1e293b', padding: '4px 8px', borderRadius: '4px', fontSize: '13px' }}>Từ chối</span>;
       default: return null;
     }
   };
@@ -179,12 +179,12 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
 
   return (
     <div style={{ background: '#fff', padding: '25px', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #0b5ed7', paddingBottom: '10px' }}>
-        <h2 style={{ margin: 0, color: '#333' }}>Quản lý Sự cố & Hỗ trợ</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '2px solid #2563eb', paddingBottom: '10px' }}>
+        <h2 style={{ margin: 0, color: '#000000ff' }}>Quản lý Sự cố & Hỗ trợ</h2>
         {user.role === 'TENANT' && (
           <button 
             onClick={() => setShowCreateModal(true)} 
-            style={{ padding: '8px 15px', background: '#0b5ed7', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}
+            style={{ padding: '8px 15px', background: '#2563eb', color: '#1e293b', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}
           >
             + Báo cáo sự cố mới
           </button>
@@ -193,7 +193,7 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
 
       {/* Lọc */}
       <div style={{ marginBottom: '15px' }}>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #475569' }}>
           <option value="ALL">Tất cả trạng thái</option>
           <option value="Pending">Chờ xử lý</option>
           <option value="In Progress">Đang xử lý</option>
@@ -204,7 +204,7 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
 
       <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', textAlign: 'left' }}>
         <thead>
-          <tr style={{ background: '#f8f9fa', borderBottom: '2px solid #ddd' }}>
+          <tr style={{ background: '#2563eb',  color: '#1e293b', borderBottom: '2px solid #1e293b' }}>
             <th style={{ padding: '12px', textAlign: 'left' }}>Phòng</th>
             {user.role === 'LANDLORD' && <th style={{ padding: '12px', textAlign: 'left' }}>Người gửi</th>}
             <th style={{ padding: '12px', textAlign: 'left' }}>Tiêu đề</th>
@@ -220,7 +220,13 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
           ) : displayedIncidents.map(inc => (
             <tr key={inc.id} style={{ borderBottom: '1px solid #eee' }}>
               <td style={{ padding: '12px' }}>{inc.room?.roomNumber} {inc.room?.roomCode ? `(${inc.room.roomCode})` : ''}</td>
-              {user.role === 'LANDLORD' && <td style={{ padding: '12px' }}>{inc.tenant?.fullName}<br/><small>{inc.tenant?.phone}</small></td>}
+              {user.role === 'LANDLORD' && (
+                <td style={{ padding: '12px', color: '#94a3b8', fontWeight: '500' }}>
+                  {inc.tenant?.fullName} <br/>
+                  {inc.tenant?.email} <br/>
+                  SĐT: {inc.tenant?.phone}
+                </td>
+              )}
               <td style={{ padding: '12px', fontWeight: 'bold' }}>{inc.title}</td>
               <td style={{ padding: '12px' }}>{new Date(inc.createdAt).toLocaleDateString('vi-VN')}</td>
               <td style={{ padding: '12px', textAlign: 'center' }}>{getStatusBadge(inc.status)}</td>
@@ -240,7 +246,7 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
                   ) : (
                     <button
                       onClick={() => openRepairModal(inc)}
-                      style={{ padding: '5px 10px', background: '#e65c00', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                      style={{ padding: '5px 10px', background: '#e65c00', color: '#1e293b', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
                     >
                       🔧 Ghi chi phí
                     </button>
@@ -251,7 +257,7 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
               <td style={{ padding: '12px', textAlign: 'center' }}>
                 <button 
                   onClick={() => openDetailModal(inc)}
-                  style={{ padding: '6px 12px', background: '#17a2b8', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                  style={{ padding: '6px 12px', background: '#17a2b8', color: '#1e293b', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                 >
                   Xem chi tiết
                 </button>
@@ -264,17 +270,17 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
       {/* MODAL TẠO SỰ CỐ (TENANT) */}
       {showCreateModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
-          <div style={{ background: '#fff', width: '500px', borderRadius: '8px', padding: '20px', position: 'relative' }}>
+          <div style={{ background: '#1e293b', width: '500px', borderRadius: '8px', padding: '20px', position: 'relative' }}>
             <button onClick={() => setShowCreateModal(false)} style={{ position: 'absolute', top: 15, right: 15, border: 'none', background: 'transparent', fontSize: '20px', cursor: 'pointer' }}>✖</button>
-            <h3 style={{ marginTop: 0, color: '#dc3545', borderBottom: '1px solid #eee', paddingBottom: 10 }}>Báo cáo Sự cố mới</h3>
+            <h3 style={{ marginTop: 0, color: '#ef4444', borderBottom: '1px solid #eee', paddingBottom: 10 }}>Báo cáo Sự cố mới</h3>
             <form onSubmit={handleCreateSubmit}>
               <div style={{ marginBottom: 15 }}>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5, color: '#333' }}>Phòng gặp sự cố:</label>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5, color: '#cbd5e1' }}>Phòng gặp sự cố:</label>
                 <select 
                   required 
                   value={formData.roomCode} 
                   onChange={e => setFormData({...formData, roomCode: e.target.value})} 
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box', backgroundColor: '#fff', color: '#000' }} 
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #475569', boxSizing: 'border-box', backgroundColor: '#f8fafc', color: '#f8fafc' }} 
                 >
                   <option value="">-- Chọn phòng bạn đang thuê --</option>
                   {contracts
@@ -289,21 +295,21 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
                 </select>
               </div>
               <div style={{ marginBottom: 15 }}>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5, color: '#333' }}>Tiêu đề tóm tắt:</label>
-                <input type="text" maxLength="100" placeholder="VD: Điều hòa kêu to, Rỉ nước bồn cầu..." required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box', backgroundColor: '#fff', color: '#000' }} />
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5, color: '#cbd5e1' }}>Tiêu đề tóm tắt:</label>
+                <input type="text" maxLength="100" placeholder="VD: Điều hòa kêu to, Rỉ nước bồn cầu..." required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #475569', boxSizing: 'border-box', backgroundColor: '#f8fafc', color: '#f8fafc' }} />
               </div>
               <div style={{ marginBottom: 15 }}>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5, color: '#333' }}>Mô tả chi tiết:</label>
-                <textarea rows="4" placeholder="Mô tả hoàn cảnh, tình trạng hiện tại..." required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box', backgroundColor: '#fff', color: '#000' }}></textarea>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5, color: '#cbd5e1' }}>Mô tả chi tiết:</label>
+                <textarea rows="4" placeholder="Mô tả hoàn cảnh, tình trạng hiện tại..." required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #475569', boxSizing: 'border-box', backgroundColor: '#f8fafc', color: '#f8fafc' }}></textarea>
               </div>
               <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5, color: '#333' }}>Hình ảnh đính kèm (Tối đa 5 ảnh):</label>
-                <input type="file" multiple accept="image/*" onChange={(e) => setFiles(Array.from(e.target.files).slice(0, 5))} style={{ width: '100%', padding: '8px', background: '#f8f9fa', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box', color: '#000' }} />
-                <small style={{ color: '#888' }}>Chủ nhà sẽ nhận diện nguyên nhân dễ hơn nếu có ảnh.</small>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5, color: '#cbd5e1' }}>Hình ảnh đính kèm (Tối đa 5 ảnh):</label>
+                <input type="file" multiple accept="image/*" onChange={(e) => setFiles(Array.from(e.target.files).slice(0, 5))} style={{ width: '100%', padding: '8px', background: '#f8f9fa', borderRadius: '4px', border: '1px solid #475569', boxSizing: 'border-box', color: '#f8fafc' }} />
+                <small style={{ color: '#94a3b8' }}>Chủ nhà sẽ nhận diện nguyên nhân dễ hơn nếu có ảnh.</small>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <button type="button" onClick={() => setShowCreateModal(false)} style={{ padding: '10px 20px', background: '#e9ecef', color: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', marginRight: '10px' }}>Hủy bỏ</button>
-                <button type="submit" style={{ padding: '10px 20px', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Gửi Sự cố</button>
+                <button type="button" onClick={() => setShowCreateModal(false)} style={{ padding: '10px 20px', background: '#e9ecef', color: '#cbd5e1', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', marginRight: '10px' }}>Hủy bỏ</button>
+                <button type="submit" style={{ padding: '10px 20px', background: '#ef4444', color: '#1e293b', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Gửi Sự cố</button>
               </div>
             </form>
           </div>
@@ -313,14 +319,14 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
       {/* MODAL GHI CHI PHÍ PHÁT SINH (CHỈ LANDLORD) */}
       {showRepairModal && repairIncident && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
-          <div style={{ background: '#fff', width: '480px', borderRadius: '10px', padding: '24px', position: 'relative' }}>
+          <div style={{ background: '#1e293b', width: '480px', borderRadius: '10px', padding: '24px', position: 'relative' }}>
             <button onClick={() => setShowRepairModal(false)} style={{ position: 'absolute', top: 15, right: 15, border: 'none', background: 'transparent', fontSize: '20px', cursor: 'pointer' }}>✖</button>
             
             <h3 style={{ marginTop: 0, color: '#e65c00', borderBottom: '2px solid #fde8d0', paddingBottom: 10 }}>
               🔧 Ghi Chi Phí Phát Sinh
             </h3>
             
-            <div style={{ padding: '10px 14px', background: '#f8f9fa', borderRadius: '6px', marginBottom: '16px', fontSize: '14px', color: '#555' }}>
+            <div style={{ padding: '10px 14px', background: '#f8f9fa', borderRadius: '6px', marginBottom: '16px', fontSize: '14px', color: '#94a3b8' }}>
               <strong>Sự cố:</strong> {repairIncident.title}<br/>
               <strong>Phòng:</strong> {repairIncident.room?.roomNumber} {repairIncident.room?.roomCode ? `(${repairIncident.room.roomCode})` : ''}<br/>
               <strong>Ngày báo cáo:</strong> {new Date(repairIncident.createdAt).toLocaleDateString('vi-VN')}
@@ -328,7 +334,7 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
 
             <form onSubmit={handleSaveRepairCost}>
               <div style={{ marginBottom: 15 }}>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5, color: '#333' }}>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5, color: '#cbd5e1' }}>
                   Nội dung sửa chữa:
                 </label>
                 <textarea
@@ -336,12 +342,12 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
                   placeholder="VD: Thay dàn lạnh điều hòa, gọi thợ điện vào kiểm tra và sửa chữa..."
                   value={repairData.repairDescription}
                   onChange={e => setRepairData({ ...repairData, repairDescription: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box', fontSize: '14px', color: '#000', backgroundColor: '#fff', resize: 'vertical' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #475569', boxSizing: 'border-box', fontSize: '14px', color: '#f8fafc', backgroundColor: '#f8fafc', resize: 'vertical' }}
                 />
               </div>
               <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5, color: '#333' }}>
-                  Chi phí phát sinh (VNĐ): <span style={{ color: '#dc3545' }}>*</span>
+                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5, color: '#cbd5e1' }}>
+                  Chi phí phát sinh (VNĐ): <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <input
                   type="number"
@@ -351,19 +357,19 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
                   placeholder="VD: 500000"
                   value={repairData.repairCost}
                   onChange={e => setRepairData({ ...repairData, repairCost: e.target.value })}
-                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #ccc', boxSizing: 'border-box', fontSize: '16px', fontWeight: 'bold', color: '#e65c00', backgroundColor: '#fff' }}
+                  style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #475569', boxSizing: 'border-box', fontSize: '16px', fontWeight: 'bold', color: '#e65c00', backgroundColor: '#f8fafc' }}
                 />
                 {repairData.repairCost && (
-                  <small style={{ color: '#666', marginTop: '4px', display: 'block' }}>
+                  <small style={{ color: '#94a3b8', marginTop: '4px', display: 'block' }}>
                     = {Number(repairData.repairCost).toLocaleString('vi-VN')} đồng
                   </small>
                 )}
               </div>
               <div style={{ textAlign: 'right', gap: '10px', display: 'flex', justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => setShowRepairModal(false)} style={{ padding: '10px 20px', background: '#e9ecef', color: '#333', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+                <button type="button" onClick={() => setShowRepairModal(false)} style={{ padding: '10px 20px', background: '#e9ecef', color: '#cbd5e1', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
                   Hủy
                 </button>
-                <button type="submit" disabled={savingRepair} style={{ padding: '10px 20px', background: savingRepair ? '#ccc' : '#e65c00', color: '#fff', border: 'none', borderRadius: '6px', cursor: savingRepair ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}>
+                <button type="submit" disabled={savingRepair} style={{ padding: '10px 20px', background: savingRepair ? '#cbd5e1' : '#e65c00', color: '#1e293b', border: 'none', borderRadius: '6px', cursor: savingRepair ? 'not-allowed' : 'pointer', fontWeight: 'bold' }}>
                   {savingRepair ? 'Đang lưu...' : '💾 Lưu Chi Phí'}
                 </button>
               </div>
@@ -375,24 +381,24 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
       {/* MODAL VIEW COST DETAIL */}
       {viewCostModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000}}>
-          <div style={{ background: '#fff', width: '450px', padding: '25px', borderRadius: '8px', position: 'relative' }}>
-            <button onClick={() => setViewCostModal(null)} style={{ position: 'absolute', top: 15, right: 15, background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#888' }}>✖</button>
+          <div style={{ background: '#1e293b', width: '450px', padding: '25px', borderRadius: '8px', position: 'relative' }}>
+            <button onClick={() => setViewCostModal(null)} style={{ position: 'absolute', top: 15, right: 15, background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#94a3b8' }}>✖</button>
             <h3 style={{ margin: '0 0 15px 0', color: '#e65c00', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>🔧 Chi tiết chi phí sửa chữa</h3>
             <div style={{ background: '#fdf3e2', padding: '15px', borderRadius: '6px', border: '1px solid #fbe0b3', marginBottom: '20px', textAlign: 'left' }}>
-              {/* <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>ID Sự cố: <strong>{viewCostModal.id}</strong></p> */}
-              <p style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#333' }}>Tổng chi phí: <strong style={{ color: '#e65c00', fontSize: '22px' }}>{Number(viewCostModal.repairCost).toLocaleString('vi-VN')} đ</strong></p>
+              {/* <p style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#94a3b8' }}>ID Sự cố: <strong>{viewCostModal.id}</strong></p> */}
+              <p style={{ margin: '0 0 10px 0', fontSize: '18px', color: '#cbd5e1' }}>Tổng chi phí: <strong style={{ color: '#e65c00', fontSize: '22px' }}>{Number(viewCostModal.repairCost).toLocaleString('vi-VN')} đ</strong></p>
               {viewCostModal.repairDescription && (
                 <div>
-                  <p style={{ margin: '0 0 5px 0', fontSize: '18px', color: '#333' }}>Nội dung sửa chữa:</p>
-                  <p style={{ margin: 0, background: '#fff', padding: '10px', borderRadius: '4px', border: '1px solid #eee', color: '#333', whiteSpace: 'pre-wrap' }}>{viewCostModal.repairDescription}</p>
+                  <p style={{ margin: '0 0 5px 0', fontSize: '18px', color: '#cbd5e1' }}>Nội dung sửa chữa:</p>
+                  <p style={{ margin: 0, background: '#1e293b', padding: '10px', borderRadius: '4px', border: '1px solid #eee', color: '#cbd5e1', whiteSpace: 'pre-wrap' }}>{viewCostModal.repairDescription}</p>
                 </div>
               )}
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button onClick={() => setViewCostModal(null)} style={{ padding: '8px 15px', background: '#6c757d', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Đóng</button>
+              <button onClick={() => setViewCostModal(null)} style={{ padding: '8px 15px', background: '#6c757d', color: '#1e293b', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Đóng</button>
               <button 
                 onClick={() => { setViewCostModal(null); openRepairModal(viewCostModal); }} 
-                style={{ padding: '8px 15px', background: '#e65c00', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                style={{ padding: '8px 15px', background: '#e65c00', color: '#1e293b', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
               >
                 ✎ Sửa chi phí
               </button>
@@ -404,16 +410,16 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
       {/* MODAL CHI TIẾT & PHẢN HỒI (CẢ 2 ROLE DÙNG CHUNG) */}
       {showDetailModal && selectedIncident && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
-          <div style={{ background: '#fff', width: '680px', maxHeight: '92vh', overflowY: 'auto', borderRadius: '10px', padding: '24px', position: 'relative', textAlign: 'left', color: '#000' }}>
+          <div style={{ background: '#1e293b', width: '680px', maxHeight: '92vh', overflowY: 'auto', borderRadius: '10px', padding: '24px', position: 'relative', textAlign: 'left', color: '#f8fafc' }}>
             <button onClick={() => setShowDetailModal(false)} style={{ position: 'absolute', top: 15, right: 15, border: 'none', background: 'transparent', fontSize: '20px', cursor: 'pointer' }}>✖</button>
-            <h3 style={{ marginTop: 0, color: '#0b5ed7', borderBottom: '1px solid #eee', paddingBottom: 10, textAlign: 'center' }}>Chi tiết báo cáo sự cố</h3>
+            <h3 style={{ marginTop: 0, color: '#2563eb', borderBottom: '1px solid #eee', paddingBottom: 10, textAlign: 'center' }}>Chi tiết báo cáo sự cố</h3>
             
             <div style={{ padding: '15px', background: '#f8f9fa', borderRadius: '6px', marginBottom: '16px' }}>
               <p><strong>Tiêu đề:</strong> {selectedIncident.title}</p>
               <p><strong>Ngày gửi báo cáo:</strong> {new Date(selectedIncident.createdAt).toLocaleString('vi-VN')}</p>
               <p><strong>Phòng:</strong> {selectedIncident.room?.roomNumber} {selectedIncident.room?.roomCode ? `(${selectedIncident.room?.roomCode})` : ''}</p>
               <p><strong>Mô tả của người thuê:</strong></p>
-              <p style={{ whiteSpace: 'pre-wrap', color: '#555', background: '#fff', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}>
+              <p style={{ whiteSpace: 'pre-wrap', color: '#94a3b8', background: '#1e293b', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}>
                 {selectedIncident.description}
               </p>
               
@@ -423,7 +429,7 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
                   <div style={{ display: 'flex', gap: '10px', marginTop: 10, flexWrap: 'wrap' }}>
                     {selectedIncident.images.map((img, idx) => (
                       <a key={idx} href={`http://localhost:5000/uploads/${img}`} target="_blank" rel="noopener noreferrer">
-                        <img src={`http://localhost:5000/uploads/${img}`} alt="suco" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ccc' }} />
+                        <img src={`http://localhost:5000/uploads/${img}`} alt="suco" style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #475569' }} />
                       </a>
                     ))}
                   </div>
@@ -448,7 +454,7 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
                 <h4 style={{ margin: '0 0 10px 0' }}>Phản hồi & Cập nhật trạng thái</h4>
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5 }}>Trạng thái quá trình xử lý:</label>
-                  <select value={replyData.status} onChange={e => setReplyData({...replyData, status: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}>
+                  <select value={replyData.status} onChange={e => setReplyData({...replyData, status: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #475569' }}>
                     <option value="Pending">Chờ xử lý (Mới nhận báo cáo)</option>
                     <option value="In Progress">Đang xử lý (Đã gọi thợ / Đang sửa)</option>
                     <option value="Resolved">Đã giải quyết (Đã sửa xong)</option>
@@ -457,10 +463,10 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
                 </div>
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 5 }}>Lời nhắn / Ghi chú phản hồi:</label>
-                  <textarea rows="3" placeholder="Ví dụ: Chiều mai thợ sẽ qua kiểm tra..." required value={replyData.landlordReply} onChange={e => setReplyData({...replyData, landlordReply: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', boxSizing: 'border-box' }}></textarea>
+                  <textarea rows="3" placeholder="Ví dụ: Chiều mai thợ sẽ qua kiểm tra..." required value={replyData.landlordReply} onChange={e => setReplyData({...replyData, landlordReply: e.target.value})} style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #475569', boxSizing: 'border-box' }}></textarea>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <button type="submit" style={{ padding: '8px 18px', background: '#28a745', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Cập nhật Sự cố</button>
+                  <button type="submit" style={{ padding: '8px 18px', background: '#10b981', color: '#1e293b', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Cập nhật Sự cố</button>
                 </div>
               </form>
             )}
@@ -468,10 +474,10 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
             {/* Phần chỉ dành cho Tenant: Xem phản hồi */}
             {user.role === 'TENANT' && (
               <div style={{ padding: '14px', background: '#e6f0fa', borderRadius: '6px', marginBottom: '16px' }}>
-                <h4 style={{ margin: '0 0 10px 0', color: '#0b5ed7' }}>Phản hồi từ Chủ nhà</h4>
+                <h4 style={{ margin: '0 0 10px 0', color: '#2563eb' }}>Phản hồi từ Chủ nhà</h4>
                 <p><strong>Trạng thái:</strong> {getStatusBadge(selectedIncident.status)}</p>
                 <p style={{ margin: '6px 0 4px 0' }}><strong>Lời nhắn:</strong></p>
-                <p style={{ whiteSpace: 'pre-wrap', color: '#333', fontStyle: 'italic', background: '#fff', padding: '10px', borderRadius: '4px', margin: 0 }}>
+                <p style={{ whiteSpace: 'pre-wrap', color: '#cbd5e1', fontStyle: 'italic', background: '#1e293b', padding: '10px', borderRadius: '4px', margin: 0 }}>
                   {selectedIncident.landlordReply || 'Chủ nhà chưa phản hồi.'}
                 </p>
               </div>
@@ -479,9 +485,9 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
 
             {/* ===== KHUNG CHAT TRAO ĐỔI ===== */}
             <div style={{ border: '1px solid #dee2e6', borderRadius: '8px', overflow: 'hidden' }}>
-              <div style={{ background: 'linear-gradient(135deg, #0b5ed7, #0d6efd)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ background: 'linear-gradient(135deg, #2563eb, #3b82f6)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '16px' }}>💬</span>
-                <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '15px' }}>Trao đổi trực tiếp</span>
+                <span style={{ color: '#1e293b', fontWeight: 'bold', fontSize: '15px' }}>Trao đổi trực tiếp</span>
                 <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: '12px', marginLeft: 4 }}>
                   {user.role === 'TENANT' ? 'với Chủ nhà' : 'với Khách thuê'}
                 </span>
@@ -489,9 +495,9 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
 
               <div style={{ height: '220px', overflowY: 'auto', padding: '12px', background: '#f8f9fa', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {loadingMessages ? (
-                  <div style={{ textAlign: 'center', color: '#888', paddingTop: '60px' }}>Đang tải tin nhắn...</div>
+                  <div style={{ textAlign: 'center', color: '#94a3b8', paddingTop: '60px' }}>Đang tải tin nhắn...</div>
                 ) : messages.length === 0 ? (
-                  <div style={{ textAlign: 'center', color: '#aaa', paddingTop: '60px', fontSize: '14px' }}>
+                  <div style={{ textAlign: 'center', color: '#94a3b8', paddingTop: '60px', fontSize: '14px' }}>
                     Chưa có tin nhắn nào. Hãy bắt đầu trao đổi!
                   </div>
                 ) : (
@@ -500,7 +506,7 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
                     return (
                       <div key={msg.id} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
                         <div style={{ maxWidth: '72%' }}>
-                          <div style={{ fontSize: '11px', color: '#888', marginBottom: '3px', textAlign: isMe ? 'right' : 'left' }}>
+                          <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '3px', textAlign: isMe ? 'right' : 'left' }}>
                             {isMe ? 'Bạn' : msg.sender?.fullName}
                             {' · '}
                             {new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
@@ -510,14 +516,14 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
                           <div style={{
                             padding: '9px 13px',
                             borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                            background: isMe ? '#0b5ed7' : '#fff',
-                            color: isMe ? '#fff' : '#333',
+                            background: isMe ? '#2563eb' : '#1e293b',
+                            color: isMe ? '#1e293b' : '#cbd5e1',
                             boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
                             fontSize: '14px',
                             lineHeight: '1.5',
                             whiteSpace: 'pre-wrap',
                             wordBreak: 'break-word',
-                            border: isMe ? 'none' : '1px solid #e0e0e0'
+                            border: isMe ? 'none' : '1px solid #1e293b'
                           }}>
                             {msg.message}
                           </div>
@@ -529,21 +535,21 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
                 <div ref={chatEndRef} />
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', padding: '10px 12px', background: '#fff', borderTop: '1px solid #dee2e6' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', padding: '10px 12px', background: '#1e293b', borderTop: '1px solid #dee2e6' }}>
                 <textarea
                   rows="2"
                   placeholder="Nhập tin nhắn... (Enter để gửi, Shift+Enter xuống dòng)"
                   value={chatInput}
                   onChange={e => setChatInput(e.target.value)}
                   onKeyDown={handleChatKeyDown}
-                  style={{ flex: 1, padding: '8px 12px', border: '1px solid #ccc', borderRadius: '20px', resize: 'none', outline: 'none', fontSize: '14px', lineHeight: '1.4', boxSizing: 'border-box', fontFamily: 'inherit', color: '#000', backgroundColor: '#f8f9fa' }}
-                  onFocus={e => e.target.style.borderColor = '#0b5ed7'}
-                  onBlur={e => e.target.style.borderColor = '#ccc'}
+                  style={{ flex: 1, padding: '8px 12px', border: '1px solid #475569', borderRadius: '20px', resize: 'none', outline: 'none', fontSize: '14px', lineHeight: '1.4', boxSizing: 'border-box', fontFamily: 'inherit', color: '#f8fafc', backgroundColor: '#f8f9fa' }}
+                  onFocus={e => e.target.style.borderColor = '#2563eb'}
+                  onBlur={e => e.target.style.borderColor = '#cbd5e1'}
                 />
                 <button
                   onClick={handleSendMessage}
                   disabled={!chatInput.trim() || sendingMessage}
-                  style={{ padding: '9px 18px', background: chatInput.trim() && !sendingMessage ? '#0b5ed7' : '#ccc', color: '#fff', border: 'none', borderRadius: '20px', cursor: chatInput.trim() && !sendingMessage ? 'pointer' : 'not-allowed', fontWeight: 'bold', fontSize: '14px', whiteSpace: 'nowrap' }}
+                  style={{ padding: '9px 18px', background: chatInput.trim() && !sendingMessage ? '#2563eb' : '#cbd5e1', color: '#1e293b', border: 'none', borderRadius: '20px', cursor: chatInput.trim() && !sendingMessage ? 'pointer' : 'not-allowed', fontWeight: 'bold', fontSize: '14px', whiteSpace: 'nowrap' }}
                 >
                   {sendingMessage ? '...' : '🚀 Gửi'}
                 </button>
@@ -551,7 +557,7 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
             </div>
 
             <div style={{ textAlign: 'right', marginTop: '16px' }}>
-              <button type="button" onClick={() => setShowDetailModal(false)} style={{ padding: '10px 20px', background: '#e9ecef', color: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Đóng</button>
+              <button type="button" onClick={() => setShowDetailModal(false)} style={{ padding: '10px 20px', background: '#e9ecef', color: '#cbd5e1', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Đóng</button>
             </div>
           </div>
         </div>

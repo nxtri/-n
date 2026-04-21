@@ -37,6 +37,10 @@ const Room = sequelize.define('Room', {
     type: DataTypes.ENUM('AVAILABLE', 'RENTED', 'MAINTENANCE'), 
     defaultValue: 'AVAILABLE'
   },
+  isHidden: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
   landlordId: { type: DataTypes.INTEGER, allowNull: false }
 },
 {

@@ -25,7 +25,7 @@ cron.schedule('0 8 * * *', async () => {
         // Tìm thông tin chủ nhà để lấy Email
         const landlord = await User.findByPk(contract.room.landlordId);
         
-        if (landlord) {
+        if (landlord && landlord.isActive !== false) {
           const subject = `[Nhắc Nhở] Đã đến kỳ chốt điện nước phòng ${contract.room.roomNumber}`;
           const message = `Chào ${landlord.fullName},\n\nHôm nay là ngày thu tiền định kỳ của phòng ${contract.room.roomNumber}. \nVui lòng đăng nhập vào hệ thống, nhập chỉ số điện, nước và số xe để hệ thống tự động tính tiền và gửi hóa đơn cho khách thuê.\n\nTrân trọng!`;
           

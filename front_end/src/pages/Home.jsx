@@ -22,6 +22,46 @@ const Home = () => {
   const [filteredRooms, setFilteredRooms] = useState([]);
   const navigate = useNavigate();
   const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
+  
+  // Hàm vẽ sao đánh giá (Hỗ trợ sao lẻ chính xác đến 1 chữ số thập phân)
+  const renderStars = (rating, idPrefix = 'home') => {
+    const stars = [];
+    const absoluteRating = Number(rating) || 0;
+    const roundedRating = Math.round(absoluteRating * 10) / 10; // Làm tròn tới 0.1 (vd: 3.1, 3.2...)
+    
+    for (let i = 1; i <= 5; i++) {
+      if (i <= Math.floor(roundedRating)) {
+        // Sao vàng đầy
+        stars.push(
+          <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill="#f59e0b" style={{ marginRight: '2px' }}>
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+          </svg>
+        );
+      } else if (i === Math.ceil(roundedRating) && roundedRating % 1 !== 0) {
+        // Sao vàng phần lẻ (Fractional Star)
+        const fraction = (roundedRating - Math.floor(roundedRating)) * 100;
+        stars.push(
+          <svg key={i} width="16" height="16" viewBox="0 0 24 24" style={{ marginRight: '2px' }}>
+            <defs>
+              <linearGradient id={`grad-${idPrefix}-${i}`}>
+                <stop offset={`${fraction}%`} stopColor="#f59e0b" />
+                <stop offset={`${fraction}%`} stopColor="#e4e4e4" />
+              </linearGradient>
+            </defs>
+            <path fill={`url(#grad-${idPrefix}-${i})`} d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+          </svg>
+        );
+      } else {
+        // Sao xám rỗng
+        stars.push(
+          <svg key={i} width="16" height="16" viewBox="0 0 24 24" fill="#e4e4e4" style={{ marginRight: '2px' }}>
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+          </svg>
+        );
+      }
+    }
+    return stars;
+  };
 
   // ==========================================
   // STATE CHO TÌM KIẾM NHANH (Ở ngoài)
@@ -204,22 +244,25 @@ const Home = () => {
           }
         }}
         style={{
-          background: 'transparent',
-          border: isActive ? '1px solid #ff5a2c' : '1px solid #444',
-          color: isActive ? '#ff5a2c' : '#ccc',
-          padding: '8px 16px',
-          borderRadius: '20px',
+          background: isActive ? '#eff6ff' : '#ffffff',
+          border: isActive ? '1.5px solid #2563eb' : '1px solid #e2e8f0',
+          color: isActive ? '#2563eb' : '#64748b',
+          padding: '10px 20px',
+          borderRadius: '12px',
           cursor: 'pointer',
           position: 'relative',
           overflow: 'hidden',
           fontSize: '14px',
-          outline: 'none'
+          fontWeight: '500',
+          outline: 'none',
+          transition: 'all 0.2s',
+          boxShadow: isActive ? '0 1px 2px 0 rgb(0 0 0 / 0.05)' : 'none'
         }}
       >
         {label}
-        {isActive && ( // Góc vát chéo có dấu check mark giống thiết kế
-          <div style={{ position: 'absolute', top: 0, right: 0, width: 0, height: 0, borderTop: '20px solid #ff5a2c', borderLeft: '20px solid transparent' }}>
-            <span style={{ position: 'absolute', top: '-20px', right: '1px', color: 'white', fontSize: '10px', fontWeight: 'bold' }}>✓</span>
+        {isActive && (
+          <div style={{ position: 'absolute', top: 0, right: 0, width: 0, height: 0, borderTop: '20px solid #2563eb', borderLeft: '20px solid transparent' }}>
+            <span style={{ position: 'absolute', top: '-18px', right: '1px', color: 'white', fontSize: '10px', fontWeight: 'bold' }}>✓</span>
           </div>
         )}
       </button>
@@ -243,15 +286,15 @@ const Home = () => {
   ];
 
   return (
-    <div style={{ backgroundColor: '#141414', minHeight: '100vh', color: '#e0e0e0', fontFamily: 'Arial, sans-serif' }}>
+    <div style={{ backgroundColor: '#f1f5f9', minHeight: '100vh', color: '#1e293b', fontFamily: "'Inter', sans-serif" }}>
       
       {/* HEADER TÌM KIẾM */}
-      <div style={{ backgroundColor: '#2b1b12', padding: '15px 20px', borderBottom: '1px solid #3d2b21' }}>
+      <div style={{ backgroundColor: '#ffffff', padding: '15px 20px', borderBottom: '1px solid #e2e8f0', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)' }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h1 style={{ color: '#4da6ff', margin: 0, fontSize: '24px', cursor: 'pointer' }} onClick={() => window.location.reload()}>PHONGTROSIEUCAP</h1>
+          <h1 style={{ color: '#3b82f6', margin: 0, fontSize: '24px', cursor: 'pointer' }} onClick={() => window.location.reload()}>PHONGTROSIEUCAP</h1>
           <div style={{ display: 'flex', gap: '10px', flex: 1, maxWidth: '500px', margin: '0 20px' }}>
-            <input type="text" placeholder="📍 Tìm theo khu vực (Xã, Tỉnh) hoặc Mã phòng..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ flex: 1, padding: '10px 15px', borderRadius: '20px', border: 'none', backgroundColor: '#1f1f1f', color: '#fff', outline: 'none' }} />
-            <button onClick={() => setShowFilterModal(true)} style={{ padding: '10px 20px', borderRadius: '20px', border: '1px solid #666', background: 'transparent', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <input type="text" placeholder="📍 Tìm theo khu vực (Xã, Tỉnh) hoặc Mã phòng..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ flex: 1, padding: '10px 18px', borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#0f172a', outline: 'none', transition: 'border-color 0.2s' }} />
+            <button onClick={() => setShowFilterModal(true)} style={{ padding: '10px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#ffffff', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500', transition: 'all 0.2s' }}>
               <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5v-2z"/></svg>
               Bộ lọc
             </button>
@@ -266,42 +309,42 @@ const Home = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                 
                 {/* Nút Quản lý */}
-                <button onClick={() => navigate('/dashboard')} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}>
+                <button onClick={() => navigate('/dashboard')} style={{ background: 'transparent', border: 'none', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontWeight: '500' }}>
                   <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44z"/></svg>
                   Quản lý
                 </button>
 
                 {/* Cụm thông tin User + Dropdown */}
                 <div style={{ position: 'relative' }}>
-                  <div 
+                    <div 
                     onClick={() => setShowDropdown(!showDropdown)}
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#fff', padding: '6px 12px', borderRadius: '20px', background: 'rgba(255,255,255,0.1)' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#1e293b', padding: '6px 14px', borderRadius: '10px', background: '#f1f5f9', border: '1px solid #e2e8f0' }}
                   >
-                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#444', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                      <svg width="14" height="14" fill="#ccc" viewBox="0 0 16 16"><path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/><path fillRule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/></svg>
+                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#cbd5e1', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                      <svg width="14" height="14" fill="#64748b" viewBox="0 0 16 16"><path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/><path fillRule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/></svg>
                     </div>
-                    <span style={{ fontSize: '14px', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: '14px', fontWeight: '500', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {user.fullName || 'User'}
                     </span>
-                    <span style={{ fontSize: '10px', color: '#ccc' }}>▼</span>
+                    <span style={{ fontSize: '10px', color: '#94a3b8' }}>▼</span>
                   </div>
 
                   {/* Menu xổ xuống (Profile & Log out) */}
                   {showDropdown && (
-                    <div style={{ position: 'absolute', top: '120%', right: 0, background: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '5px 0', width: '120px', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', zIndex: 100 }}>
+                    <div style={{ position: 'absolute', top: '120%', right: 0, background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px 0', width: '150px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', zIndex: 100 }}>
                       <div 
                         onClick={() => { setShowProfileModal(true); setShowDropdown(false); }}
-                        style={{ padding: '10px 15px', cursor: 'pointer', color: '#fff', fontSize: '14px', transition: '0.2s' }}
-                        onMouseEnter={(e) => e.target.style.background = '#333'} onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                        style={{ padding: '10px 18px', cursor: 'pointer', color: '#1e293b', fontSize: '14px', transition: '0.2s', display: 'flex', alignItems: 'center', gap: '10px' }}
+                        onMouseEnter={(e) => e.target.style.background = '#f1f5f9'} onMouseLeave={(e) => e.target.style.background = 'transparent'}
                       >
-                        Profile
+                        👤 Profile
                       </div>
                       <div 
                         onClick={handleLogout}
-                        style={{ padding: '10px 15px', cursor: 'pointer', color: '#ff4d4d', fontSize: '14px', transition: '0.2s' }}
-                        onMouseEnter={(e) => e.target.style.background = '#333'} onMouseLeave={(e) => e.target.style.background = 'transparent'}
+                        style={{ padding: '10px 18px', cursor: 'pointer', color: '#ef4444', fontSize: '14px', transition: '0.2s', display: 'flex', alignItems: 'center', gap: '10px' }}
+                        onMouseEnter={(e) => e.target.style.background = '#fef2f2'} onMouseLeave={(e) => e.target.style.background = 'transparent'}
                       >
-                        Log out
+                        🚪 Log out
                       </div>
                     </div>
                   )}
@@ -309,7 +352,7 @@ const Home = () => {
 
                 {/* Nút Đăng tin (Chỉ Chủ nhà mới thấy) */}
                 {user.role === 'LANDLORD' && (
-                  <button onClick={() => navigate('/dashboard', { state: { targetTab: 'ADD_ROOM' } })} style={{ background: '#ff5a2c', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '25px', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>
+                  <button onClick={() => navigate('/dashboard', { state: { targetTab: 'ADD_ROOM' } })} style={{ background: '#2563eb', color: '#f8fafc', border: 'none', padding: '10px 20px', borderRadius: '25px', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>
                     <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/></svg>
                     Đăng tin
                   </button>
@@ -317,9 +360,9 @@ const Home = () => {
 
               </div>
             ) : (
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={() => navigate('/login')} style={{ padding: '8px 15px', background: 'transparent', color: '#fff', border: 'none', cursor: 'pointer' }}>Đăng nhập</button>
-                <button onClick={() => navigate('/register')} style={{ padding: '8px 15px', background: '#ff4d4d', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>Đăng ký</button>
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <button onClick={() => navigate('/login')} style={{ padding: '10px 20px', background: 'transparent', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '10px', cursor: 'pointer', fontWeight: '500' }}>Đăng nhập</button>
+                <button onClick={() => navigate('/register')} style={{ padding: '10px 20px', background: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', boxShadow: '0 4px 6px -1px rgba(37,99,235,0.2)' }}>Đăng ký</button>
               </div>
             )}
           </div>
@@ -330,12 +373,12 @@ const Home = () => {
       {/* DANH SÁCH PHÒNG TRỌ NẰM DƯỚI */}
       <div style={{ width: '100%', margin: '20px auto', display: 'flex', boxSizing: 'border-box', gap: '20px', padding: '0 40px', }}>
         <div style={{ flex: '7' }}>
-          <h2 style={{ color: '#fff', marginTop: 0 }}>Chào mừng đến với Phòng Trọ Siêu Cấp</h2>
-          <p style={{ color: '#aaa', fontSize: '14px' }}>Có {filteredRooms.length} tin đăng cho thuê</p>
+          <h2 style={{ color: '#0f172a', marginTop: 0, fontSize: '28px', fontWeight: '700' }}>Chào mừng đến với Phòng Trọ Siêu Cấp</h2>
+          <p style={{ color: '#64748b', fontSize: '15px', marginBottom: '20px' }}>Có {filteredRooms.length} tin đăng cho thuê</p>
           
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '25px', overflowX: 'auto', paddingBottom: '10px' }}>
             {['Tất cả', 'Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Bình Dương'].map(loc => (
-              <button key={loc} onClick={() => setActiveLocation(loc)} style={{ padding: '8px 15px', borderRadius: '5px', cursor: 'pointer', background: activeLocation === loc ? '#2b4d66' : 'transparent', color: activeLocation === loc ? '#4da6ff' : '#aaa', border: activeLocation === loc ? '1px solid #4da6ff' : '1px solid #444' }}>{loc}</button>
+              <button key={loc} onClick={() => setActiveLocation(loc)} style={{ padding: '10px 20px', borderRadius: '10px', cursor: 'pointer', background: activeLocation === loc ? '#2563eb' : '#ffffff', color: activeLocation === loc ? '#ffffff' : '#64748b', border: activeLocation === loc ? '1px solid #2563eb' : '1px solid #e2e8f0', fontWeight: '500', transition: 'all 0.2s', boxShadow: activeLocation === loc ? '0 4px 6px -1px rgba(37,99,235,0.2)' : 'none' }}>{loc}</button>
             ))}
           </div>
 
@@ -346,7 +389,7 @@ const Home = () => {
 
               return (
                 <Link to={`/room/${room.id}`} key={room.id} style={{ textDecoration: 'none', color: 'inherit' }}>
-                  <div style={{ display: 'flex', background: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', overflow: 'hidden', height: '200px' }}>
+                  <div style={{ display: 'flex', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', height: '200px', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.05)'; }}>
                     
                     {/* KHU VỰC ẢNH VÀ NHÃN TRẠNG THÁI */}
                     <div style={{ width: '300px', position: 'relative' }}>
@@ -355,11 +398,11 @@ const Home = () => {
                       {/* 🚨 THẺ LABEL HIỂN THỊ TRẠNG THÁI */}
                       <div style={{ position: 'absolute', top: '10px', left: '10px' }}>
                         {room.status === 'AVAILABLE' ? (
-                          <span style={{ background: '#28a745', color: '#fff', padding: '4px 10px', borderRadius: '15px', fontSize: '11px', fontWeight: 'bold', boxShadow: '0 2px 5px rgba(0,0,0,0.5)' }}>
+                          <span style={{ background: '#10b981', color: '#f8fafc', padding: '4px 10px', borderRadius: '15px', fontSize: '11px', fontWeight: 'bold', boxShadow: '0 2px 5px rgba(0,0,0,0.5)' }}>
                             ✨ ĐANG TRỐNG
                           </span>
                         ) : (
-                          <span style={{ background: '#fd7e14', color: '#fff', padding: '4px 10px', borderRadius: '15px', fontSize: '11px', fontWeight: 'bold', boxShadow: '0 2px 5px rgba(0,0,0,0.5)' }}>
+                          <span style={{ background: '#f59e0b', color: '#f8fafc', padding: '4px 10px', borderRadius: '15px', fontSize: '11px', fontWeight: 'bold', boxShadow: '0 2px 5px rgba(0,0,0,0.5)' }}>
                             ⏳ Sắp trống ({room.intendedMoveOutDate})
                           </span>
                         )}
@@ -370,20 +413,32 @@ const Home = () => {
                   <div style={{ flex: 1, padding: '10px 15px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     
                     {/* Tiêu đề phòng */}
-                    <h3 style={{ margin: 0, color: '#ff4d4f', fontSize: '18px', textTransform: 'uppercase', textAlign: 'left' }}>
+                    <h3 style={{ margin: 0, color: '#ef4444', fontSize: '18px', fontWeight: '700', textTransform: 'uppercase', textAlign: 'left' }}>
                       CHO THUÊ PHÒNG {room.roomNumber} {room.roomCode ? `(Mã phòng: ${room.roomCode})` : ''} - {room.address}
                     </h3>
 
                     {/* Dòng 2: Giá, Diện tích, Số người */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-                      <span style={{ color: '#00e676', fontWeight: 'bold', fontSize: '18px' }}>{room.price?.toLocaleString()} đ/tháng</span>
-                      <span style={{ color: '#ccc', fontSize: '14px' }}>📐 {room.area || 0} m²</span>
-                      <span style={{ color: '#ccc', fontSize: '14px' }}>👥 {room.maxOccupants} người</span>
+                      <span style={{ color: '#10b981', fontWeight: '700', fontSize: '20px' }}>{room.price?.toLocaleString()} đ/tháng</span>
+                      <span style={{ color: '#64748b', fontSize: '14px', fontWeight: '500' }}>📐 {room.area || 0} m²</span>
+                      <span style={{ color: '#64748b', fontSize: '14px', fontWeight: '500' }}>👥 {room.maxOccupants} người</span>
+                      
+                      {/* HIỂN THỊ SAO ĐÁNH GIÁ */}
+                      {room.reviewCount > 0 && (
+                        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ display: 'flex' }}>
+                           {renderStars(room.avgRating, `room-${room.id}`)}
+                          </div>
+                          <span style={{ color: '#94a3b8', fontSize: '13px', fontWeight: '500' }}>
+                            {room.avgRating} ({room.reviewCount} đánh giá)
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Dòng 3: Địa chỉ */}
-                    <div style={{ color: '#aaa', fontSize: '14px', display: 'flex', alignItems: 'flex-start', gap: '5px' }}>
-                      <span>📍</span>
+                    <div style={{ color: '#64748b', fontSize: '14px', display: 'flex', alignItems: 'flex-start', gap: '6px', fontWeight: '400' }}>
+                      <span style={{ color: '#ef4444' }}>📍</span>
                       <span style={{ lineHeight: '1.4' }}>{room.houseNumber ? `${room.houseNumber}, ` : ''}{room.address}</span>
                     </div>
                     
@@ -393,21 +448,22 @@ const Home = () => {
                       
                       {/* --- NHÓM BÊN TRÁI: CÁC TIỆN ÍCH --- */}
                       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        {room.hasElevator && <span style={{ background: '#333', color: '#fff', border: '1px solid #444', padding: '4px 10px', borderRadius: '15px', fontSize: '12px' }}>🛗 Thang máy</span>}
-                        {room.hasWashingMachine && <span style={{ background: '#333', color: '#fff', border: '1px solid #444', padding: '4px 10px', borderRadius: '15px', fontSize: '12px' }}>🧺 Máy giặt</span>}
-                        {room.hasFridge && <span style={{ background: '#333', color: '#fff', border: '1px solid #444', padding: '4px 10px', borderRadius: '15px', fontSize: '12px' }}>❄️ Tủ lạnh</span>}
-                        {room.hasKitchen && <span style={{ background: '#333', color: '#fff', border: '1px solid #444', padding: '4px 10px', borderRadius: '15px', fontSize: '12px' }}>🍳 Bếp nấu</span>}
-                        {room.hasHeater && <span style={{ background: '#333', color: '#fff', border: '1px solid #444', padding: '4px 10px', borderRadius: '15px', fontSize: '12px' }}>🚿 Nóng lạnh</span>}
+                        {room.hasElevator && <span style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '4px 12px', borderRadius: '15px', fontSize: '12px', fontWeight: '500' }}>🛗 Thang máy</span>}
+                        {room.hasWashingMachine && <span style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '4px 12px', borderRadius: '15px', fontSize: '12px', fontWeight: '500' }}>🧺 Máy giặt</span>}
+                        {room.hasFridge && <span style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '4px 12px', borderRadius: '15px', fontSize: '12px', fontWeight: '500' }}>❄️ Tủ lạnh</span>}
+                        {room.hasKitchen && <span style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '4px 12px', borderRadius: '15px', fontSize: '12px', fontWeight: '500' }}>🍳 Bếp nấu</span>}
+                        {room.hasHeater && <span style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '4px 12px', borderRadius: '15px', fontSize: '12px', fontWeight: '500' }}>🚿 Nóng lạnh</span>}
                         
                         {!(room.hasElevator || room.hasWashingMachine || room.hasFridge || room.hasKitchen || room.hasHeater) && (
-                          <span style={{ color: '#777', fontSize: '13px', fontStyle: 'italic' }}>Chưa cập nhật tiện ích</span>
+                          <span style={{ color: '#64748b', fontSize: '13px', fontStyle: 'italic' }}>Chưa cập nhật tiện ích</span>
                         )}
                       </div>
 
                       {/* --- NHÓM BÊN PHẢI: THÔNG TIN CHỦ NHÀ --- */}
-                      <div style={{ padding: '6px 12px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', fontSize: '13px', color: '#ccc', display: 'flex', gap: '15px', alignItems: 'center' }}>
-                        <div>👤 Chủ nhà: <strong style={{ color: '#fff' }}>{room.landlord?.fullName || 'Đang cập nhật'}</strong></div>
-                        <div>📞 SĐT: <strong style={{ color: '#4da6ff' }}>{room.landlord?.phone || '...'}</strong></div>
+                      <div style={{ padding: '8px 14px', background: '#f8fafc', border: '1px solid #f1f5f9', borderRadius: '10px', fontSize: '13px', color: '#64748b', display: 'flex', gap: '15px', alignItems: 'center' }}>
+                        <div>👤 Chủ nhà: <strong style={{ color: '#1e293b' }}>{room.landlord?.fullName || 'Đang cập nhật'}</strong></div>
+                        <div style={{ width: '1px', height: '14px', background: '#e2e8f0' }}></div>
+                        <div>📞 SĐT: <strong style={{ color: '#2563eb' }}>{room.landlord?.phone || '...'}</strong></div>
                       </div>
                       
                     </div>
@@ -428,12 +484,12 @@ const Home = () => {
       {showFilterModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
           
-          <div style={{ background: '#222', width: '650px', maxHeight: '90vh', borderRadius: '12px', display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid #444', color: '#fff', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
+          <div style={{ background: '#ffffff', width: '650px', maxHeight: '90vh', borderRadius: '16px', display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid #e2e8f0', color: '#1e293b', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)' }}>
             
             {/* Modal Header */}
-            <div style={{ padding: '15px 20px', borderBottom: '1px solid #333', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'normal' }}>Bộ lọc</h3>
-              <button onClick={() => setShowFilterModal(false)} style={{ background: 'transparent', border: 'none', color: '#aaa', fontSize: '24px', cursor: 'pointer' }}>×</button>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#0f172a' }}>Bộ lọc</h3>
+              <button onClick={() => setShowFilterModal(false)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '28px', cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={(e) => e.target.style.color = '#475569'} onMouseLeave={(e) => e.target.style.color = '#94a3b8'}>×</button>
             </div>
 
             {/* Modal Body (Cuộn được) */}
@@ -441,12 +497,12 @@ const Home = () => {
               
               {/* 1. Khu vực */}
               <div style={{ marginBottom: '25px' }}>
-                <h4 style={{ color: '#ccc', margin: '0 0 15px', fontWeight: 'normal' }}>Lọc theo khu vực</h4>
+                <h4 style={{ color: '#475569', margin: '0 0 15px', fontWeight: '600', fontSize: '16px' }}>Lọc theo khu vực</h4>
                 <div style={{ display: 'flex', gap: '15px' }}>
                   
                   {/* CỘT 1: CHỌN TỈNH/THÀNH */}
                   <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '13px', color: '#888', display: 'block', marginBottom: '5px' }}>Thành phố / Tỉnh</label>
+                    <label style={{ fontSize: '13px', color: '#64748b', display: 'block', marginBottom: '8px', fontWeight: '500' }}>Thành phố / Tỉnh</label>
                     <select 
                       onChange={(e) => {
                         const code = e.target.value;
@@ -461,7 +517,7 @@ const Home = () => {
                           setWards([]);
                         }
                       }}
-                      style={{ width: '100%', padding: '10px', background: '#1c1c1c', border: '1px solid #444', borderRadius: '8px', color: '#fff', outline: 'none' }}
+                      style={{ width: '100%', padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#1e293b', outline: 'none', fontSize: '14px', appearance: 'none', cursor: 'pointer' }}
                     >
                       <option value="">Toàn quốc</option>
                       {provinces.map(p => <option key={p.code} value={p.code}>{p.name}</option>)}
@@ -470,11 +526,11 @@ const Home = () => {
 
                   {/* CỘT 2: CHỌN PHƯỜNG/XÃ */}
                   <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '13px', color: '#888', display: 'block', marginBottom: '5px' }}>Phường / Xã</label>
+                    <label style={{ fontSize: '13px', color: '#64748b', display: 'block', marginBottom: '8px', fontWeight: '500' }}>Phường / Xã</label>
                     <select 
                       disabled={!tempLocation.province}
                       onChange={(e) => setTempLocation({ ...tempLocation, ward: e.target.value ? e.target.options[e.target.selectedIndex].text : '' })}
-                      style={{ width: '100%', padding: '10px', background: '#1c1c1c', border: '1px solid #444', borderRadius: '8px', color: '#fff', outline: 'none' }}
+                      style={{ width: '100%', padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#1e293b', outline: 'none', fontSize: '14px', appearance: 'none', cursor: 'pointer' }}
                     >
                       <option value="">Tất cả</option>
                       {wards.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
@@ -486,7 +542,7 @@ const Home = () => {
 
               {/* 2. Khoảng giá */}
               <div style={{ marginBottom: '25px' }}>
-                <h4 style={{ color: '#ccc', margin: '0 0 15px', fontWeight: 'normal' }}>Khoảng giá</h4>
+                <h4 style={{ color: '#475569', margin: '0 0 15px', fontWeight: '600', fontSize: '16px' }}>Khoảng giá</h4>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
                   {PRICE_RANGES.map(item => (
                     <FilterPill key={item.val} label={item.label} value={item.val} currentVal={tempPrice} onClick={setTempPrice} />
@@ -496,7 +552,7 @@ const Home = () => {
 
               {/* 3. Khoảng diện tích */}
               <div style={{ marginBottom: '25px' }}>
-                <h4 style={{ color: '#ccc', margin: '0 0 15px', fontWeight: 'normal' }}>Khoảng diện tích</h4>
+                <h4 style={{ color: '#475569', margin: '0 0 15px', fontWeight: '600', fontSize: '16px' }}>Khoảng diện tích</h4>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
                   {AREA_RANGES.map(item => (
                     <FilterPill key={item.val} label={item.label} value={item.val} currentVal={tempArea} onClick={setTempArea} />
@@ -506,7 +562,7 @@ const Home = () => {
 
               {/* 4. Đặc điểm nổi bật (Cho phép chọn nhiều) */}
               <div style={{ marginBottom: '20px' }}>
-                <h4 style={{ color: '#ccc', margin: '0 0 15px', fontWeight: 'normal' }}>Đặc điểm nổi bật</h4>
+                <h4 style={{ color: '#475569', margin: '0 0 15px', fontWeight: '600', fontSize: '16px' }}>Đặc điểm nổi bật</h4>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
                   {AMENITIES_LIST.map(item => (
                     <FilterPill key={item.val} label={item.label} value={item.val} currentVal={tempAmenities} onClick={setTempAmenities} isMulti={true} />
@@ -517,10 +573,12 @@ const Home = () => {
             </div>
 
             {/* Modal Footer (Nút Áp dụng) */}
-            <div style={{ padding: '15px 20px', borderTop: '1px solid #333', background: '#1c1c1c' }}>
+            <div style={{ padding: '20px 24px', borderTop: '1px solid #f1f5f9', background: '#ffffff' }}>
               <button 
                 onClick={applyFilters} 
-                style={{ width: '100%', padding: '12px', background: '#ff5a2c', color: '#fff', fontSize: '16px', fontWeight: 'bold', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+                style={{ width: '100%', padding: '14px', background: '#2563eb', color: '#ffffff', fontSize: '16px', fontWeight: '700', border: 'none', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 6px -1px rgba(37,99,235,0.2)' }}
+                onMouseEnter={(e) => e.target.style.background = '#1d4ed8'}
+                onMouseLeave={(e) => e.target.style.background = '#2563eb'}
               >
                 Áp dụng
               </button>
@@ -536,15 +594,16 @@ const Home = () => {
       {/* MODAL THÔNG TIN NGƯỜI DÙNG & ĐỔI MẬT KHẨU                 */}
       {/* ========================================================= */}
       {showProfileModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
-          <div style={{ background: '#1c1c1c', width: '550px', borderRadius: '12px', padding: '30px', border: '1px solid #333', color: '#e0e0e0', position: 'relative', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
+          <div style={{ background: '#ffffff', width: '550px', borderRadius: '16px', padding: '40px', border: '1px solid #e2e8f0', color: '#1e293b', position: 'relative', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)' }}>
             
             <button 
               onClick={() => { setShowProfileModal(false); setIsEditingProfile(false); setIsChangingPassword(false); }} 
-              style={{ position: 'absolute', top: '15px', right: '20px', background: 'transparent', border: 'none', color: '#aaa', fontSize: '20px', cursor: 'pointer' }}
+              style={{ position: 'absolute', top: '20px', right: '24px', background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '24px', cursor: 'pointer', transition: 'color 0.2s' }}
+              onMouseEnter={(e) => e.target.style.color = '#475569'} onMouseLeave={(e) => e.target.style.color = '#94a3b8'}
             >✖</button>
 
-            <h2 style={{ textAlign: 'center', margin: '0 0 30px 0', color: '#fff', fontSize: '22px' }}>
+            <h2 style={{ textAlign: 'center', margin: '0 0 35px 0', color: '#0f172a', fontSize: '24px', fontWeight: '700' }}>
               {isChangingPassword ? 'Đổi mật khẩu' : isEditingProfile ? 'Chỉnh sửa thông tin' : 'Thông tin người dùng'}
             </h2>
 
@@ -552,28 +611,28 @@ const Home = () => {
             {isChangingPassword ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '20px' }}>
                 <div>
-                  <label style={{ fontSize: '13px', color: '#888', display: 'block', marginBottom: '5px' }}>Mật khẩu hiện tại</label>
+                  <label style={{ fontSize: '13px', color: '#64748b', display: 'block', marginBottom: '5px' }}>Mật khẩu hiện tại</label>
                   <div style={{ position: 'relative' }}>
-                    <input type={showOldPwd ? "text" : "password"} value={passwordData.oldPassword} onChange={e => setPasswordData({...passwordData, oldPassword: e.target.value})} style={{ width: '100%', padding: '10px', background: '#333', color: '#fff', border: 'none', borderRadius: '4px', boxSizing: 'border-box', paddingRight: '40px' }} />
-                    <span onClick={() => setShowOldPwd(!showOldPwd)} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#888', display: 'flex', alignItems: 'center' }}>
+                    <input type={showOldPwd ? "text" : "password"} value={passwordData.oldPassword} onChange={e => setPasswordData({...passwordData, oldPassword: e.target.value})} style={{ width: '100%', padding: '12px', background: '#f8fafc', color: '#1e293b', border: '1px solid #e2e8f0', borderRadius: '8px', boxSizing: 'border-box', paddingRight: '40px', outline: 'none' }} />
+                    <span onClick={() => setShowOldPwd(!showOldPwd)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center' }}>
                       {showOldPwd ? <EyeIcon /> : <EyeOffIcon />}
                     </span>
                   </div>
                 </div>
                 <div>
-                  <label style={{ fontSize: '13px', color: '#888', display: 'block', marginBottom: '5px' }}>Mật khẩu mới (ít nhất 6 ký tự)</label>
+                  <label style={{ fontSize: '13px', color: '#64748b', display: 'block', marginBottom: '5px' }}>Mật khẩu mới (ít nhất 6 ký tự)</label>
                   <div style={{ position: 'relative' }}>
-                    <input type={showNewPwd ? "text" : "password"} value={passwordData.newPassword} onChange={e => setPasswordData({...passwordData, newPassword: e.target.value})} style={{ width: '100%', padding: '10px', background: '#333', color: '#fff', border: 'none', borderRadius: '4px', boxSizing: 'border-box', paddingRight: '40px' }} />
-                    <span onClick={() => setShowNewPwd(!showNewPwd)} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#888', display: 'flex', alignItems: 'center' }}>
+                    <input type={showNewPwd ? "text" : "password"} value={passwordData.newPassword} onChange={e => setPasswordData({...passwordData, newPassword: e.target.value})} style={{ width: '100%', padding: '12px', background: '#f8fafc', color: '#1e293b', border: '1px solid #e2e8f0', borderRadius: '8px', boxSizing: 'border-box', paddingRight: '40px', outline: 'none' }} />
+                    <span onClick={() => setShowNewPwd(!showNewPwd)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center' }}>
                       {showNewPwd ? <EyeIcon /> : <EyeOffIcon />}
                     </span>
                   </div>
                 </div>
                 <div>
-                  <label style={{ fontSize: '13px', color: '#888', display: 'block', marginBottom: '5px' }}>Xác nhận mật khẩu mới</label>
+                  <label style={{ fontSize: '13px', color: '#64748b', display: 'block', marginBottom: '5px' }}>Xác nhận mật khẩu mới</label>
                   <div style={{ position: 'relative' }}>
-                    <input type={showConfirmPwd ? "text" : "password"} value={passwordData.confirmPassword} onChange={e => setPasswordData({...passwordData, confirmPassword: e.target.value})} style={{ width: '100%', padding: '10px', background: '#333', color: '#fff', border: 'none', borderRadius: '4px', boxSizing: 'border-box', paddingRight: '40px' }} />
-                    <span onClick={() => setShowConfirmPwd(!showConfirmPwd)} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#888', display: 'flex', alignItems: 'center' }}>
+                    <input type={showConfirmPwd ? "text" : "password"} value={passwordData.confirmPassword} onChange={e => setPasswordData({...passwordData, confirmPassword: e.target.value})} style={{ width: '100%', padding: '12px', background: '#f8fafc', color: '#1e293b', border: '1px solid #e2e8f0', borderRadius: '8px', boxSizing: 'border-box', paddingRight: '40px', outline: 'none' }} />
+                    <span onClick={() => setShowConfirmPwd(!showConfirmPwd)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center' }}>
                       {showConfirmPwd ? <EyeIcon /> : <EyeOffIcon />}
                     </span>
                   </div>
@@ -585,43 +644,43 @@ const Home = () => {
               <div style={{ display: 'flex', gap: '40px', marginBottom: '10px' }}>
                 {/* Cột trái */}
                 <div style={{ flex: 1 }}>
-                  <p style={{ color: '#888', margin: '0 0 5px 0', fontSize: '13px' }}>Họ tên</p>
+                  <p style={{ color: '#64748b', margin: '0 0 5px 0', fontSize: '13px' }}>Họ tên</p>
                   {isEditingProfile ? (
-                    <input type="text" value={profileData.fullName} onChange={e => setProfileData({...profileData, fullName: e.target.value})} style={{ width: '100%', padding: '8px', marginBottom: '15px', background: '#333', color: '#fff', border: 'none', borderRadius: '4px' }} />
+                    <input type="text" value={profileData.fullName} onChange={e => setProfileData({...profileData, fullName: e.target.value})} style={{ width: '100%', padding: '8px', marginBottom: '15px', background: '#334155', color: '#f8fafc', border: 'none', borderRadius: '4px' }} />
                   ) : (
                     <p style={{ margin: '0 0 20px 0', fontSize: '15px' }}>{user?.fullName}</p>
                   )}
 
-                  <p style={{ color: '#888', margin: '0 0 5px 0', fontSize: '13px' }}>Số điện thoại</p>
+                  <p style={{ color: '#64748b', margin: '0 0 5px 0', fontSize: '13px' }}>Số điện thoại</p>
                   {isEditingProfile ? (
-                    <input type="text" value={profileData.phone} onChange={e => setProfileData({...profileData, phone: e.target.value})} style={{ width: '100%', padding: '8px', marginBottom: '15px', background: '#333', color: '#fff', border: 'none', borderRadius: '4px' }} />
+                    <input type="text" value={profileData.phone} onChange={e => setProfileData({...profileData, phone: e.target.value})} style={{ width: '100%', padding: '10px', marginBottom: '20px', background: '#f8fafc', color: '#1e293b', border: '1px solid #e2e8f0', borderRadius: '8px', outline: 'none' }} />
                   ) : (
-                    <p style={{ margin: '0 0 20px 0', fontSize: '15px' }}>{user?.phone || 'Chưa cập nhật'}</p>
+                    <p style={{ margin: '0 0 20px 0', fontSize: '15px', fontWeight: '500' }}>{user?.phone || 'Chưa cập nhật'}</p>
                   )}
 
-                  <p style={{ color: '#888', margin: '0 0 5px 0', fontSize: '13px' }}>Ngày sinh</p>
+                  <p style={{ color: '#64748b', margin: '0 0 5px 0', fontSize: '13px' }}>Ngày sinh</p>
                   {isEditingProfile ? (
-                    <input type="date" value={profileData.dob} onChange={e => setProfileData({...profileData, dob: e.target.value})} style={{ width: '100%', padding: '8px', marginBottom: '15px', background: '#333', color: '#fff', border: 'none', borderRadius: '4px' }} />
+                    <input type="date" value={profileData.dob} onChange={e => setProfileData({...profileData, dob: e.target.value})} style={{ width: '100%', padding: '10px', marginBottom: '20px', background: '#f8fafc', color: '#1e293b', border: '1px solid #e2e8f0', borderRadius: '8px', outline: 'none' }} />
                   ) : (
-                    <p style={{ margin: '0 0 20px 0', fontSize: '15px' }}>{user?.dob || 'Chưa cập nhật'}</p>
+                    <p style={{ margin: '0 0 20px 0', fontSize: '15px', fontWeight: '500' }}>{user?.dob || 'Chưa cập nhật'}</p>
                   )}
 
-                  <p style={{ color: '#888', margin: '0 0 5px 0', fontSize: '13px' }}>Địa chỉ</p>
+                  <p style={{ color: '#64748b', margin: '0 0 5px 0', fontSize: '13px' }}>Địa chỉ</p>
                   {isEditingProfile ? (
-                    <input type="text" value={profileData.address} onChange={e => setProfileData({...profileData, address: e.target.value})} style={{ width: '100%', padding: '8px', marginBottom: '15px', background: '#333', color: '#fff', border: 'none', borderRadius: '4px' }} />
+                    <input type="text" value={profileData.address} onChange={e => setProfileData({...profileData, address: e.target.value})} style={{ width: '100%', padding: '10px', marginBottom: '20px', background: '#f8fafc', color: '#1e293b', border: '1px solid #e2e8f0', borderRadius: '8px', outline: 'none' }} />
                   ) : (
-                    <p style={{ margin: '0 0 20px 0', fontSize: '15px' }}>{user?.address || 'Chưa cập nhật'}</p>
+                    <p style={{ margin: '0 0 20px 0', fontSize: '15px', fontWeight: '500' }}>{user?.address || 'Chưa cập nhật'}</p>
                   )}
                 </div>
 
                 {/* Cột phải */}
                 <div style={{ flex: 1 }}>
-                  <p style={{ color: '#888', margin: '0 0 5px 0', fontSize: '13px' }}>Email (Không thể đổi)</p>
-                  <p style={{ margin: '0 0 20px 0', fontSize: '15px', color: '#666' }}>{user?.email}</p>
+                  <p style={{ color: '#64748b', margin: '0 0 5px 0', fontSize: '13px' }}>Email (Không thể đổi)</p>
+                  <p style={{ margin: '0 0 20px 0', fontSize: '15px', color: '#475569' }}>{user?.email}</p>
 
-                  <p style={{ color: '#888', margin: '0 0 5px 0', fontSize: '13px' }}>Số CMND/CCCD</p>
+                  <p style={{ color: '#64748b', margin: '0 0 5px 0', fontSize: '13px' }}>Số CMND/CCCD</p>
                   {isEditingProfile ? (
-                    <input type="text" value={profileData.identityNumber} onChange={e => setProfileData({...profileData, identityNumber: e.target.value})} style={{ width: '100%', padding: '8px', marginBottom: '15px', background: '#333', color: '#fff', border: 'none', borderRadius: '4px' }} />
+                    <input type="text" value={profileData.identityNumber} onChange={e => setProfileData({...profileData, identityNumber: e.target.value})} style={{ width: '100%', padding: '8px', marginBottom: '15px', background: '#334155', color: '#f8fafc', border: 'none', borderRadius: '4px' }} />
                   ) : (
                     <p style={{ margin: '0 0 20px 0', fontSize: '15px' }}>{user?.identityNumber || 'Chưa cập nhật'}</p>
                   )}
@@ -629,12 +688,12 @@ const Home = () => {
               </div>
               {/* KHU VỰC NGÂN HÀNG CHỈ HIỆN CHO CHỦ NHÀ NẰM TRỌN TRONG CỘT NÀY */}
               {user?.role === 'LANDLORD' && (
-                <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px dashed #555' }}>
-                  <p style={{ color: '#0dcaf0', margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold' }}>💳 Thông tin nhận tiền (VietQR)</p>
+                <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px dashed #475569' }}>
+                  <p style={{ color: '#0ea5e9', margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold' }}>💳 Thông tin nhận tiền (VietQR)</p>
                   
-                  <p style={{ color: '#888', margin: '0 0 5px 0', fontSize: '13px' }}>Ngân hàng</p>
+                  <p style={{ color: '#64748b', margin: '0 0 5px 0', fontSize: '13px' }}>Ngân hàng</p>
                   {isEditingProfile ? (
-                    <select value={profileData.bankName} onChange={e => setProfileData({...profileData, bankName: e.target.value})} style={{ width: '100%', padding: '8px', marginBottom: '15px', background: '#333', color: '#fff', border: 'none', borderRadius: '4px' }}>
+                    <select value={profileData.bankName} onChange={e => setProfileData({...profileData, bankName: e.target.value})} style={{ width: '100%', padding: '8px', marginBottom: '15px', background: '#334155', color: '#f8fafc', border: 'none', borderRadius: '4px' }}>
                       <option value="MB">MBBank</option>
                       <option value="VCB">Vietcombank</option>
                       <option value="TCB">Techcombank</option>
@@ -651,16 +710,17 @@ const Home = () => {
                     </select>
                   ) : <p style={{ margin: '0 0 15px 0', fontSize: '15px' }}>{user?.bankName || 'Chưa cập nhật'}</p>}
 
-                  <p style={{ color: '#888', margin: '0 0 5px 0', fontSize: '13px' }}>Số tài khoản</p>
-                  {isEditingProfile ? <input type="text" value={profileData.accountNumber} onChange={e => setProfileData({...profileData, accountNumber: e.target.value})} style={{ width: '100%', padding: '8px', marginBottom: '15px', background: '#333', color: '#fff', border: 'none', borderRadius: '4px' }} /> : <p style={{ margin: '0 0 15px 0', fontSize: '15px', color: '#ffeb3b', fontWeight: 'bold' }}>{user?.accountNumber || 'Chưa cập nhật'}</p>}
+                  <p style={{ color: '#64748b', margin: '0 0 5px 0', fontSize: '13px' }}>Số tài khoản</p>
+                  {isEditingProfile ? <input type="text" value={profileData.accountNumber} onChange={e => setProfileData({...profileData, accountNumber: e.target.value})} style={{ width: '100%', padding: '8px', marginBottom: '15px', background: '#334155', color: '#f8fafc', border: 'none', borderRadius: '4px' }} /> : <p style={{ margin: '0 0 15px 0', fontSize: '15px', color: '#fbbf24', fontWeight: 'bold' }}>{user?.accountNumber || 'Chưa cập nhật'}</p>}
 
-                  <p style={{ color: '#888', margin: '0 0 5px 0', fontSize: '13px' }}>Tên chủ tài khoản</p>
-                  {isEditingProfile ? <input type="text" value={profileData.accountHolder} onChange={e => setProfileData({...profileData, accountHolder: e.target.value.toUpperCase()})} placeholder="VIET HOA KHONG DAU" style={{ width: '100%', padding: '8px', marginBottom: '15px', background: '#333', color: '#fff', border: 'none', borderRadius: '4px' }} /> : <p style={{ margin: '0 0 15px 0', fontSize: '15px' }}>{user?.accountHolder || 'Chưa cập nhật'}</p>}
+                  <p style={{ color: '#64748b', margin: '0 0 5px 0', fontSize: '13px' }}>Tên chủ tài khoản</p>
+                  {isEditingProfile ? <input type="text" value={profileData.accountHolder} onChange={e => setProfileData({...profileData, accountHolder: e.target.value.toUpperCase()})} placeholder="VIET HOA KHONG DAU" style={{ width: '100%', padding: '8px', marginBottom: '15px', background: '#334155', color: '#f8fafc', border: 'none', borderRadius: '4px' }} /> : <p style={{ margin: '0 0 15px 0', fontSize: '15px' }}>{user?.accountHolder || 'Chưa cập nhật'}</p>}
                 </div>
+                
               )}
               </>
             )}
-
+            
             {/* CÁC NÚT CHỨC NĂNG BÊN DƯỚI */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '15px', marginTop: '10px' }}>
               {isChangingPassword ? (

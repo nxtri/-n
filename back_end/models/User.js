@@ -21,9 +21,13 @@ const User = sequelize.define('User', {
     allowNull: false
   },
   role: {
-    type: DataTypes.ENUM('TENANT', 'LANDLORD'), // TENANT: Người thuê, LANDLORD: Người cho thuê
+    type: DataTypes.ENUM('TENANT', 'LANDLORD', 'ADMIN'), // Thêm ADMIN
     defaultValue: 'TENANT'
   },
+  isActive: { 
+    type: DataTypes.BOOLEAN, 
+    defaultValue: true 
+  }, // Trạng thái khóa tài khoản
   phone: { type: DataTypes.STRING, allowNull: true },
   dob: { type: DataTypes.STRING, allowNull: true }, // Ngày sinh
   address: { type: DataTypes.STRING, allowNull: true },
@@ -38,6 +42,10 @@ const User = sequelize.define('User', {
   bankName: { type:DataTypes.STRING, allowNull: true }, 
   accountNumber: { type:DataTypes.STRING, allowNull: true }, 
   accountHolder: { type:DataTypes.STRING, allowNull: true },
+  resetPasswordToken: { type: DataTypes.STRING, allowNull: true },
+  resetPasswordExpires: { type: DataTypes.DATE, allowNull: true },
+  violationsCount: { type: DataTypes.INTEGER, defaultValue: 0 },
+  lockGracePeriodStart: { type: DataTypes.DATE, allowNull: true },
 
 }, {
   tableName: 'users',

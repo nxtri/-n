@@ -66,15 +66,37 @@ const roomController = {
         }
       }
 
-      // 4. Bắt đầu tìm kiếm với điều kiện đã được set an toàn ở trên
+      // 4. LẤY THÊM MÔ HÌNH ĐÁNH GIÁ (REVIEW)
+      const { Review } = require('../models');
+
+      // 5. Bắt đầu tìm kiếm với điều kiện đã được set an toàn ở trên
       const rooms = await Room.findAll({
         where: whereCondition,
-        // include: [...] (nếu bạn có đang dùng include để lấy thêm thông tin user, category thì cứ dán vào đây)
+        include: [
+          { model: Review, as: 'reviews', attributes: ['rating'] }
+        ]
       });
+
+      // Tính điểm đánh giá trung bình
+      const processRoom = (r) => {
+        const roomData = r.toJSON ? r.toJSON() : r;
+        const reviews = roomData.reviews || [];
+        const avgRating = reviews.length > 0 
+          ? (reviews.reduce((sum, rev) => sum + rev.rating, 0) / reviews.length).toFixed(1) 
+          : 0;
+        const reviewCount = reviews.length;
+        
+        // Loại bỏ mảng reviews chi tiết để giảm tải dung lượng trả về
+        delete roomData.reviews; 
+        
+        return { ...roomData, avgRating, reviewCount };
+      };
+
+      const finalRooms = rooms.map(processRoom);
 
       res.status(200).json({
         message: 'Lấy danh sách phòng thành công!',
-        rooms: rooms
+        rooms: finalRooms
       });
       
     } catch (error) {
@@ -204,19 +226,22 @@ const roomController = {
   // =========================================================
   getPublicRooms: async (req, res) => {
     try {
-      const { Room, RentalContract } = require('../models'); 
+      const { Room, RentalContract, Review } = require('../models'); 
 
       // 1. LẤY PHÒNG TRỐNG (NHƯNG CHƯA AI CỌC)
       const availableRooms = await Room.findAll({ 
-        where: { status: 'AVAILABLE' }, 
-        include: [{ model: User, as: 'landlord', attributes: ['fullName', 'phone'] }] // 🚨 THÊM DÒNG NÀY
+        where: { status: 'AVAILABLE', isHidden: false }, 
+        include: [
+          { model: User, as: 'landlord', attributes: ['fullName', 'phone'] },
+          { model: Review, as: 'reviews', attributes: ['rating'] }
+        ]
       });
       // 🚨 BỘ LỌC 1: Chỉ lấy phòng có depositNote rỗng hoặc null
       const safeAvailable = availableRooms.filter(r => !r.depositNote || r.depositNote.trim() === '');
 
       // 2. LẤY PHÒNG ĐANG THUÊ (SẮP TRỐNG)
       const rentedRooms = await Room.findAll({ 
-        where: { status: 'RENTED' },
+        where: { status: 'RENTED', isHidden: false },
         include: [{ model: User, as: 'landlord', attributes: ['fullName', 'phone'] }] // 🚨 THÊM DÒNG NÀY
       });
       const activeContracts = await RentalContract.findAll({
@@ -237,7 +262,27 @@ const roomController = {
       }).filter(r => r !== null);
 
       // 3. GỘP LẠI VÀ GỬI VỀ CHO TRANG CHỦ
-      const finalRooms = [...safeAvailable.map(r => r.toJSON()), ...upcomingRooms];
+      const processRoom = (r) => {
+        const roomData = r.toJSON ? r.toJSON() : r;
+        const reviews = roomData.reviews || [];
+        const avgRating = reviews.length > 0 
+          ? (reviews.reduce((sum, rev) => sum + rev.rating, 0) / reviews.length).toFixed(1) 
+          : 0;
+        const reviewCount = reviews.length;
+        
+        // Loại bỏ mảng reviews chi tiết để giảm tải dung lượng trả về
+        delete roomData.reviews; 
+        
+        return { ...roomData, avgRating, reviewCount };
+      };
+
+      const finalRooms = [
+        ...safeAvailable.map(r => processRoom(r)), 
+        ...upcomingRooms.map(r => processRoom(r))
+      ];
+
+      // Sắp xếp: Những bài viết có số sao nhiều hơn thì xếp ở trên
+      finalRooms.sort((a, b) => b.avgRating - a.avgRating);
 
       res.status(200).json({ rooms: finalRooms });
     } catch (error) {

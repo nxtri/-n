@@ -9,6 +9,8 @@ const Notification = require('./Notification');
 const Review = require('./Review');
 const Incident = require('./Incident');
 const IncidentMessage = require('./IncidentMessage');
+const Report = require('./Report');
+const SystemConfig = require('./SystemConfig');
 // ---------------------------------------------------
 // THIẾT LẬP MỐI QUAN HỆ (ASSOCIATIONS)
 // ---------------------------------------------------
@@ -60,6 +62,13 @@ Incident.hasMany(IncidentMessage, { foreignKey: 'incidentId', as: 'messages' });
 IncidentMessage.belongsTo(User, { foreignKey: 'senderId', as: 'sender' });
 User.hasMany(IncidentMessage, { foreignKey: 'senderId', as: 'sentMessages' });
 
+// 8. Báo xấu (Report) relations
+Report.belongsTo(Room, { foreignKey: 'roomId', as: 'room' });
+Room.hasMany(Report, { foreignKey: 'roomId', as: 'reports' });
+
+Report.belongsTo(User, { foreignKey: 'reporterId', as: 'reporter' });
+User.hasMany(Report, { foreignKey: 'reporterId', as: 'submittedReports' });
+
 // Xuất các model ra để sử dụng ở các phần khác của dự án
 module.exports = {
   sequelize,
@@ -70,5 +79,7 @@ module.exports = {
   Notification,
   Review,
   Incident,
-  IncidentMessage
+  IncidentMessage,
+  Report,
+  SystemConfig
 };

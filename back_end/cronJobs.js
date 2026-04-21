@@ -22,6 +22,10 @@ const startCronJobs = () => {
       const landlordIds = [...new Set(activeContracts.map(c => c.landlordId))];
 
       for (const landlordId of landlordIds) {
+        // Kiểm tra chủ nhà có bị khóa không
+        const landlord = await User.findByPk(landlordId);
+        if (!landlord || landlord.isActive === false) continue;
+
         await Notification.create({
           userId: landlordId,
           title: '📅 Đến hạn chốt điện nước',
@@ -52,6 +56,15 @@ const startCronJobs = () => {
       });
 
       for (const contract of activeContracts) {
+        // Kiểm tra chủ nhà có đang bị khóa không
+        const targetLandlordId = contract.room?.landlordId || contract.landlordId || contract.userId;
+        if (targetLandlordId) {
+          const landlord = await User.findByPk(targetLandlordId);
+          if (landlord && landlord.isActive === false) {
+            continue; // Bỏ qua nếu chủ nhà bị khóa (tài khoản inactive)
+          }
+        }
+
         const contractStartDate = new Date(contract.startDate);
         const startDay = contractStartDate.getDate(); // Ngày bắt đầu thuê
 
@@ -185,8 +198,62 @@ const startCronJobs = () => {
   //     }
   //   } catch (error) {
   //     console.error("❌ [Cron Lỗi] Tự động tạo hóa đơn tiền nhà:", error);
-  //   }
-  // });
+  // NHIỆM VỤ 3: TỰ ĐỘNG KHÓA TÀI KHOẢN SAU 30 NGÀY CẢNH BÁO
+  // Chạy vào lúc 01:00 mỗi ngày để kiểm tra các diện chờ khóa
+  // =========================================================================
+  cron.schedule('0 1 * * *', async () => {
+    console.log("🤖 [Cron] Đang kiểm tra danh sách Chủ nhà trong diện chờ khóa...");
+    try {
+      const { User, Room: RoomModel, Notification } = require('./models');
+      const { Op } = require('sequelize');
+      
+      // Tìm các chủ nhà đang trong giai đoạn chờ (lockGracePeriodStart khác null)
+      const waitingLandlords = await User.findAll({
+        where: {
+          lockGracePeriodStart: { [Op.ne]: null },
+          isActive: true
+        }
+      });
+
+      const today = new Date();
+
+      for (const landlord of waitingLandlords) {
+        const graceStart = new Date(landlord.lockGracePeriodStart);
+        // Tính số ngày đã trôi qua
+        const daysPassed = Math.floor((today - graceStart) / (1000 * 60 * 60 * 24));
+
+        if (daysPassed >= 30) {
+          // Kiểm tra lại số phòng đang bị ẩn
+          const hiddenCount = await RoomModel.count({
+            where: { landlordId: landlord.id, isHidden: true }
+          });
+
+          if (hiddenCount >= 3) {
+            // THỰC HIỆN KHÓA TÀI KHOẢN
+            landlord.isActive = false;
+            landlord.lockGracePeriodStart = null;
+            await landlord.save();
+
+            // Gửi thông báo cuối cùng
+            await Notification.create({
+              userId: landlord.id,
+              title: '🚫 TÀI KHOẢN ĐÃ BỊ KHÓA',
+              message: `Tài khoản của bạn đã bị khóa tự động sau 30 ngày cảnh báo do vẫn còn ${hiddenCount} phòng bị ẩn chưa được xử lý. Vui lòng liên hệ Quản trị viên để biết thêm chi tiết.`
+            });
+
+            console.log(`🔒 [Cron] Đã khóa tài khoản chủ nhà ID: ${landlord.id} do vi phạm quá hạn.`);
+          } else {
+            // Nếu họ đã xử lý gỡ ẩn phòng -> Hủy bỏ giai đoạn chờ
+            landlord.lockGracePeriodStart = null;
+            await landlord.save();
+            console.log(`✅ [Cron] Chủ nhà ID: ${landlord.id} đã khắc phục vi phạm, hủy bỏ lệnh chờ khóa.`);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("❌ [Cron Lỗi] Tự động khóa tài khoản:", error);
+    }
+  });
 };
 
 module.exports = startCronJobs;

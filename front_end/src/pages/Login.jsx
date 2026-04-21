@@ -29,48 +29,65 @@ const Login = () => {
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
       alert('Đăng nhập thành công!');
-      navigate('/');
+      if (response.user.role === 'ADMIN') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
     } catch (error) {
       alert(error.response?.data?.message || 'Đăng nhập thất bại!');
     }
   };
 
   return (
-    <div style={{ backgroundColor: '#141414', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', fontFamily: 'Arial, sans-serif', position: 'relative' }}>
+    <div style={{ backgroundColor: '#0f172a', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif', position: 'relative' }}>
       
       {/* Nút Quay lại Trang chủ */}
-      <button onClick={() => navigate('/')} style={{ position: 'absolute', top: '20px', left: '20px', background: 'transparent', color: '#aaa', border: '1px solid #444', padding: '8px 15px', borderRadius: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', transition: '0.2s' }} onMouseEnter={(e) => e.target.style.color = '#fff'} onMouseLeave={(e) => e.target.style.color = '#aaa'}>
+      <button onClick={() => navigate('/')} style={{ position: 'absolute', top: '20px', left: '20px', background: 'transparent', color: '#6c757d', border: '1px solid #ced4da', padding: '8px 15px', borderRadius: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', transition: '0.2s' }} onMouseEnter={(e) => e.target.style.color = '#f8fafc'} onMouseLeave={(e) => e.target.style.color = '#94a3b8'}>
         ← Quay lại Trang chủ
       </button>
 
-      <div style={{ background: '#1c1c1c', padding: '40px', borderRadius: '12px', width: '100%', maxWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', border: '1px solid #333' }}>
-        <h2 style={{ textAlign: 'center', color: '#4da6ff', margin: '0 0 10px 0', fontSize: '28px' }}>PHONGTROSIEUCAP</h2>
-        <p style={{ textAlign: 'center', color: '#888', marginBottom: '30px' }}>Đăng nhập để tiếp tục</p>
+      <div style={{ background: '#ffffff', padding: '40px', borderRadius: '12px', width: '100%', maxWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', border: '1px solid #dee2e6' }}>
+        <h2 style={{ textAlign: 'center', color: '#1266dd', margin: '0 0 10px 0', fontSize: '28px' }}>PHONGTROSIEUCAP</h2>
+        <p style={{ textAlign: 'center', color: '#adb5bd', marginBottom: '30px' }}>Đăng nhập để tiếp tục</p>
 
         <form onSubmit={handleLogin}>
           <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>Email</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="Nhập email của bạn" style={{ width: '100%', padding: '12px', boxSizing: 'border-box', borderRadius: '6px', border: '1px solid #444', background: '#333', color: '#fff', outline: 'none' }} />
+            <label style={{ display: 'block', marginBottom: '8px', color: '#495057', fontSize: '14px' }}>Email</label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required placeholder="Nhập email của bạn" style={{ width: '100%', padding: '12px', boxSizing: 'border-box', borderRadius: '6px', border: '1px solid #ced4da', background: '#f8f9fa', color: '#212529', outline: 'none' }} />
           </div>
 
           <div style={{ marginBottom: '25px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', color: '#ccc', fontSize: '14px' }}>Mật khẩu</label>
+            <label style={{ display: 'block', marginBottom: '8px', color: '#495057', fontSize: '14px' }}>Mật khẩu</label>
             <div style={{ position: 'relative' }}>
-              <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="Nhập mật khẩu" style={{ width: '100%', padding: '12px', boxSizing: 'border-box', borderRadius: '6px', border: '1px solid #444', background: '#333', color: '#fff', outline: 'none', paddingRight: '40px' }} />
-              <span onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#888', display: 'flex', alignItems: 'center' }}>
+              <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required placeholder="Nhập mật khẩu" style={{ width: '100%', padding: '12px', boxSizing: 'border-box', borderRadius: '6px', border: '1px solid #ced4da', background: '#f8f9fa', color: '#212529', outline: 'none', paddingRight: '40px' }} />
+              <span onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#adb5bd', display: 'flex', alignItems: 'center' }}>
                 {showPassword ? <EyeIcon /> : <EyeOffIcon />}
               </span>
             </div>
+            <div style={{ textAlign: 'right', marginTop: '8px' }}>
+              <Link to="/forgot-password" style={{ color: '#1266dd', textDecoration: 'none', fontSize: '13px' }}>
+                Quên mật khẩu?
+              </Link>
+            </div>
           </div>
 
-          <button type="submit" style={{ width: '100%', padding: '14px', background: '#ff5a2c', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', transition: '0.2s' }} onMouseEnter={(e) => e.target.style.background = '#e04921'} onMouseLeave={(e) => e.target.style.background = '#ff5a2c'}>
+          <button type="submit" style={{ width: '100%', padding: '14px', background: '#1266dd', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', transition: '0.2s' }} onMouseEnter={(e) => e.target.style.background = '#e04921'} onMouseLeave={(e) => e.target.style.background = '#2563eb'}>
             ĐĂNG NHẬP
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: '25px', color: '#888', fontSize: '14px' }}>
-          Chưa có tài khoản? <Link to="/register" style={{ color: '#4da6ff', textDecoration: 'none', fontWeight: 'bold' }}>Đăng ký ngay</Link>
+        <p style={{ textAlign: 'center', marginTop: '25px', color: '#adb5bd', fontSize: '14px' }}>
+          Chưa có tài khoản? <Link to="/register" style={{ color: '#1266dd', textDecoration: 'none', fontWeight: 'bold' }}>Đăng ký ngay</Link>
         </p>
+
+        {/* Dòng hỗ trợ liên hệ Admin */}
+        <div style={{ marginTop: '30px', paddingTop: '20px', borderTop: '1px solid #dee2e6', textAlign: 'center' }}>
+          <p style={{ color: '#475569', fontSize: '12px', margin: 0 }}>
+            Bạn gặp sự cố về tài khoản? <br />
+            Liên hệ hỗ trợ: <span style={{ color: '#6c757d' }}>0912.345.678</span> (8:00 - 22:00)
+          </p>
+        </div>
       </div>
     </div>
   );
