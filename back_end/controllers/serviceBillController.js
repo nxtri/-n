@@ -1,5 +1,5 @@
 const { ServiceBill, RentalContract, Room, User, Notification } = require('../models');
-const sendEmail = require('../utils/sendEmail');
+const notificationHelper = require('../utils/notificationHelper');
 
 const serviceBillController = {
   // 1. Tạo hóa đơn (Chủ nhà nhập chỉ số -> Hệ thống tự tính tiền)
@@ -85,30 +85,19 @@ const serviceBillController = {
         },
         { where: { id: contractId } }
       );
-      // 🔔 BẮN THÔNG BÁO VÀO QUẢ CHUÔNG CHO KHÁCH THUÊ
+      // 🔔 BẮN THÔNG BÁO VÀO QUẢ CHUÔNG & EMAIL CHO KHÁCH THUÊ
       try {
+        const notiTitle = '🧾 Hóa đơn mới';
         const notiMessage = billType === 'UTILITY' 
-          ? `Chủ nhà vừa chốt hóa đơn ĐIỆN NƯỚC tháng ${month}/${year}. Số tiền: ${totalAmount.toLocaleString('vi-VN')} đ`
-          : `Bạn có hóa đơn mới tháng ${month}/${year}. Số tiền: ${totalAmount.toLocaleString('vi-VN')} đ`;
+          ? `Chào ${contract.tenant.fullName}, chủ nhà vừa chốt hóa đơn ĐIỆN NƯỚC tháng ${month}/${year} cho phòng ${room.roomNumber}. Số tiền: ${totalAmount.toLocaleString('vi-VN')} đ. Vui lòng kiểm tra và thanh toán.`
+          : `Chào ${contract.tenant.fullName}, hệ thống vừa tạo hóa đơn tiền phòng tháng ${month}/${year} cho phòng ${room.roomNumber}. Số tiền: ${totalAmount.toLocaleString('vi-VN')} đ. Vui lòng kiểm tra và thanh toán.`;
 
-        await Notification.create({
-          userId: contract.tenantId, // Gửi đúng cho ông khách này
-          title: '🧾 Hóa đơn mới',
-          message: notiMessage,
-          type: 'BILL', // Mã loại thông báo (bạn dùng mã nào thì điền mã đó, ví dụ 'BILL', 'SYSTEM'...)
-          isRead: false
-        });
+        await notificationHelper.send(contract.tenantId, notiTitle, notiMessage);
       } catch (notiError) {
         console.error("Lỗi khi tạo thông báo (nhưng hóa đơn vẫn tạo thành công):", notiError);
       }
 
-      // 📧 GỬI EMAIL CHO KHÁCH THUÊ
-      const tenantEmail = contract.tenant.email;
-      const subject = `[Thông Báo] Hóa đơn tháng ${month}/${year} - Phòng ${room.roomNumber}`;
-
-      await sendEmail(tenantEmail, subject, emailMessage);
-
-      res.status(201).json({ message: 'Tạo hóa đơn và gửi email thành công!', bill: newBill });
+      res.status(201).json({ message: 'Tạo hóa đơn và gửi thông báo thành công!', bill: newBill });
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'Lỗi server khi tạo hóa đơn!' });
@@ -145,16 +134,14 @@ const serviceBillController = {
         proofImages: JSON.stringify(imageUrls), // Lưu mảng đường dẫn ảnh
         status: 'PENDING_CONFIRM' // Đổi trạng thái sang "Chờ xác nhận"
       });
-      // 2. 🔔 BẮN THÔNG BÁO CHO CHỦ NHÀ
+      // 2. 🔔 BẮN THÔNG BÁO CHO CHỦ NHÀ (Web + Email)
       if (bill.contract && bill.contract.room && bill.contract.room.landlordId) {
         try {
-          await Notification.create({
-            userId: bill.contract.room.landlordId, // Gửi đích danh cho ID Chủ nhà
-            title: '💰 Khách đã nộp ảnh minh chứng',
-            message: `Khách thuê phòng ${bill.contract.room.roomNumber} vừa tải lên ảnh minh chứng thanh toán cho hóa đơn tháng ${bill.month}/${bill.year}. Vui lòng kiểm tra và xác nhận!`,
-            type: 'SYSTEM',
-            isRead: false
-          });
+          await notificationHelper.send(
+            bill.contract.room.landlordId,
+            '💰 Khách đã nộp ảnh minh chứng',
+            `Khách thuê phòng ${bill.contract.room.roomNumber} vừa tải lên ảnh minh chứng thanh toán cho hóa đơn tháng ${bill.month}/${bill.year}. Vui lòng kiểm tra và xác nhận!`
+          );
         } catch (notiError) {
           console.error("Lỗi khi tạo thông báo cho Chủ nhà:", notiError);
         }
@@ -240,15 +227,14 @@ const serviceBillController = {
 
       // Đổi trạng thái thành PAID (Thành công)
       await bill.update({ status: 'PAID' });
+      // 🔔 Bắn thông báo xác nhận thành công cho Khách (Web + Email)
       if (bill.contract && bill.contract.tenantId) {
         try {
-          await Notification.create({
-            userId: bill.contract.tenantId,
-            title: '✅ Thanh toán thành công',
-            message: `Chủ nhà đã xác nhận khoản tiền ${bill.totalAmount.toLocaleString('vi-VN')} đ cho hóa đơn tháng ${bill.month}/${bill.year}. Cảm ơn bạn!`,
-            type: 'SYSTEM',
-            isRead: false
-          });
+          await notificationHelper.send(
+            bill.contract.tenantId,
+            '✅ Thanh toán thành công',
+            `Chủ nhà đã xác nhận khoản tiền ${bill.totalAmount.toLocaleString('vi-VN')} đ cho hóa đơn tháng ${bill.month}/${bill.year}. Cảm ơn bạn!`
+          );
         } catch (notiError) {
           console.error("Lỗi gửi thông báo thanh toán:", notiError);
         }

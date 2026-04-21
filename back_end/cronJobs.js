@@ -1,5 +1,6 @@
 const cron = require('node-cron');
 const { RentalContract, ServiceBill, Notification, User } = require('./models');
+const notificationHelper = require('./utils/notificationHelper');
 const { Op } = require('sequelize');
 const { Room } = require('./models');
 const startCronJobs = () => {
@@ -26,11 +27,11 @@ const startCronJobs = () => {
         const landlord = await User.findByPk(landlordId);
         if (!landlord || landlord.isActive === false) continue;
 
-        await Notification.create({
-          userId: landlordId,
-          title: '📅 Đến hạn chốt điện nước',
-          message: 'Hôm nay là mùng 1, hệ thống nhắc bạn chốt chỉ số điện/nước và tạo HÓA ĐƠN ĐIỆN NƯỚC cho các phòng đang thuê.'
-        });
+        await notificationHelper.send(
+          landlordId,
+          '📅 Đến hạn chốt điện nước',
+          'Hôm nay là mùng 1, hệ thống nhắc bạn chốt chỉ số điện/nước và tạo HÓA ĐƠN ĐIỆN NƯỚC cho các phòng đang thuê.'
+        );
       }
       console.log(`✅ [Cron] Đã gửi nhắc nhở chốt điện nước cho ${landlordIds.length} chủ nhà.`);
     } catch (error) {
@@ -98,24 +99,24 @@ const startCronJobs = () => {
               billType: 'ROOM'    
             });
 
-            // 1. Bắn thông báo cho KHÁCH THUÊ
+            // 1. Bắn thông báo cho KHÁCH THUÊ (Web + Email)
             if (contract.tenantId) {
-              await Notification.create({
-                userId: contract.tenantId,
-                title: '🧾 Có hóa đơn tiền nhà mới',
-                message: `Hóa đơn TIỀN NHÀ tháng ${currentMonth}/${currentYear} của Phòng ${contract.roomId} đã được hệ thống tự động tạo. Tổng tiền: ${totalAmount.toLocaleString('vi-VN')}đ. Vui lòng kiểm tra và thanh toán.`
-              });
+              await notificationHelper.send(
+                contract.tenantId,
+                '🧾 Có hóa đơn tiền nhà mới',
+                `Hóa đơn TIỀN NHÀ tháng ${currentMonth}/${currentYear} của Phòng ${contract.roomId} đã được hệ thống tự động tạo. Tổng tiền: ${totalAmount.toLocaleString('vi-VN')}đ. Vui lòng kiểm tra và thanh toán.`
+              );
             }
 
             // 2. Bắn thông báo cho CHỦ NHÀ 
             const targetLandlordId = contract.room?.landlordId || contract.landlordId || contract.userId;
 
             if (targetLandlordId) {
-              await Notification.create({
-                userId: targetLandlordId,
-                title: '✅ Đã tự động tạo hóa đơn tiền nhà',
-                message: `Hệ thống tự động tạo hóa đơn TIỀN NHÀ tháng ${currentMonth}/${currentYear} cho P.${contract.roomId}. Tổng tiền: ${totalAmount.toLocaleString('vi-VN')}đ.`
-              });
+              await notificationHelper.send(
+                targetLandlordId,
+                '✅ Đã tự động tạo hóa đơn tiền nhà',
+                `Hệ thống tự động tạo hóa đơn TIỀN NHÀ tháng ${currentMonth}/${currentYear} cho P.${contract.roomId}. Tổng tiền: ${totalAmount.toLocaleString('vi-VN')}đ.`
+              );
             } else {
               console.log(`⚠️ [Cảnh báo] Không tìm thấy ID chủ nhà cho Phòng ${contract.roomId}`);
             }
@@ -234,12 +235,12 @@ const startCronJobs = () => {
             landlord.lockGracePeriodStart = null;
             await landlord.save();
 
-            // Gửi thông báo cuối cùng
-            await Notification.create({
-              userId: landlord.id,
-              title: '🚫 TÀI KHOẢN ĐÃ BỊ KHÓA',
-              message: `Tài khoản của bạn đã bị khóa tự động sau 30 ngày cảnh báo do vẫn còn ${hiddenCount} phòng bị ẩn chưa được xử lý. Vui lòng liên hệ Quản trị viên để biết thêm chi tiết.`
-            });
+            // Gửi thông báo cuối cùng (Web + Email)
+            await notificationHelper.send(
+              landlord.id,
+              '🚫 TÀI KHOẢN ĐÃ BỊ KHÓA',
+              `Tài khoản của bạn đã bị khóa tự động sau 30 ngày cảnh báo do vẫn còn ${hiddenCount} phòng bị ẩn chưa được xử lý. Vui lòng liên hệ Quản trị viên để biết thêm chi tiết.`
+            );
 
             console.log(`🔒 [Cron] Đã khóa tài khoản chủ nhà ID: ${landlord.id} do vi phạm quá hạn.`);
           } else {

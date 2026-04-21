@@ -1,4 +1,5 @@
 const { User, Notification, Room, Report, Review } = require('../models');
+const notificationHelper = require('../utils/notificationHelper');
 
 const adminController = {
   // ==========================================
@@ -56,6 +57,14 @@ const adminController = {
       await user.save();
 
       const action = user.isActive ? 'Mở khóa' : 'Khóa';
+      
+      // 🔔 Bắn thông báo cho người dùng (Web + Email)
+      await notificationHelper.send(
+        user.id,
+        '🔔 Trạng thái tài khoản',
+        `Tài khoản của bạn đã được ${action} bởi quản trị viên.`
+      );
+
       res.status(200).json({ message: `${action} tài khoản thành công!`, isActive: user.isActive });
     } catch (error) {
       console.error(error);
@@ -69,6 +78,15 @@ const adminController = {
       const user = await User.findByPk(req.params.id);
       if (!user) return res.status(404).json({ message: 'Không tìm thấy người dùng!' });
       if (user.role === 'ADMIN') return res.status(403).json({ message: 'Không thể xóa tài khoản Admin!' });
+
+      const { sendEmail } = require('../utils/sendEmail');
+      if (user.email) {
+        await sendEmail(
+          user.email, 
+          '🚫 Thông báo xóa tài khoản', 
+          `Chào ${user.fullName}, tài khoản của bạn trên hệ thống đã bị xóa bởi quản trị viên. Mọi dữ liệu liên quan sẽ được gỡ bỏ. Trân trọng.`
+        ).catch(err => console.error('Lỗi gửi email xóa tài khoản:', err));
+      }
 
       await user.destroy();
       res.status(200).json({ message: 'Xóa tài khoản thành công!' });
@@ -99,13 +117,13 @@ const adminController = {
 
       const users = await User.findAll({ where: whereCondition, attributes: ['id'] });
       
-      const notifications = users.map(user => ({
-        userId: user.id,
-        title: title || '📢 Thông báo từ Ban Quản Trị',
-        message: message
-      }));
-
-      await Notification.bulkCreate(notifications);
+      // Gửi thông báo hàng loạt (CHỈ WEB, KHÔNG EMAIL theo yêu cầu)
+      await notificationHelper.bulkSend(
+        users.map(u => u.id),
+        title || '📢 Thông báo từ Ban Quản Trị',
+        message,
+        false // shouldSendEmail = false
+      );
 
       res.status(200).json({ 
         message: `Đã gửi thông báo thành công tới ${notifications.length} người dùng.` 
@@ -182,19 +200,19 @@ const adminController = {
             if (hiddenCount === 3) {
               landlord.lockGracePeriodStart = new Date();
               
-              // Gửi thông báo đặc biệt theo yêu cầu của User
-              await Notification.create({
-                userId: landlord.id,
-                title: '⚠️ CẢNH BÁO NGUY CƠ KHÓA TÀI KHOẢN',
-                message: 'Bạn đã bị ẩn 3 phòng và sẽ bị khóa tài khoản trong vòng 30 ngày tới, hãy liên hệ với quản trị viên để khiếu nại (nếu có), sau 30 ngày nếu không được xử lý chúng tôi sẽ phải khóa tài khoản của bạn, chúc bạn một ngày tốt lành!'
-              });
+              // Gửi thông báo đặc biệt (Web + Email)
+              await notificationHelper.send(
+                landlord.id,
+                '⚠️ CẢNH BÁO NGUY CƠ KHÓA TÀI KHOẢN',
+                'Bạn đã bị ẩn 3 phòng và sẽ bị khóa tài khoản trong vòng 30 ngày tới, hãy liên hệ với quản trị viên để khiếu nại (nếu có), sau 30 ngày nếu không được xử lý chúng tôi sẽ phải khóa tài khoản của bạn, chúc bạn một ngày tốt lành!'
+              );
             } else {
-              // Thông báo bình thường
-              await Notification.create({
-                userId: landlord.id,
-                title: 'Phòng bị ẩn',
-                message: `Phòng ${room.roomNumber} của bạn đã bị quản trị viên ẩn do phát hiện sự cố hoặc có nhiều báo cáo vi phạm. Lưu ý nếu bị ẩn từ 3 phòng trở lên bạn sẽ vào diện chờ khóa tài khoản.`
-              });
+              // Thông báo bình thường (Web + Email)
+              await notificationHelper.send(
+                landlord.id,
+                'Phòng bị ẩn',
+                `Phòng ${room.roomNumber} của bạn đã bị quản trị viên ẩn do phát hiện sự cố hoặc có nhiều báo cáo vi phạm. Lưu ý nếu bị ẩn từ 3 phòng trở lên bạn sẽ vào diện chờ khóa tài khoản.`
+              );
             }
           } 
           // 3. Xử lý khi mở lại phòng
@@ -382,15 +400,13 @@ const adminController = {
         whereCondition.role = ['LANDLORD', 'TENANT'];
       }
 
-      const users = await User.findAll({ where: whereCondition, attributes: ['id'] });
-      const notifications = users.map(user => ({
-        userId: user.id,
-        title: '📢 Cập nhật Nội Quy Hệ Thống',
-        message: `Ban quản trị đã cập nhật nội quy mới cho ${target === 'ALL' ? 'toàn bộ hệ thống' : (target === 'TENANT' ? 'khách thuê' : 'chủ nhà')}. Vui lòng kiểm tra lại.`
-      }));
-
-      if (notifications.length > 0) {
-        await Notification.bulkCreate(notifications);
+      if (users.length > 0) {
+        await notificationHelper.bulkSend(
+          users.map(u => u.id),
+          '📢 Cập nhật Nội Quy Hệ Thống',
+          `Ban quản trị đã cập nhật nội quy mới cho ${target === 'ALL' ? 'toàn bộ hệ thống' : (target === 'TENANT' ? 'khách thuê' : 'chủ nhà')}. Vui lòng kiểm tra lại.`,
+          false // shouldSendEmail = false
+        );
       }
 
       res.status(200).json({ message: 'Cập nhật nội quy thành công!', config });
@@ -475,11 +491,11 @@ const adminController = {
         const roomName = report.room ? `Phòng ${report.room.roomNumber}` : 'phòng trọ';
         const roomCode = report.room?.roomCode ? ` (${report.room.roomCode})` : '';
         
-        await Notification.create({
-          userId: report.reporterId,
-          title: '✅ Báo cáo đã được xử lý',
-          message: `Ban quản trị đã giải quyết báo xấu của bạn liên quan đến ${roomName}${roomCode}. Chúng tôi rất cảm ơn sự phản hồi của bạn để xây dựng cộng đồng tốt hơn!`
-        });
+        await notificationHelper.send(
+          report.reporterId,
+          '✅ Báo cáo đã được xử lý',
+          `Ban quản trị đã giải quyết báo xấu của bạn liên quan đến ${roomName}${roomCode}. Chúng tôi rất cảm ơn sự phản hồi của bạn để xây dựng cộng đồng tốt hơn!`
+        );
       }
 
       res.status(200).json({ message: 'Đã cập nhật trạng thái báo cáo!' });
@@ -515,11 +531,11 @@ const adminController = {
         await report.save();
 
         if (report.reporterId) {
-          await Notification.create({
-            userId: report.reporterId,
-            title: '✅ Báo cáo đã được xử lý',
-            message: `Ban quản trị đã giải quyết báo xấu của bạn liên quan đến ${roomName}${roomCode}. Chúng tôi rất cảm ơn sự phản hồi của bạn để xây dựng cộng đồng tốt hơn!`
-          });
+          await notificationHelper.send(
+            report.reporterId,
+            '✅ Báo cáo đã được xử lý',
+            `Ban quản trị đã giải quyết báo xấu của bạn liên quan đến ${roomName}${roomCode}. Chúng tôi rất cảm ơn sự phản hồi của bạn để xây dựng cộng đồng tốt hơn!`
+          );
         }
       }
 

@@ -1,4 +1,5 @@
 const { IncidentMessage, Incident, User, Notification } = require('../models');
+const notificationHelper = require('../utils/notificationHelper');
 
 const incidentMessageController = {
   // Lấy tất cả tin nhắn của một sự cố
@@ -73,14 +74,14 @@ const incidentMessageController = {
         include: [{ model: User, as: 'sender', attributes: ['id', 'fullName', 'role'] }]
       });
 
-      // Gửi thông báo cho bên còn lại
+      // Gửi thông báo cho bên còn lại (Web + Email)
       const recipientId = senderRole === 'TENANT' ? incident.landlordId : incident.tenantId;
       const senderLabel = senderRole === 'TENANT' ? 'Khách thuê' : 'Chủ nhà';
-      await Notification.create({
-        userId: recipientId,
-        title: 'Tin nhắn sự cố mới',
-        message: `${senderLabel} đã gửi tin nhắn về sự cố: "${message.trim().substring(0, 50)}${message.length > 50 ? '...' : ''}"`
-      });
+      await notificationHelper.send(
+        recipientId,
+        'Tin nhắn sự cố mới',
+        `${senderLabel} đã gửi tin nhắn về sự cố: "${message.trim().substring(0, 50)}${message.length > 50 ? '...' : ''}"`
+      );
 
       res.status(201).json({ message: 'Gửi tin nhắn thành công.', data: messageWithSender });
     } catch (error) {

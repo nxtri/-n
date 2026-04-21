@@ -1,4 +1,5 @@
 const { RentalContract, Room, User, Notification, Review } = require('../models');
+const notificationHelper = require('../utils/notificationHelper');
 
 
 const contractController = {
@@ -120,6 +121,13 @@ const contractController = {
       // Bước 4: Đổi trạng thái phòng thành Đang Thuê
       await room.update({ status: 'RENTED' });
 
+      // 🔔 Bắn thông báo cho Khách thuê (Web + Email)
+      await notificationHelper.send(
+        tenant.id,
+        '📝 Hợp đồng thuê phòng mới',
+        `Chào ${tenantName}, chủ nhà ${landlordName} đã tạo hợp đồng thuê phòng cho bạn (Phòng ${room.roomNumber}). Vui lòng vào mục "Hợp đồng của tôi" để xem chi tiết.`
+      );
+
       res.status(201).json({
         message: 'Tạo hợp đồng thành công!',
         contract: newContract
@@ -197,6 +205,14 @@ const contractController = {
         await room.update({ status: 'AVAILABLE' });
       }
 
+      // 🔔 Bắn thông báo cho Khách thuê khi kết thúc (Web + Email)
+      const statusText = newStatus === 'TERMINATED' ? 'kết thúc sớm' : 'hết hạn';
+      await notificationHelper.send(
+        contract.tenantId,
+        '🔔 Hợp đồng đã kết thúc',
+        `Hợp đồng thuê phòng ${room ? room.roomNumber : ''} của bạn đã được đánh dấu là ${statusText}.`
+      );
+
       res.status(200).json({ message: 'Kết thúc hợp đồng thành công!' });
     } catch (error) {
       console.error("=== LỖI KẾT THÚC HỢP ĐỒNG ===", error);
@@ -267,15 +283,13 @@ const contractController = {
 
       await contract.update(updateData);
 
-      // Bắn thông báo cho Khách
+      // Bắn thông báo cho Khách (Web + Email)
       if (contract.tenantId) {
-        await Notification.create({
-          userId: contract.tenantId,
-          title: '📝 Hợp đồng của bạn vừa được cập nhật',
-          message: `Chủ nhà đã cập nhật nội dung hợp đồng phòng ${contract.room.roomNumber} (Gia hạn thời gian / Thay đổi giá / Cập nhật thành viên). Vui lòng vào xem lại chi tiết!`,
-          type: 'SYSTEM',
-          isRead: false
-        });
+        await notificationHelper.send(
+          contract.tenantId,
+          '📝 Hợp đồng của bạn vừa được cập nhật',
+          `Chủ nhà đã cập nhật nội dung hợp đồng phòng ${contract.room.roomNumber} (Gia hạn thời gian / Thay đổi giá / Cập nhật thành viên). Vui lòng vào xem lại chi tiết!`
+        );
       }
 
       res.status(200).json({ message: 'Cập nhật hợp đồng thành công!', contract });
@@ -319,16 +333,15 @@ const contractController = {
         terminationReason: reason || 'Không có lý do cụ thể'
       });
 
-      // 3. 🔔 Bắn Notification cho bên kia
+      // 3. 🔔 Bắn Notification cho bên kia (Web + Email)
       const targetUserId = role === 'LANDLORD' ? contract.tenantId : contract.room.landlordId;
       const senderName = role === 'LANDLORD' ? 'Chủ nhà' : 'Khách thuê';
       
-      await Notification.create({
-        userId: targetUserId,
-        title: `⚠️ ${senderName} báo trước kết thúc hợp đồng!`,
-        message: `${senderName} phòng ${contract.room.roomNumber} vừa thông báo sẽ kết thúc hợp đồng. Ngày dọn đi dự kiến: ${moveOutDate}. Lý do: ${reason || 'Không có'}.`,
-        type: 'SYSTEM'
-      });
+      await notificationHelper.send(
+        targetUserId,
+        `⚠️ ${senderName} báo trước kết thúc hợp đồng!`,
+        `${senderName} phòng ${contract.room.roomNumber} vừa thông báo sẽ kết thúc hợp đồng. Ngày dọn đi dự kiến: ${moveOutDate}. Lý do: ${reason || 'Không có'}.`
+      );
 
       res.status(200).json({ message: 'Đã gửi thông báo kết thúc thuê thành công!', contract });
     } catch (error) {
@@ -359,17 +372,15 @@ const contractController = {
         terminationReason: null
       });
 
-      // 2. 🔔 Bắn Notification báo cho người kia biết là đã "hủy kèo"
+      // 2. 🔔 Bắn Notification báo cho người kia biết là đã "hủy kèo" (Web + Email)
       const targetUserId = role === 'LANDLORD' ? contract.tenantId : contract.room.landlordId;
       const senderName = role === 'LANDLORD' ? 'Chủ nhà' : 'Khách thuê';
       
-      await Notification.create({
-        userId: targetUserId,
-        title: `🔄 ${senderName} đã hủy yêu cầu kết thúc hợp đồng`,
-        message: `${senderName} phòng ${contract.room.roomNumber} đã đổi ý, hủy yêu cầu dọn đi/lấy lại phòng. Hợp đồng vẫn tiếp tục có hiệu lực như bình thường.`,
-        type: 'SYSTEM',
-        isRead: false
-      });
+      await notificationHelper.send(
+        targetUserId,
+        `🔄 ${senderName} đã hủy yêu cầu kết thúc hợp đồng`,
+        `${senderName} phòng ${contract.room.roomNumber} đã đổi ý, hủy yêu cầu dọn đi/lấy lại phòng. Hợp đồng vẫn tiếp tục có hiệu lực như bình thường.`
+      );
 
       res.status(200).json({ message: 'Đã hủy yêu cầu kết thúc thuê thành công!', contract });
     } catch (error) {
@@ -437,12 +448,12 @@ const contractController = {
           if (room && !room.isHidden) {
             await room.update({ isHidden: true });
 
-            // Gửi thông báo cho chủ nhà
-            await Notification.create({
-              userId: room.landlordId,
-              title: '🚫 Phòng bị ẩn tự động (Đánh giá thấp)',
-              message: `Phòng ${room.roomNumber} của bạn vừa bị hệ thống tự động ẩn do điểm đánh giá trung bình rơi xuống dưới ngưỡng an toàn (${avgRating.toFixed(1)}⭐). Mỗi phòng bị ẩn được tính là 1 lần vi phạm. Bạn có quyền gửi khiếu nại giải trình.`
-            });
+            // Gửi thông báo cho chủ nhà (Web + Email)
+            await notificationHelper.send(
+              room.landlordId,
+              '🚫 Phòng bị ẩn tự động (Đánh giá thấp)',
+              `Phòng ${room.roomNumber} của bạn vừa bị hệ thống tự động ẩn do điểm đánh giá trung bình rơi xuống dưới ngưỡng an toàn (${avgRating.toFixed(1)}⭐). Bạn có quyền gửi khiếu nại giải trình.`
+            );
             console.log(`[Auto-Hide] Room ${room.roomNumber} hidden. Avg: ${avgRating.toFixed(1)}`);
           }
         }

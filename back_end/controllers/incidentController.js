@@ -1,4 +1,5 @@
 const { Incident, Room, User, Notification, RentalContract } = require('../models');
+const notificationHelper = require('../utils/notificationHelper');
 
 const incidentController = {
   // 1. Tạo báo cáo sự cố (Dành cho Tenant)
@@ -43,12 +44,12 @@ const incidentController = {
         images // Set sẽ tự động chuyển thành JSON string
       });
 
-      // Tạo thông báo cho chủ nhà
-      await Notification.create({
-        userId: landlordId,
-        title: 'Báo cáo sự cố mới',
-        message: `Khách thuê phòng ${room.roomNumber} vừa báo cáo sự cố: ${title}`
-      });
+      // Tạo thông báo cho chủ nhà (Web + Email)
+      await notificationHelper.send(
+        landlordId,
+        'Báo cáo sự cố mới',
+        `Khách thuê phòng ${room.roomNumber} vừa báo cáo sự cố: ${title}`
+      );
 
       res.status(201).json({ message: 'Báo cáo sự cố thành công.', incident: newIncident });
     } catch (error) {
@@ -117,13 +118,13 @@ const incidentController = {
         landlordReply: landlordReply || incident.landlordReply
       });
 
-      // Tạo thông báo cho khách thuê nếu chủ nhà vừa cập nhật
+      // Tạo thông báo cho khách thuê nếu chủ nhà vừa cập nhật (Web + Email)
       const replyPreview = landlordReply ? ` - Nội dung: "${landlordReply}"` : '';
-      await Notification.create({
-        userId: incident.tenantId,
-        title: 'Phản hồi sự cố',
-        message: `Chủ nhà đã cập nhật sự cố (${incident.title}) của phòng ${incident.room.roomNumber} thành: ${status}${replyPreview}`
-      });
+      await notificationHelper.send(
+        incident.tenantId,
+        'Phản hồi sự cố',
+        `Chủ nhà đã cập nhật sự cố (${incident.title}) của phòng ${incident.room.roomNumber} thành: ${status}${replyPreview}`
+      );
 
       res.status(200).json({ message: 'Cập nhật sự cố thành công.', incident });
     } catch (error) {
