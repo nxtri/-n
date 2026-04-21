@@ -278,115 +278,136 @@ const AdminDashboard = () => {
   if (!user || user.role !== 'ADMIN') return null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'Arial, sans-serif', backgroundColor: '#f1f5f9' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: 'Arial, sans-serif', backgroundColor: '#f8fafc' }}>
       {/* HEADER */}
-      <div style={{ background: '#1e293b', color: 'white', padding: '15px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
-        <h2 style={{ margin: 0 }}>HỆ THỐNG QUẢN TRỊ (ADMIN)</h2>
+      <div style={{ background: '#ffffff', color: '#0f172a', padding: '15px 25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', borderBottom: '1px solid #e2e8f0', zIndex: 10 }}>
+        <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '24px' }}>🛡️</span> HỆ THỐNG QUẢN TRỊ
+        </h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <span>Xin chào, <strong>{user.fullName}</strong></span>
+          <span style={{ fontSize: '15px', color: '#475569' }}>Xin chào, <strong style={{ color: '#0f172a' }}>{user.fullName}</strong></span>
           <button 
             onClick={handleLogout} 
-            style={{ padding: '8px 15px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
+            style={{ padding: '8px 18px', background: '#f1f5f9', color: '#ef4444', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', transition: '0.2s' }}
+            onMouseEnter={(e) => e.target.style.background = '#fee2e2'}
+            onMouseLeave={(e) => e.target.style.background = '#f1f5f9'}
+          >
             Đăng xuất
           </button>
         </div>
       </div>
 
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden',  }}>
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* SIDEBAR */}
-        <div style={{ width: '250px', background: '#ffffff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+        <div style={{ width: '260px', background: '#ffffff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', textAlign: 'left', zIndex: 5 }}>
           <div style={{ padding: '20px 0' }}>
             <div 
-              style={{ padding: '15px 20px', cursor: 'pointer', background: activeTab === 'USERS' ? '#e0f2fe' : 'transparent', color: activeTab === 'USERS' ? '#0369a1' : '#475569', fontWeight: activeTab === 'USERS' ? 'bold' : 'normal', borderLeft: activeTab === 'USERS' ? '4px solid #0284c7' : '4px solid transparent' }} 
+              style={{ padding: '15px 25px', cursor: 'pointer', background: activeTab === 'USERS' ? '#eff6ff' : 'transparent', color: activeTab === 'USERS' ? '#2563eb' : '#475569', fontWeight: activeTab === 'USERS' ? '700' : '500', borderLeft: activeTab === 'USERS' ? '4px solid #2563eb' : '4px solid transparent', transition: '0.2s', display: 'flex', alignItems: 'center', gap: '10px' }} 
               onClick={() => setActiveTab('USERS')}
+              onMouseEnter={e => { if(activeTab !== 'USERS') Object.assign(e.currentTarget.style, { background: '#f8fafc', color: '#0f172a' }) }}
+              onMouseLeave={e => { if(activeTab !== 'USERS') Object.assign(e.currentTarget.style, { background: 'transparent', color: '#475569' }) }}
             >
-              🧑‍💼 Người Dùng & Thông Báo
+              <span>🧑‍💼</span> Người Dùng & Thông Báo
             </div>
             
             <div 
-              style={{ padding: '15px 20px', cursor: 'pointer', background: activeTab === 'ROOMS' ? '#e0f2fe' : 'transparent', color: activeTab === 'ROOMS' ? '#0369a1' : '#475569', fontWeight: activeTab === 'ROOMS' ? 'bold' : 'normal', borderLeft: activeTab === 'ROOMS' ? '4px solid #0284c7' : '4px solid transparent' }} 
+              style={{ padding: '15px 25px', cursor: 'pointer', background: activeTab === 'ROOMS' ? '#eff6ff' : 'transparent', color: activeTab === 'ROOMS' ? '#2563eb' : '#475569', fontWeight: activeTab === 'ROOMS' ? '700' : '500', borderLeft: activeTab === 'ROOMS' ? '4px solid #2563eb' : '4px solid transparent', transition: '0.2s', display: 'flex', alignItems: 'center', gap: '10px' }} 
               onClick={() => setActiveTab('ROOMS')}
+              onMouseEnter={e => { if(activeTab !== 'ROOMS') Object.assign(e.currentTarget.style, { background: '#f8fafc', color: '#0f172a' }) }}
+              onMouseLeave={e => { if(activeTab !== 'ROOMS') Object.assign(e.currentTarget.style, { background: 'transparent', color: '#475569' }) }}
             >
-              🏠 Phòng, Hợp đồng & Sự cố
+              <span>🏠</span> Phòng, Hợp đồng & Sự cố
             </div>
             <div 
-              style={{ padding: '15px 20px', cursor: 'pointer', background: activeTab === 'STATS' ? '#e0f2fe' : 'transparent', color: activeTab === 'STATS' ? '#0369a1' : '#475569', fontWeight: activeTab === 'STATS' ? 'bold' : 'normal', borderLeft: activeTab === 'STATS' ? '4px solid #0284c7' : '4px solid transparent' }} 
+              style={{ padding: '15px 25px', cursor: 'pointer', background: activeTab === 'STATS' ? '#eff6ff' : 'transparent', color: activeTab === 'STATS' ? '#2563eb' : '#475569', fontWeight: activeTab === 'STATS' ? '700' : '500', borderLeft: activeTab === 'STATS' ? '4px solid #2563eb' : '4px solid transparent', transition: '0.2s', display: 'flex', alignItems: 'center', gap: '10px' }} 
               onClick={() => setActiveTab('STATS')}
+              onMouseEnter={e => { if(activeTab !== 'STATS') Object.assign(e.currentTarget.style, { background: '#f8fafc', color: '#0f172a' }) }}
+              onMouseLeave={e => { if(activeTab !== 'STATS') Object.assign(e.currentTarget.style, { background: 'transparent', color: '#475569' }) }}
             >
-              📊 Thống Kê
+              <span>📊</span> Thống Kê
             </div>
             <div 
-              style={{ padding: '15px 20px', cursor: 'pointer', background: activeTab === 'REGULATIONS' ? '#e0f2fe' : 'transparent', color: activeTab === 'REGULATIONS' ? '#0369a1' : '#475569', fontWeight: activeTab === 'REGULATIONS' ? 'bold' : 'normal', borderLeft: activeTab === 'REGULATIONS' ? '4px solid #0284c7' : '4px solid transparent' }} 
+              style={{ padding: '15px 25px', cursor: 'pointer', background: activeTab === 'REGULATIONS' ? '#eff6ff' : 'transparent', color: activeTab === 'REGULATIONS' ? '#2563eb' : '#475569', fontWeight: activeTab === 'REGULATIONS' ? '700' : '500', borderLeft: activeTab === 'REGULATIONS' ? '4px solid #2563eb' : '4px solid transparent', transition: '0.2s', display: 'flex', alignItems: 'center', gap: '10px' }} 
               onClick={() => setActiveTab('REGULATIONS')}
+              onMouseEnter={e => { if(activeTab !== 'REGULATIONS') Object.assign(e.currentTarget.style, { background: '#f8fafc', color: '#0f172a' }) }}
+              onMouseLeave={e => { if(activeTab !== 'REGULATIONS') Object.assign(e.currentTarget.style, { background: 'transparent', color: '#475569' }) }}
             >
-              📜 Quản lý Nội quy
+              <span>📜</span> Quản lý Nội quy
             </div>
             <div 
-              style={{ padding: '15px 20px', cursor: 'pointer', background: activeTab === 'SETTINGS' ? '#e0f2fe' : 'transparent', color: activeTab === 'SETTINGS' ? '#0369a1' : '#475569', fontWeight: activeTab === 'SETTINGS' ? 'bold' : 'normal', borderLeft: activeTab === 'SETTINGS' ? '4px solid #0284c7' : '4px solid transparent' }} 
+              style={{ padding: '15px 25px', cursor: 'pointer', background: activeTab === 'SETTINGS' ? '#eff6ff' : 'transparent', color: activeTab === 'SETTINGS' ? '#2563eb' : '#475569', fontWeight: activeTab === 'SETTINGS' ? '700' : '500', borderLeft: activeTab === 'SETTINGS' ? '4px solid #2563eb' : '4px solid transparent', transition: '0.2s', display: 'flex', alignItems: 'center', gap: '10px' }} 
               onClick={() => setActiveTab('SETTINGS')}
+              onMouseEnter={e => { if(activeTab !== 'SETTINGS') Object.assign(e.currentTarget.style, { background: '#f8fafc', color: '#0f172a' }) }}
+              onMouseLeave={e => { if(activeTab !== 'SETTINGS') Object.assign(e.currentTarget.style, { background: 'transparent', color: '#475569' }) }}
             >
-              ⚙️ Tài khoản & Bảo mật
+              <span>⚙️</span> Tài khoản & Bảo mật
             </div>
           </div>
         </div>
 
         {/* MAIN CONTENT */}
-        <div style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
+        <div style={{ flex: 1, padding: '30px', overflowY: 'auto' }}>
           {activeTab === 'USERS' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
               
               {/* COMPONENT: GỬI THÔNG BÁO */}
-              <div style={{ background: '#fff', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ margin: '0 0 15px 0', color: '#0f172a' }}>🔔 Gửi Thông Báo Hàng Loạt</h3>
-                <form onSubmit={handleSendNotification} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                  <div style={{ display: 'flex', gap: '15px' }}>
+              <div style={{ background: '#ffffff', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
+                <h3 style={{ margin: '0 0 20px 0', color: '#0f172a', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>🔔</span> Gửi Thông Báo Hàng Loạt
+                </h3>
+                <form onSubmit={handleSendNotification} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ display: 'flex', gap: '20px' }}>
                     <div style={{ flex: 1 }}>
-                      <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>Gửi đến đối tượng</label>
+                      <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '14px', color: '#475569' }}>Gửi đến đối tượng</label>
                       <select 
                         value={notificationData.targetRole}
                         onChange={(e) => setNotificationData({ ...notificationData, targetRole: e.target.value })}
-                        style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '5px' }}>
+                        style={{ width: '100%', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', outline: 'none', background: '#f8fafc', color: '#0f172a' }}>
                         <option value="ALL">Tất cả người dùng</option>
                         <option value="LANDLORD">Chỉ Chủ Nhà</option>
                         <option value="TENANT">Chỉ Khách Thuê</option>
                       </select>
                     </div>
                     <div style={{ flex: 2 }}>
-                      <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>Tiêu đề thông báo</label>
+                      <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '14px', color: '#475569' }}>Tiêu đề thông báo</label>
                       <input 
                         type="text" 
                         value={notificationData.title}
                         onChange={(e) => setNotificationData({ ...notificationData, title: e.target.value })}
                         placeholder="VD: Cập nhật quy định mới..."
-                        style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '5px' }} />
+                        style={{ width: '100%', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', outline: 'none', background: '#f8fafc', color: '#0f172a' }} />
                     </div>
                   </div>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>Nội dung chi tiết</label>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '14px', color: '#475569' }}>Nội dung chi tiết</label>
                     <textarea 
                       value={notificationData.message}
                       onChange={(e) => setNotificationData({ ...notificationData, message: e.target.value })}
                       placeholder="Nhập nội dung cần gửi..."
                       rows="3"
-                      style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '5px', resize: 'vertical' }}></textarea>
+                      style={{ width: '100%', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', resize: 'vertical', outline: 'none', background: '#f8fafc', color: '#0f172a' }}></textarea>
                   </div>
-                  <button type="submit" style={{ alignSelf: 'flex-start', padding: '10px 20px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
+                  <button type="submit" style={{ alignSelf: 'flex-start', padding: '12px 24px', background: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 4px 6px -1px rgba(37,99,235,0.2)', transition: 'transform 0.2s' }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
                     Gửi Thông Báo Ngay 🚀
                   </button>
                 </form>
               </div>
 
               {/* COMPONENT: DANH SÁCH NGƯỜI DÙNG */}
-              <div style={{ background: '#fff', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                  <h3 style={{ margin: 0, color: '#0f172a' }}>🧑‍💼 Danh Sách Người Dùng</h3>
+              <div style={{ background: '#ffffff', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h3 style={{ margin: 0, color: '#0f172a', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>🧑‍💼</span> Danh Sách Người Dùng
+                  </h3>
                   
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#64748b' }}>Lọc vai trò:</span>
                     <select 
                       value={roleFilter}
                       onChange={(e) => setRoleFilter(e.target.value)}
-                      style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}>
+                      style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none', background: '#f8fafc' }}>
                       <option value="ALL">Tất cả</option>
                       <option value="LANDLORD">Chủ Nhà</option>
                       <option value="TENANT">Khách Thuê</option>
@@ -395,136 +416,147 @@ const AdminDashboard = () => {
                   </div>
                 </div>
 
-                <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
-                  <thead>
-                    <tr style={{ background: '#f8fafc', color: '#475569', textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>
-                      <th style={{ padding: '12px 10px' }}>Họ Tên</th>
-                      <th style={{ padding: '12px 10px' }}>Email</th>
-                      <th style={{ padding: '12px 10px' }}>Số Điện Thoại</th>
-                      <th style={{ padding: '12px 10px' }}>Vai Trò</th>
-                      <th style={{ padding: '12px 10px' }}>Lần vi phạm</th>
-                      <th style={{ padding: '12px 10px' }}>Trạng Thái</th>
-                      <th style={{ padding: '12px 10px', textAlign: 'center' }}>Hành Động</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users
-                      .filter(u => roleFilter === 'ALL' || u.role === roleFilter)
-                      .map(u => (
-                      <tr key={u.id} style={{ borderBottom: '1px solid #f1f5f9', textAlign: 'left' }}>
-                        <td style={{ padding: '12px 10px', fontWeight: 'bold' }}>{u.fullName}</td>
-                        <td style={{ padding: '12px 10px' }}>{u.email}</td>
-                        <td style={{ padding: '12px 10px' }}>{u.phone || 'Chưa cập nhật'}</td>
-                        <td style={{ padding: '12px 10px' }}>
-                          <span style={{ 
-                            padding: '4px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold',
-                            background: u.role === 'ADMIN' ? '#fecdd3' : u.role === 'LANDLORD' ? '#dbeafe' : '#fef3c7',
-                            color: u.role === 'ADMIN' ? '#be123c' : u.role === 'LANDLORD' ? '#1d4ed8' : '#b45309'
-                          }}>
-                            {u.role}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px 10px' }}>
-                           {u.role === 'LANDLORD' ? (
-                             <span style={{ color: (u.violationsCount || 0) >= 2 ? '#dc2626' : '#64748b', fontWeight: 'bold' }}>
-                               {u.violationsCount || 0} lần
-                             </span>
-                           ) : (
-                             <span style={{ color: '#ccc' }}>-</span>
-                           )}
-                        </td>
-                        <td style={{ padding: '12px 10px' }}>
-                          {u.isActive ? (
-                            <span style={{ color: '#16a34a', fontWeight: 'bold' }}>● Đang hoạt động</span>
-                          ) : (
-                            <span style={{ color: '#dc2626', fontWeight: 'bold' }}>● Đã bị khóa</span>
-                          )}
-                        </td>
-                        <td style={{ padding: '12px 10px', textAlign: 'center' }}>
-                          {u.role !== 'ADMIN' && (
-                            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                              <button 
-                                onClick={() => handleToggleUserStatus(u.id, u.isActive)}
-                                style={{ padding: '6px 10px', cursor: 'pointer', border: '1px solid transparent', borderRadius: '4px', background: u.isActive ? '#fef2f2' : '#f0fdf4', color: u.isActive ? '#ef4444' : '#22c55e', fontWeight: 'bold' }}
-                                title={u.isActive ? "Khóa tài khoản" : "Mở khóa tài khoản"}
-                              >
-                                {u.isActive ? '🔒 Khóa' : '🔓 Mở khóa'}
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteUser(u.id)}
-                                style={{ padding: '6px 10px', cursor: 'pointer', border: '1px solid #cbd5e1', borderRadius: '4px', background: '#fff', color: '#64748b' }}
-                                title="Xóa người dùng"
-                              >
-                                🗑️
-                              </button>
-                            </div>
-                          )}
-                        </td>
+                <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', background: '#ffffff' }}>
+                    <thead>
+                      <tr style={{ background: '#f8fafc', color: '#475569', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>
+                        <th style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>Họ Tên</th>
+                        <th style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>Email</th>
+                        <th style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>Số Điện Thoại</th>
+                        <th style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>Vai Trò</th>
+                        <th style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>Lần vi phạm</th>
+                        <th style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>Trạng Thái</th>
+                        <th style={{ padding: '16px', fontSize: '14px', fontWeight: '600', textAlign: 'center' }}>Hành Động</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {users
+                        .filter(u => roleFilter === 'ALL' || u.role === roleFilter)
+                        .map(u => (
+                        <tr key={u.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }}>
+                          <td style={{ padding: '16px', fontWeight: 'bold', color: '#0f172a' }}>{u.fullName}</td>
+                          <td style={{ padding: '16px', color: '#475569' }}>{u.email}</td>
+                          <td style={{ padding: '16px', color: '#475569' }}>{u.phone || <em style={{ color: '#94a3b8' }}>Chưa cập nhật</em>}</td>
+                          <td style={{ padding: '16px' }}>
+                            <span style={{ 
+                              padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold',
+                              background: u.role === 'ADMIN' ? '#fecdd3' : u.role === 'LANDLORD' ? '#eff6ff' : '#fffbeb',
+                              color: u.role === 'ADMIN' ? '#be123c' : u.role === 'LANDLORD' ? '#2563eb' : '#d97706',
+                              border: `1px solid ${u.role === 'ADMIN' ? '#fda4af' : u.role === 'LANDLORD' ? '#bfdbfe' : '#fde68a'}`
+                            }}>
+                              {u.role}
+                            </span>
+                          </td>
+                          <td style={{ padding: '16px' }}>
+                             {u.role === 'LANDLORD' ? (
+                               <span style={{ color: (u.violationsCount || 0) >= 2 ? '#ef4444' : '#64748b', fontWeight: 'bold' }}>
+                                 {u.violationsCount || 0} lần
+                               </span>
+                             ) : (
+                               <span style={{ color: '#cbd5e1' }}>-</span>
+                             )}
+                          </td>
+                          <td style={{ padding: '16px' }}>
+                            {u.isActive ? (
+                              <span style={{ color: '#10b981', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{width:'8px', height:'8px', borderRadius:'50%', background:'#10b981'}}></span> Đang hoạt động</span>
+                            ) : (
+                              <span style={{ color: '#ef4444', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{width:'8px', height:'8px', borderRadius:'50%', background:'#ef4444'}}></span> Bị khóa</span>
+                            )}
+                          </td>
+                          <td style={{ padding: '16px', textAlign: 'center' }}>
+                            {u.role !== 'ADMIN' && (
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                <button 
+                                  onClick={() => handleToggleUserStatus(u.id, u.isActive)}
+                                  style={{ padding: '6px 12px', cursor: 'pointer', border: `1px solid ${u.isActive ? '#fecaca' : '#bbf7d0'}`, borderRadius: '6px', background: u.isActive ? '#fef2f2' : '#f0fdf4', color: u.isActive ? '#ef4444' : '#16a34a', fontWeight: 'bold', transition: '0.2s' }}
+                                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                                  onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                                  title={u.isActive ? "Khóa tài khoản" : "Mở khóa tài khoản"}
+                                >
+                                  {u.isActive ? '🔒 Khóa' : '🔓 Mở'}
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteUser(u.id)}
+                                  style={{ padding: '6px 12px', cursor: 'pointer', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#f8fafc', color: '#64748b', transition: '0.2s' }}
+                                  onMouseEnter={e => e.currentTarget.style.background = '#e2e8f0'}
+                                  onMouseLeave={e => e.currentTarget.style.background = '#f8fafc'}
+                                  title="Xóa người dùng"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
 
           {activeTab === 'ROOMS' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
               
               {/* COMPONENT: DANH SÁCH PHÒNG TRỌ */}
-              <div style={{ background: '#fff', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ margin: '0 0 15px 0', color: '#0f172a' }}>🏠 Tất Cả Phòng Trọ ({rooms.length})</h3>
-                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px', fontSize: '14px' }}>
+              <div style={{ background: '#ffffff', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
+                <h3 style={{ margin: '0 0 20px 0', color: '#0f172a', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>🏠</span> Tất Cả Phòng Trọ ({rooms.length})
+                </h3>
+                <div style={{ maxHeight: '400px', overflowY: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', background: '#ffffff', fontSize: '14px' }}>
                     <thead>
-                      <tr style={{ background: '#f8fafc', color: '#475569', textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>
-                        <th style={{ padding: '10px' }}>Phòng</th>
-                        <th style={{ padding: '10px' }}>Chủ nhà</th>
-                        <th style={{ padding: '10px' }}>Ngày tạo</th>
-                        <th style={{ padding: '10px' }}>Trạng thái</th>
-                        <th style={{ padding: '10px', textAlign: 'center' }}>Đánh giá</th>
-                        <th style={{ padding: '10px', textAlign: 'center' }}>Báo xấu</th>
-                        <th style={{ padding: '10px', textAlign: 'center' }}>Thao tác</th>
+                      <tr style={{ background: '#f8fafc', color: '#475569', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>
+                        <th style={{ padding: '16px', fontWeight: '600' }}>Phòng</th>
+                        <th style={{ padding: '16px', fontWeight: '600' }}>Chủ nhà</th>
+                        <th style={{ padding: '16px', fontWeight: '600' }}>Ngày tạo</th>
+                        <th style={{ padding: '16px', fontWeight: '600' }}>Trạng thái</th>
+                        <th style={{ padding: '16px', fontWeight: '600', textAlign: 'center' }}>Đánh giá</th>
+                        <th style={{ padding: '16px', fontWeight: '600', textAlign: 'center' }}>Báo xấu</th>
+                        <th style={{ padding: '16px', fontWeight: '600', textAlign: 'center' }}>Thao tác</th>
                       </tr>
                     </thead>
                     <tbody>
                       {rooms.map(r => (
-                        <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9', textAlign: 'left', opacity: r.deletedAt ? 0.5 : 1 }}>
-                          <td style={{ padding: '10px' }}>
+                        <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9', textAlign: 'left', opacity: r.deletedAt ? 0.6 : 1, transition: 'background-color 0.2s' }}>
+                          <td style={{ padding: '16px' }}>
                             <span 
                               onClick={() => navigate(`/room/${r.id}`)}
-                              style={{ color: '#3b82f6', textDecoration: 'underline', cursor: 'pointer', fontWeight: 'bold' }}
+                              style={{ color: '#2563eb', textDecoration: 'underline', cursor: 'pointer', fontWeight: 'bold' }}
                               title="Xem chi tiết phòng"
                             >
                               Phòng {r.roomNumber}
                             </span>
                           </td>
-                          <td style={{ padding: '10px' }}>
-                            <div>{r.landlord?.fullName}</div>
+                          <td style={{ padding: '16px' }}>
+                            <div style={{ color: '#0f172a', fontWeight: 'bold' }}>{r.landlord?.fullName}</div>
                             <small style={{ color: '#64748b' }}>{r.landlord?.email} - {r.landlord?.phone}</small>
                           </td>
-                          <td style={{ padding: '10px' }}>{new Date(r.createdAt).toLocaleDateString()}</td>
-                          <td style={{ padding: '10px' }}>
+                          <td style={{ padding: '16px', color: '#475569' }}>{new Date(r.createdAt).toLocaleDateString('vi-VN')}</td>
+                          <td style={{ padding: '16px' }}>
                             {r.deletedAt ? (
-                              <span style={{ color: '#ef4444' }}>Đã xóa</span>
+                              <span style={{ color: '#ef4444', fontWeight: 'bold' }}>Đã xóa</span>
                             ) : (
-                              <span style={{ color: r.status === 'AVAILABLE' ? '#16a34a' : '#3b82f6' }}>{r.status}</span>
+                              <span style={{ padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', background: r.status === 'AVAILABLE' ? '#f0fdf4' : '#eff6ff', color: r.status === 'AVAILABLE' ? '#16a34a' : '#2563eb', border: `1px solid ${r.status === 'AVAILABLE' ? '#bbf7d0' : '#bfdbfe'}` }}>
+                                {r.status === 'AVAILABLE' ? 'Phòng Trống' : 'Đã Thuê'}
+                              </span>
                             )}
                           </td>
-                          <td style={{ padding: '10px', textAlign: 'center' }}>
-                            <div style={{ color: Number(r.avgRating) >= 4 ? '#16a34a' : Number(r.avgRating) >= 2 ? '#eab308' : '#ef4444', fontWeight: 'bold' }}>
+                          <td style={{ padding: '16px', textAlign: 'center' }}>
+                            <div style={{ color: Number(r.avgRating) >= 4 ? '#10b981' : Number(r.avgRating) >= 2 ? '#f59e0b' : '#ef4444', fontWeight: 'bold' }}>
                               ⭐ {r.avgRating || 0}
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                               <small style={{ color: '#64748b' }}>({r.reviewCount || 0} lượt)</small>
                               <button 
                                 onClick={() => handleViewReviews(r.id, r.roomNumber)}
-                                style={{ background: 'transparent', border: 'none', color: '#3b82f6', textDecoration: 'underline', cursor: 'pointer', fontSize: '12px' }}>
+                                style={{ background: 'transparent', border: 'none', color: '#2563eb', textDecoration: 'underline', cursor: 'pointer', fontSize: '12px' }}>
                                 Xem đánh giá
                               </button>
                             </div>
                           </td>
-                          <td style={{ padding: '10px', textAlign: 'center' }}>
+                          <td style={{ padding: '16px', textAlign: 'center' }}>
                             { (() => {
                               const pendingCount = r.reports?.filter(rep => rep.status === 'PENDING').length || 0;
                               return (
@@ -536,15 +568,18 @@ const AdminDashboard = () => {
                             {(r.reports?.length || 0) > 0 && (
                               <button 
                                 onClick={() => setSelectedRoomReports({ roomNumber: r.roomNumber, reports: r.reports, roomId: r.id })}
-                                style={{ background: 'transparent', border: 'none', color: '#3b82f6', textDecoration: 'underline', cursor: 'pointer', fontSize: '12px', marginTop: '4px' }}>
+                                style={{ background: 'transparent', border: 'none', color: '#2563eb', textDecoration: 'underline', cursor: 'pointer', fontSize: '12px', marginTop: '4px' }}>
                                 Xem chi tiết
                               </button>
                             )}
                           </td>
-                          <td style={{ padding: '10px', textAlign: 'center' }}>
+                          <td style={{ padding: '16px', textAlign: 'center' }}>
                             <button 
                               onClick={() => handleToggleRoomVisibility(r.id, r.isHidden)}
-                              style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #cbd5e1', background: r.isHidden ? '#fef2f2' : '#f8fafc', color: r.isHidden ? '#ef4444' : '#64748b', cursor: 'pointer' }}>
+                              style={{ padding: '6px 12px', borderRadius: '6px', border: `1px solid ${r.isHidden ? '#fecaca' : '#e2e8f0'}`, background: r.isHidden ? '#fef2f2' : '#f8fafc', color: r.isHidden ? '#ef4444' : '#64748b', cursor: 'pointer', fontWeight: 'bold', transition: '0.2s' }}
+                              onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                              onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                            >
                               {r.isHidden ? '👁️ Mở ẩn' : '🚫 Ẩn phòng'}
                             </button>
                           </td>
@@ -555,17 +590,20 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '20px' }}>
+              <div style={{ display: 'flex', gap: '25px' }}>
                 {/* COMPONENT: DANH SÁCH HỢP ĐỒNG */}
-                <div style={{ flex: 1, background: '#fff', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
-                  <h3 style={{ margin: '0 0 15px 0', color: '#0f172a' }}>📋 Hợp Đồng Gần Đây</h3>
-                  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                <div style={{ flex: 1, background: '#ffffff', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
+                  <h3 style={{ margin: '0 0 20px 0', color: '#0f172a', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>📋</span> Hợp Đồng Gần Đây
+                  </h3>
+                  <div style={{ maxHeight: '350px', overflowY: 'auto' }}>
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {contracts.map(c => (
-                        <li key={c.id} style={{ padding: '10px', borderBottom: '1px solid #e2e8f0' }}>
-                          <strong>Phòng: {c.room?.roomNumber}</strong> - {c.tenantName}
-                          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
-                            Status: {c.status} | Giá: {c.price.toLocaleString()}đ
+                        <li key={c.id} style={{ padding: '15px', border: '1px solid #e2e8f0', borderRadius: '10px', background: '#f8fafc' }}>
+                          <span style={{ color: '#2563eb', fontWeight: 'bold' }}>Phòng: {c.room?.roomNumber}</span> - <span style={{ color: '#0f172a', fontWeight: 'bold' }}>{c.tenantName}</span>
+                          <div style={{ fontSize: '13px', color: '#64748b', marginTop: '6px', display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Status: <strong style={{ color: c.status === 'ACTIVE' ? '#10b981' : '#f59e0b' }}>{c.status}</strong></span>
+                            <span>Giá: <strong>{c.price.toLocaleString()}đ</strong></span>
                           </div>
                         </li>
                       ))}
@@ -574,16 +612,18 @@ const AdminDashboard = () => {
                 </div>
 
                 {/* COMPONENT: SỰ CỐ */}
-                <div style={{ flex: 1, background: '#fff', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
-                  <h3 style={{ margin: '0 0 15px 0', color: '#0f172a' }}>🛠️ Phiếu Sự Cố</h3>
-                  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                <div style={{ flex: 1, background: '#ffffff', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
+                  <h3 style={{ margin: '0 0 20px 0', color: '#0f172a', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span>🛠️</span> Phiếu Sự Cố
+                  </h3>
+                  <div style={{ maxHeight: '350px', overflowY: 'auto' }}>
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {incidents.map(inc => (
-                        <li key={inc.id} style={{ padding: '10px', borderBottom: '1px solid #e2e8f0' }}>
-                          <strong>Khách P.{inc.room?.roomNumber}:</strong> {inc.title}
-                          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
-                            Ngày: {new Date(inc.createdAt).toLocaleDateString()} | 
-                            Trạng thái: <span style={{ color: inc.status === 'Pending' ? '#eab308' : inc.status === 'Resolved' ? '#22c55e' : '#3b82f6', fontWeight: 'bold' }}>{inc.status}</span>
+                        <li key={inc.id} style={{ padding: '15px', border: '1px solid #e2e8f0', borderRadius: '10px', background: '#f8fafc' }}>
+                          <span style={{ color: '#2563eb', fontWeight: 'bold' }}>Khách P.{inc.room?.roomNumber}:</span> <span style={{ color: '#0f172a', fontWeight: 'bold' }}>{inc.title}</span>
+                          <div style={{ fontSize: '13px', color: '#64748b', marginTop: '6px', display: 'flex', justifyContent: 'space-between' }}>
+                            <span>Ngày: {new Date(inc.createdAt).toLocaleDateString('vi-VN')}</span>
+                            <span>Trạng thái: <span style={{ color: inc.status === 'Pending' ? '#f59e0b' : inc.status === 'Resolved' ? '#10b981' : '#2563eb', fontWeight: 'bold' }}>{inc.status}</span></span>
                           </div>
                         </li>
                       ))}
@@ -598,12 +638,12 @@ const AdminDashboard = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
               
               {/* BỘ LỌC THỜI GIAN */}
-              <div style={{ display: 'flex', gap: '15px', background: '#fff', padding: '15px', borderRadius: '10px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', alignItems: 'center' }}>
-                <span style={{ fontWeight: 'bold', color: '#475569' }}>Lọc theo thời gian:</span>
+              <div style={{ display: 'flex', gap: '20px', background: '#ffffff', padding: '20px 25px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', alignItems: 'center', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontWeight: 'bold', color: '#0f172a', fontSize: '15px' }}>📅 Lọc theo thời gian:</span>
                 <select 
                   value={filterMonth} 
                   onChange={(e) => setFilterMonth(e.target.value)}
-                  style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}
+                  style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#0f172a', outline: 'none', fontWeight: '500' }}
                 >
                   <option value="ALL">Tất cả tháng</option>
                   {[...Array(12)].map((_, i) => (
@@ -613,7 +653,7 @@ const AdminDashboard = () => {
                 <select 
                   value={filterYear} 
                   onChange={(e) => setFilterYear(e.target.value)}
-                  style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}
+                  style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#0f172a', outline: 'none', fontWeight: '500' }}
                 >
                   {[2024, 2025, 2026].map(y => (
                     <option key={y} value={y}>Năm {y}</option>
@@ -622,59 +662,65 @@ const AdminDashboard = () => {
               </div>
 
               {/* THỐNG KÊ NGƯỜI DÙNG & PHÒNG (DÒNG 1) */}
-              <div style={{ display: 'flex', gap: '20px' }}>
-                <div style={{ flex: 1, background: '#fff', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', textAlign: 'center' }}>
-                  <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#6366f1' }}>{stats.users.totalTenants + stats.users.totalLandlords}</div>
-                  <div style={{ color: '#475569', fontWeight: 'bold' }}>Tổng Người Dùng</div>
-                  <div style={{ fontSize: '13px', color: '#94a3b8', marginTop: '5px' }}>{stats.users.totalTenants} Khách thuê | {stats.users.totalLandlords} Chủ nhà</div>
-                  <div style={{ fontSize: '12px', color: '#ef4444', marginTop: '5px', fontWeight: 'bold' }}>❄️ Khóa: {stats.users.lockedTenants} Khách, {stats.users.lockedLandlords} Chủ nhà</div>
-                  <div style={{ fontSize: '12px', color: '#10b981', marginTop: '2px', fontWeight: 'bold' }}>✨ Người dùng mới (kỳ tham chiếu): {stats.users.newUsers}</div>
+              <div style={{ display: 'flex', gap: '25px' }}>
+                <div style={{ flex: 1, background: '#ffffff', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                  <div style={{ fontSize: '42px', fontWeight: '900', color: '#2563eb', marginBottom: '5px' }}>{stats.users.totalTenants + stats.users.totalLandlords}</div>
+                  <div style={{ color: '#0f172a', fontWeight: 'bold', fontSize: '16px' }}>Tổng Người Dùng</div>
+                  <div style={{ fontSize: '14px', color: '#64748b', marginTop: '8px' }}>{stats.users.totalTenants} Khách thuê | {stats.users.totalLandlords} Chủ nhà</div>
+                  <div style={{ padding: '10px', background: '#fef2f2', borderRadius: '8px', marginTop: '15px' }}>
+                    <div style={{ fontSize: '13px', color: '#ef4444', fontWeight: 'bold' }}>🔒 Khóa: {stats.users.lockedTenants} Khách, {stats.users.lockedLandlords} Chủ nhà</div>
+                  </div>
+                  <div style={{ padding: '10px', background: '#f0fdf4', borderRadius: '8px', marginTop: '10px' }}>
+                    <div style={{ fontSize: '13px', color: '#10b981', fontWeight: 'bold' }}>✨ Người dùng mới: {stats.users.newUsers}</div>
+                  </div>
                 </div>
 
-                <div style={{ flex: 1, background: '#fff', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', textAlign: 'center' }}>
-                  <div style={{ fontSize: '36px', fontWeight: 'bold', color: '#10b981' }}>{stats.rooms.totalRooms}</div>
-                  <div style={{ color: '#475569', fontWeight: 'bold' }}>Tổng Phòng Trọ</div>
-                  <div style={{ fontSize: '13px', color: '#94a3b8', marginTop: '5px' }}>{stats.rooms.rentedRooms} Đang cho thuê | {stats.rooms.availableRooms} Trống</div>
-                  <div style={{ fontSize: '12px', color: '#f59e0b', marginTop: '5px', fontWeight: 'bold' }}>👁️ Bị ẩn (vi phạm): {stats.rooms.hiddenRooms} phòng</div>
+                <div style={{ flex: 1, background: '#ffffff', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                  <div style={{ fontSize: '42px', fontWeight: '900', color: '#10b981', marginBottom: '5px' }}>{stats.rooms.totalRooms}</div>
+                  <div style={{ color: '#0f172a', fontWeight: 'bold', fontSize: '16px' }}>Tổng Phòng Trọ</div>
+                  <div style={{ fontSize: '14px', color: '#64748b', marginTop: '8px' }}>{stats.rooms.rentedRooms} Đang cho thuê | {stats.rooms.availableRooms} Trống</div>
+                  <div style={{ padding: '10px', background: '#fffbeb', borderRadius: '8px', marginTop: '15px' }}>
+                    <div style={{ fontSize: '13px', color: '#d97706', fontWeight: 'bold' }}>👁️ Bị ẩn (vi phạm): {stats.rooms.hiddenRooms} phòng</div>
+                  </div>
                 </div>
               </div>
 
               {/* BÁO CÁO DOANH THU CHI TIẾT (DÒNG 2) */}
-              <div style={{ textAlign: 'center' }}>
-                <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', color: '#334155', marginBottom: '20px' }}>
-                  📊 Báo cáo Doanh thu Chi tiết
+              <div style={{ background: '#ffffff', padding: '25px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
+                <h3 style={{ margin: '0 0 25px 0', color: '#0f172a', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>📈</span> Báo Cáo Doanh Thu Chi Tiết
                 </h3>
                 
-                <div style={{ display: 'flex', gap: '15px' }}>
+                <div style={{ display: 'flex', gap: '20px' }}>
                   {/* Cột 1: Tổng Doanh Thu */}
-                  <div style={{ flex: 1, background: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', borderLeft: '5px solid #3b82f6' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Tổng doanh thu toàn hệ thống</div>
-                    <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#3b82f6', margin: '15px 0 10px 0' }}>
+                  <div style={{ flex: 1, background: '#f8fafc', padding: '20px', borderRadius: '12px', borderLeft: '6px solid #2563eb', borderRight: '1px solid #e2e8f0', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Tổng doanh thu toàn hệ thống</div>
+                    <div style={{ fontSize: '32px', fontWeight: '900', color: '#2563eb', margin: '15px 0 10px 0' }}>
                       {stats.revenueStats.totalRevenue.toLocaleString('vi-VN')} đ
                     </div>
-                    <div style={{ fontSize: '11px', color: '#94a3b8' }}>= Phòng + Điện nước</div>
+                    <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '500' }}>= Phòng + Điện nước</div>
                   </div>
 
                   {/* Cột 2: Từ tiền phòng */}
-                  <div style={{ flex: 1, background: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', borderLeft: '5px solid #10b981' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Từ tiền phòng</div>
-                    <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#10b981', margin: '15px 0 10px 0' }}>
+                  <div style={{ flex: 1, background: '#f8fafc', padding: '20px', borderRadius: '12px', borderLeft: '6px solid #10b981', borderRight: '1px solid #e2e8f0', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Từ tiền phòng</div>
+                    <div style={{ fontSize: '32px', fontWeight: '900', color: '#10b981', margin: '15px 0 10px 0' }}>
                       {stats.revenueStats.roomRevenue.toLocaleString('vi-VN')} đ
                     </div>
                   </div>
 
                   {/* Cột 3: Từ điện nước */}
-                  <div style={{ flex: 1, background: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', borderLeft: '5px solid #06b6d4' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Từ điện nước</div>
-                    <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#06b6d4', margin: '15px 0 10px 0' }}>
+                  <div style={{ flex: 1, background: '#f8fafc', padding: '20px', borderRadius: '12px', borderLeft: '6px solid #0ea5e9', borderRight: '1px solid #e2e8f0', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Từ điện nước</div>
+                    <div style={{ fontSize: '32px', fontWeight: '900', color: '#0ea5e9', margin: '15px 0 10px 0' }}>
                       {stats.revenueStats.utilityRevenue.toLocaleString('vi-VN')} đ
                     </div>
                   </div>
 
                   {/* Cột 4: Khách đang nợ */}
-                  <div style={{ flex: 1, background: '#fff', padding: '20px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', borderLeft: '5px solid #ef4444' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#64748b', textTransform: 'uppercase' }}>Khách đang nợ</div>
-                    <div style={{ fontSize: '28px', fontWeight: 'bold', color: '#ef4444', margin: '15px 0 10px 0' }}>
+                  <div style={{ flex: 1, background: '#fff1f2', padding: '20px', borderRadius: '12px', borderLeft: '6px solid #ef4444', borderRight: '1px solid #fecdd3', borderTop: '1px solid #fecdd3', borderBottom: '1px solid #fecdd3' }}>
+                    <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#be123c', textTransform: 'uppercase' }}>Khách đang nợ</div>
+                    <div style={{ fontSize: '32px', fontWeight: '900', color: '#ef4444', margin: '15px 0 10px 0' }}>
                       {stats.revenueStats.totalDebt.toLocaleString('vi-VN')} đ
                     </div>
                   </div>
@@ -685,19 +731,21 @@ const AdminDashboard = () => {
           )}
 
           {activeTab === 'REGULATIONS' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div style={{ background: '#fff', padding: '20px', borderRadius: '10px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
-                <h3 style={{ margin: '0 0 15px 0', color: '#0f172a' }}>📜 Quản Lý Nội Quy Hệ Thống</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+              <div style={{ background: '#ffffff', padding: '30px', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
+                <h3 style={{ margin: '0 0 25px 0', color: '#0f172a', fontSize: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>📜</span> Quản Lý Nội Quy Hệ Thống
+                </h3>
                 
-                <form onSubmit={handleUpdateRegulation} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '30px', padding: '15px', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                  <h4 style={{ margin: 0 }}>Cập nhật nội quy mới</h4>
-                  <div style={{ display: 'flex', gap: '15px' }}>
+                <form onSubmit={handleUpdateRegulation} style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '40px', padding: '25px', border: '1px solid #e2e8f0', borderRadius: '12px', background: '#f8fafc' }}>
+                  <h4 style={{ margin: 0, color: '#0f172a', fontSize: '16px' }}>Thêm / Cập nhật nội quy</h4>
+                  <div style={{ display: 'flex', gap: '20px' }}>
                     <div style={{ flex: 1 }}>
-                      <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>Đối tượng áp dụng</label>
+                      <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '14px', color: '#475569' }}>Đối tượng áp dụng</label>
                       <select 
                         value={editingReg.target}
                         onChange={(e) => setEditingReg({ ...editingReg, target: e.target.value })}
-                        style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '5px' }}>
+                        style={{ width: '100%', padding: '12px', border: '1px solid #e2e8f0', borderRadius: '8px', outline: 'none', background: '#ffffff', color: '#0f172a' }}>
                         <option value="ALL">Tất cả</option>
                         <option value="LANDLORD">Chủ Nhà</option>
                         <option value="TENANT">Khách Thuê</option>
@@ -705,38 +753,41 @@ const AdminDashboard = () => {
                     </div>
                   </div>
                   <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>Nội dung nội quy</label>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '14px', color: '#475569' }}>Nội dung nội quy</label>
                     <textarea 
                       value={editingReg.content}
                       onChange={(e) => setEditingReg({ ...editingReg, content: e.target.value })}
                       placeholder="Nhập nội quy chi tiết..."
-                      rows="8"
-                      style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '5px', resize: 'vertical' }}></textarea>
+                      rows="6"
+                      style={{ width: '100%', padding: '15px', border: '1px solid #e2e8f0', borderRadius: '8px', resize: 'vertical', outline: 'none', background: '#ffffff', color: '#0f172a', lineHeight: '1.5' }}></textarea>
                   </div>
-                  <button type="submit" style={{ alignSelf: 'flex-start', padding: '10px 20px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>
+                  <button type="submit" style={{ alignSelf: 'flex-start', padding: '12px 24px', background: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 4px 6px -1px rgba(37,99,235,0.2)', transition: 'transform 0.2s' }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}>
                     Lưu & Cập Nhật 🚀
                   </button>
                 </form>
 
-                <h4 style={{ marginBottom: '10px' }}>Nội quy hiện tại</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                <h4 style={{ marginBottom: '15px', fontSize: '16px', color: '#0f172a' }}>Danh sách nội quy hiện tại</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
                   {regulations.length === 0 ? (
-                    <p style={{ color: '#64748b' }}>Chưa có nội quy nào được thiết lập.</p>
+                    <p style={{ color: '#64748b', gridColumn: '1 / -1', textAlign: 'center', padding: '20px' }}>Chưa có nội quy nào được thiết lập.</p>
                   ) : (
                     regulations.map(reg => (
-                      <div key={reg.id} style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+                      <div key={reg.id} style={{ background: '#ffffff', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', alignItems: 'center' }}>
                           <span style={{ 
-                            padding: '4px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 'bold',
-                            background: reg.target === 'ALL' ? '#f1f5f9' : reg.target === 'LANDLORD' ? '#dbeafe' : '#fef3c7',
-                            color: reg.target === 'ALL' ? '#475569' : reg.target === 'LANDLORD' ? '#1d4ed8' : '#b45309'
+                            padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold',
+                            background: reg.target === 'ALL' ? '#f1f5f9' : reg.target === 'LANDLORD' ? '#eff6ff' : '#fffbeb',
+                            color: reg.target === 'ALL' ? '#475569' : reg.target === 'LANDLORD' ? '#2563eb' : '#d97706',
+                            border: `1px solid ${reg.target === 'ALL' ? '#e2e8f0' : reg.target === 'LANDLORD' ? '#bfdbfe' : '#fde68a'}`
                           }}>
-                            {reg.target === 'ALL' ? 'Tất cả' : (reg.target === 'LANDLORD' ? 'Chủ nhà' : 'Khách thuê')}
+                            {reg.target === 'ALL' ? 'Tất cả đối tượng' : (reg.target === 'LANDLORD' ? 'Dành cho Chủ nhà' : 'Dành cho Khách thuê')}
                           </span>
-                          <div style={{ display: 'flex', gap: '10px' }}>
+                          <div style={{ display: 'flex', gap: '15px' }}>
                             <button 
                               onClick={() => setEditingReg({ target: reg.target, content: reg.value })}
-                              style={{ background: 'transparent', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>
+                              style={{ background: 'transparent', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>
                               Sửa
                             </button>
                             <button 
@@ -746,7 +797,7 @@ const AdminDashboard = () => {
                             </button>
                           </div>
                         </div>
-                        <div style={{ fontSize: '14px', color: '#334155', whiteSpace: 'pre-wrap', maxHeight: '150px', overflowY: 'auto', textAlign: 'left' }}>
+                        <div style={{ fontSize: '14px', color: '#334155', whiteSpace: 'pre-wrap', maxHeight: '150px', overflowY: 'auto', textAlign: 'left', lineHeight: '1.6', flex: 1 }}>
                           {reg.value}
                         </div>
                       </div>
@@ -759,15 +810,15 @@ const AdminDashboard = () => {
 
           {activeTab === 'SETTINGS' && (
             <div style={{ maxWidth: '500px', margin: '40px auto' }}>
-              <div style={{ background: '#fff', padding: '40px', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)' }}>
-                <h3 style={{ margin: '0 0 30px 0', color: '#1e293b', fontSize: '24px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center' }}>
-                  <span style={{ background: '#eff6ff', padding: '8px', borderRadius: '10px' }}>🔐</span> Thay đổi mật khẩu
+              <div style={{ background: '#ffffff', padding: '40px', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 20px -2px rgba(0,0,0,0.05)' }}>
+                <h3 style={{ margin: '0 0 30px 0', color: '#0f172a', fontSize: '24px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center' }}>
+                  <span style={{ background: '#eff6ff', padding: '10px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #bfdbfe' }}>🔐</span> Thay đổi mật khẩu
                 </h3>
                 
-                <form onSubmit={handleSavePassword} style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+                <form onSubmit={handleSavePassword} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   {/* Trường: Mật khẩu hiện tại */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ fontWeight: '600', fontSize: '14px', color: '#64748b', textAlign: 'left', marginLeft: '4px' }}>Mật khẩu hiện tại</label>
+                    <label style={{ fontWeight: '600', fontSize: '14px', color: '#475569', textAlign: 'left', marginLeft: '4px' }}>Mật khẩu hiện tại</label>
                     <div style={{ position: 'relative', width: '100%' }}>
                       <input 
                         type={showOldPwd ? "text" : "password"}
@@ -775,16 +826,14 @@ const AdminDashboard = () => {
                         onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
                         placeholder="••••••••"
                         required
-                        style={{ width: '100%', padding: '14px 45px 14px 16px', border: '1px solid #e2e8f0', borderRadius: '12px', outline: 'none', fontSize: '15px', transition: 'all 0.2s', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
-                        onFocus={(e) => { e.target.style.borderColor = '#3b82f6'; e.target.style.backgroundColor = '#fff'; e.target.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.1)'; }}
+                        style={{ width: '100%', padding: '14px 45px 14px 16px', border: '1px solid #e2e8f0', borderRadius: '10px', outline: 'none', fontSize: '14px', transition: 'all 0.2s', backgroundColor: '#f8fafc', color: '#0f172a', boxSizing: 'border-box' }}
+                        onFocus={(e) => { e.target.style.borderColor = '#2563eb'; e.target.style.backgroundColor = '#ffffff'; e.target.style.boxShadow = '0 0 0 4px rgba(37, 99, 235, 0.1)'; }}
                         onBlur={(e) => { e.target.style.borderColor = '#e2e8f0'; e.target.style.backgroundColor = '#f8fafc'; e.target.style.boxShadow = 'none'; }}
                       />
                       <button 
                         type="button" 
                         onClick={() => setShowOldPwd(!showOldPwd)} 
-                        style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px', borderRadius: '6px', transition: 'color 0.2s' }}
-                        onMouseEnter={(e) => e.target.style.color = '#64748b'}
-                        onMouseLeave={(e) => e.target.style.color = '#94a3b8'}
+                        style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}
                       >
                         {showOldPwd ? <EyeOffIcon /> : <EyeIcon />}
                       </button>
@@ -793,7 +842,7 @@ const AdminDashboard = () => {
 
                   {/* Trường: Mật khẩu mới */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ fontWeight: '600', fontSize: '14px', color: '#64748b', textAlign: 'left', marginLeft: '4px' }}>Mật khẩu mới</label>
+                    <label style={{ fontWeight: '600', fontSize: '14px', color: '#475569', textAlign: 'left', marginLeft: '4px' }}>Mật khẩu mới</label>
                     <div style={{ position: 'relative', width: '100%' }}>
                       <input 
                         type={showNewPwd ? "text" : "password"}
@@ -801,14 +850,14 @@ const AdminDashboard = () => {
                         onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                         placeholder="Tối thiểu 6 ký tự"
                         required
-                        style={{ width: '100%', padding: '14px 45px 14px 16px', border: '1px solid #e2e8f0', borderRadius: '12px', outline: 'none', fontSize: '15px', transition: 'all 0.2s', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
-                        onFocus={(e) => { e.target.style.borderColor = '#3b82f6'; e.target.style.backgroundColor = '#fff'; e.target.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.1)'; }}
+                        style={{ width: '100%', padding: '14px 45px 14px 16px', border: '1px solid #e2e8f0', borderRadius: '10px', outline: 'none', fontSize: '14px', transition: 'all 0.2s', backgroundColor: '#f8fafc', color: '#0f172a', boxSizing: 'border-box' }}
+                        onFocus={(e) => { e.target.style.borderColor = '#2563eb'; e.target.style.backgroundColor = '#ffffff'; e.target.style.boxShadow = '0 0 0 4px rgba(37, 99, 235, 0.1)'; }}
                         onBlur={(e) => { e.target.style.borderColor = '#e2e8f0'; e.target.style.backgroundColor = '#f8fafc'; e.target.style.boxShadow = 'none'; }}
                       />
                       <button 
                         type="button" 
                         onClick={() => setShowNewPwd(!showNewPwd)} 
-                        style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px', borderRadius: '6px' }}
+                        style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}
                       >
                         {showNewPwd ? <EyeOffIcon /> : <EyeIcon />}
                       </button>
@@ -817,7 +866,7 @@ const AdminDashboard = () => {
 
                   {/* Trường: Xác nhận mật khẩu mới */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ fontWeight: '600', fontSize: '14px', color: '#64748b', textAlign: 'left', marginLeft: '4px' }}>Xác nhận mật khẩu mới</label>
+                    <label style={{ fontWeight: '600', fontSize: '14px', color: '#475569', textAlign: 'left', marginLeft: '4px' }}>Xác nhận mật khẩu mới</label>
                     <div style={{ position: 'relative', width: '100%' }}>
                       <input 
                         type={showConfirmPwd ? "text" : "password"}
@@ -825,26 +874,26 @@ const AdminDashboard = () => {
                         onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                         placeholder="Nhập lại mật khẩu mới"
                         required
-                        style={{ width: '100%', padding: '14px 45px 14px 16px', border: '1px solid #e2e8f0', borderRadius: '12px', outline: 'none', fontSize: '15px', transition: 'all 0.2s', backgroundColor: '#f8fafc', boxSizing: 'border-box' }}
-                        onFocus={(e) => { e.target.style.borderColor = '#3b82f6'; e.target.style.backgroundColor = '#fff'; e.target.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.1)'; }}
+                        style={{ width: '100%', padding: '14px 45px 14px 16px', border: '1px solid #e2e8f0', borderRadius: '10px', outline: 'none', fontSize: '14px', transition: 'all 0.2s', backgroundColor: '#f8fafc', color: '#0f172a', boxSizing: 'border-box' }}
+                        onFocus={(e) => { e.target.style.borderColor = '#2563eb'; e.target.style.backgroundColor = '#ffffff'; e.target.style.boxShadow = '0 0 0 4px rgba(37, 99, 235, 0.1)'; }}
                         onBlur={(e) => { e.target.style.borderColor = '#e2e8f0'; e.target.style.backgroundColor = '#f8fafc'; e.target.style.boxShadow = 'none'; }}
                       />
                       <button 
                         type="button" 
                         onClick={() => setShowConfirmPwd(!showConfirmPwd)} 
-                        style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px', borderRadius: '6px' }}
+                        style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}
                       >
                         {showConfirmPwd ? <EyeOffIcon /> : <EyeIcon />}
                       </button>
                     </div>
                   </div>
 
-                  <div style={{ marginTop: '15px' }}>
+                  <div style={{ marginTop: '10px' }}>
                     <button 
                       type="submit" 
-                      style={{ width: '100%', padding: '16px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '12px', cursor: 'pointer', fontWeight: 'bold', fontSize: '16px', transition: 'all 0.3s', boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2), 0 2px 4px -1px rgba(37, 99, 235, 0.1)' }}
-                      onMouseEnter={(e) => { e.target.style.background = '#1d4ed8'; e.target.style.transform = 'translateY(-1px)'; e.target.style.boxShadow = '0 10px 15px -3px rgba(37, 99, 235, 0.3)'; }}
-                      onMouseLeave={(e) => { e.target.style.background = '#2563eb'; e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 6px -1px rgba(37, 99, 235, 0.2)'; }}
+                      style={{ width: '100%', padding: '14px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px', transition: 'all 0.2s', boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2)' }}
+                      onMouseEnter={(e) => { e.target.style.transform = 'translateY(-2px)' }}
+                      onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)' }}
                     >
                       Cập nhật mật khẩu 🚀
                     </button>
@@ -858,78 +907,81 @@ const AdminDashboard = () => {
 
       {/* MODAL HIỂN THỊ DANH SÁCH BÁO XẤU (REPORT) */}
       {selectedRoomReports && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 99999 }}>
-          <div style={{ background: '#fff', width: '90%', maxWidth: '600px', maxHeight: '80vh', borderRadius: '8px', padding: '20px', boxShadow: '0 4px 20px rgba(0,0,0,0.2)', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 99999 }}>
+          <div style={{ background: '#ffffff', width: '90%', maxWidth: '650px', maxHeight: '85vh', borderRadius: '16px', padding: '30px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative', display: 'flex', flexDirection: 'column' }}>
             <button 
               onClick={() => setSelectedRoomReports(null)}
-              style={{ position: 'absolute', top: '15px', right: '15px', background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#888' }}>✖</button>
+              style={{ position: 'absolute', top: '20px', right: '20px', background: '#f8fafc', border: 'none', width: '32px', height: '32px', borderRadius: '50%', fontSize: '18px', cursor: 'pointer', color: '#64748b', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>✖</button>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee', paddingBottom: '10px', marginBottom: '15px', paddingRight: '30px' }}>
-              <h3 style={{ margin: '0', color: '#333', fontSize: '18px' }}>
-                Báo xấu: Phòng {selectedRoomReports.roomNumber}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0', paddingBottom: '15px', marginBottom: '20px', paddingRight: '40px' }}>
+              <h3 style={{ margin: '0', color: '#0f172a', fontSize: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>🚨</span> Báo xấu: Phòng {selectedRoomReports.roomNumber}
               </h3>
               {selectedRoomReports.reports.some(r => r.status === 'PENDING') && (
                 <button
                   onClick={() => handleResolveAllReports(selectedRoomReports.roomId)}
                   style={{
                     background: '#10b981',
-                    color: '#fff',
+                    color: '#ffffff',
                     border: 'none',
-                    padding: '8px 15px',
-                    borderRadius: '6px',
-                    fontSize: '13px',
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    fontSize: '14px',
                     cursor: 'pointer',
                     fontWeight: 'bold',
-                    boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)'
+                    boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.2)',
+                    transition: '0.2s'
                   }}>
                   ✅ Giải quyết toàn bộ
                 </button>
               )}
             </div>
             
-            <div style={{ flex: 1, overflowY: 'auto' }}>
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '5px' }}>
               {selectedRoomReports.reports.map((report, idx) => (
-                <div key={idx} style={{ padding: '15px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '10px', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <strong style={{ color: report.status === 'PENDING' ? '#ef4444' : '#10b981' }}>{report.reason}</strong>
+                <div key={idx} style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '15px', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <strong style={{ color: report.status === 'PENDING' ? '#ef4444' : '#10b981', fontSize: '15px' }}>{report.reason}</strong>
                       <span style={{
-                        padding: '3px 8px',
-                        borderRadius: '12px',
+                        padding: '4px 10px',
+                        borderRadius: '20px',
                         fontSize: '11px',
                         fontWeight: 'bold',
-                        backgroundColor: report.status === 'PENDING' ? '#fee2e2' : '#d1fae5',
-                        color: report.status === 'PENDING' ? '#ef4444' : '#10b981'
+                        backgroundColor: report.status === 'PENDING' ? '#fef2f2' : '#f0fdf4',
+                        color: report.status === 'PENDING' ? '#ef4444' : '#10b981',
+                        border: `1px solid ${report.status === 'PENDING' ? '#fecaca' : '#bbf7d0'}`
                       }}>
                         {report.status === 'PENDING' ? 'Chờ xử lý' : 'Đã giải quyết'}
                       </span>
                     </div>
-                    <span style={{ fontSize: '12px', color: '#64748b' }}>{new Date(report.createdAt).toLocaleDateString()}</span>
+                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '500' }}>{new Date(report.createdAt).toLocaleDateString('vi-VN')}</span>
                   </div>
                   {report.description && (
-                    <p style={{ fontSize: '14px', margin: '0 0 10px 0', color: '#334155' }}>
+                    <p style={{ fontSize: '14px', margin: '0 0 15px 0', color: '#334155', lineHeight: '1.5' }}>
                       Mô tả: {report.description}
                     </p>
                   )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', borderTop: '1px dashed #e2e8f0', paddingTop: '12px' }}>
                     <div style={{ fontSize: '13px', color: '#64748b' }}>
-                      Người báo cáo: <strong>{report.fullName}</strong> - SĐT: <strong>{report.phoneNumber}</strong>
+                      Báo cáo bởi: <strong style={{ color: '#0f172a' }}>{report.fullName}</strong> - SĐT: <strong style={{ color: '#0f172a' }}>{report.phoneNumber}</strong>
                     </div>
                     {report.status === 'PENDING' && (
                       <button
                         onClick={() => handleUpdateReportStatus(report.id, 'RESOLVED')}
                         style={{
-                          background: '#3b82f6',
-                          color: '#fff',
+                          background: '#2563eb',
+                          color: '#ffffff',
                           border: 'none',
-                          padding: '6px 12px',
-                          borderRadius: '6px',
-                          fontSize: '12px',
+                          padding: '8px 16px',
+                          borderRadius: '8px',
+                          fontSize: '13px',
                           cursor: 'pointer',
                           fontWeight: 'bold',
-                          boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)'
+                          boxShadow: '0 4px 6px -1px rgba(37,99,235,0.2)',
+                          transition: '0.2s'
                         }}>
-                        Đánh dấu Đã giải quyết ✅
+                        Đã xử lý xong ✓
                       </button>
                     )}
                   </div>
@@ -942,24 +994,24 @@ const AdminDashboard = () => {
 
       {/* MODAL QUẢN LÝ ĐÁNH GIÁ (REVIEWS) */}
       {selectedRoomReviews && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 99999 }}>
-          <div style={{ background: '#fff', width: '90%', maxWidth: '800px', maxHeight: '85vh', borderRadius: '12px', padding: '25px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 99999 }}>
+          <div style={{ background: '#ffffff', width: '90%', maxWidth: '850px', maxHeight: '85vh', borderRadius: '16px', padding: '30px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', position: 'relative', display: 'flex', flexDirection: 'column' }}>
             <button 
               onClick={() => setSelectedRoomReviews(null)}
-              style={{ position: 'absolute', top: '20px', right: '20px', background: '#f1f1f1', border: 'none', width: '35px', height: '35px', borderRadius: '50%', fontSize: '20px', cursor: 'pointer', color: '#666', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>✖</button>
+              style={{ position: 'absolute', top: '20px', right: '20px', background: '#f8fafc', border: 'none', width: '32px', height: '32px', borderRadius: '50%', fontSize: '18px', cursor: 'pointer', color: '#64748b', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>✖</button>
             
-            <h3 style={{ margin: '0 0 20px 0', color: '#1e293b', fontSize: '22px', borderBottom: '2px solid #3b82f6', paddingBottom: '12px' }}>
-              📜 Quản lý Đánh giá: Phòng {selectedRoomReviews.roomNumber}
+            <h3 style={{ margin: '0 0 25px 0', color: '#0f172a', fontSize: '22px', borderBottom: '1px solid #e2e8f0', paddingBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>⭐</span> Đánh giá chi tiết: Phòng {selectedRoomReviews.roomNumber}
             </h3>
 
             {/* THANH CÔNG CỤ: LỌC & TÌM KIẾM */}
-            <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', background: '#f8fafc', padding: '15px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+            <div style={{ display: 'flex', gap: '20px', marginBottom: '25px', background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
               <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#64748b', marginBottom: '5px' }}>Lọc theo số sao:</label>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '8px' }}>Lọc theo số sao:</label>
                 <select 
                   value={reviewFilterRating}
                   onChange={(e) => setReviewFilterRating(e.target.value)}
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none' }}>
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', background: '#ffffff', color: '#0f172a' }}>
                   <option value="ALL">Tất cả đánh giá</option>
                   <option value="5">⭐⭐⭐⭐⭐ (5 sao)</option>
                   <option value="4">⭐⭐⭐⭐ (4 sao)</option>
@@ -969,19 +1021,19 @@ const AdminDashboard = () => {
                 </select>
               </div>
               <div style={{ flex: 2 }}>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#64748b', marginBottom: '5px' }}>Tìm kiếm tên khách / nội dung:</label>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '8px' }}>Tìm kiếm đánh giá:</label>
                 <input 
                   type="text" 
                   value={reviewSearchText}
                   onChange={(e) => setReviewSearchText(e.target.value)}
                   placeholder="Nhập tên khách hoặc nội dung đánh giá..."
-                  style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none' }} />
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #e2e8f0', outline: 'none', background: '#ffffff', color: '#0f172a', boxSizing: 'border-box' }} />
               </div>
             </div>
             
-            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '5px' }}>
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '10px' }}>
               {selectedRoomReviews.reviews.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Chưa có đánh giá nào cho phòng này.</div>
+                <div style={{ textAlign: 'center', padding: '60px 40px', color: '#94a3b8', fontSize: '15px' }}>Chưa có đánh giá nào cho phòng này.</div>
               ) : (
                 selectedRoomReviews.reviews
                   .filter(rev => {
@@ -992,37 +1044,39 @@ const AdminDashboard = () => {
                     return matchRating && matchText;
                   })
                   .map((rev) => (
-                    <div key={rev.id} style={{ padding: '20px', background: '#fff', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '15px', position: 'relative', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                    <div key={rev.id} style={{ padding: '20px', background: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', position: 'relative', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
                         <div>
-                          <div style={{ fontWeight: 'bold', fontSize: '16px', color: '#1e293b' }}>{rev.tenant?.fullName || 'Khách thuê cũ'}</div>
-                          <div style={{ fontSize: '12px', color: '#64748b' }}>{new Date(rev.createdAt).toLocaleString('vi-VN')}</div>
+                          <div style={{ fontWeight: 'bold', fontSize: '16px', color: '#0f172a' }}>{rev.tenant?.fullName || 'Khách thuê cũ'}</div>
+                          <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>{new Date(rev.createdAt).toLocaleString('vi-VN')}</div>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-                          <span style={{ fontSize: '18px', color: '#eab308' }}>{'⭐'.repeat(rev.rating)}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px' }}>
+                          <span style={{ fontSize: '16px', color: '#f59e0b', letterSpacing: '2px' }}>{'⭐'.repeat(rev.rating)}</span>
                           <button 
                             onClick={() => handleDeleteReview(rev.id)}
-                            style={{ padding: '5px 12px', background: '#fee2e2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', transition: '0.2s' }}
+                            style={{ padding: '6px 12px', background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', transition: '0.2s' }}
                             onMouseEnter={(e) => e.target.style.background = '#fecaca'}
-                            onMouseLeave={(e) => e.target.style.background = '#fee2e2'}>
+                            onMouseLeave={(e) => e.target.style.background = '#fef2f2'}>
                             🗑️ Xóa đánh giá
                           </button>
                         </div>
                       </div>
 
-                      <div style={{ color: '#334155', fontSize: '14px', lineHeight: '1.6', background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+                      <div style={{ color: '#334155', fontSize: '14px', lineHeight: '1.6', background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
                         {rev.comment || <em style={{ color: '#94a3b8' }}>Khách hàng không để lại bình luận.</em>}
                       </div>
 
                       {/* Hiển thị ảnh kèm theo nếu có */}
                       {rev.images && JSON.parse(rev.images).length > 0 && (
-                        <div style={{ display: 'flex', gap: '8px', marginTop: '12px', overflowX: 'auto', paddingBottom: '5px' }}>
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '15px', overflowX: 'auto', paddingBottom: '5px' }}>
                           {JSON.parse(rev.images).map((img, i) => (
                             <img 
                               key={i} 
                               src={`http://localhost:5000/uploads/${img}`} 
                               alt="Review" 
-                              style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #e2e8f0' }} 
+                              style={{ width: '90px', height: '90px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #e2e8f0', cursor: 'pointer', transition: 'transform 0.2s' }} 
+                              onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+                              onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
                               onClick={() => window.open(`http://localhost:5000/uploads/${img}`)} />
                           ))}
                         </div>

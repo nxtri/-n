@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import roomApi from '../api/roomApi';
@@ -93,6 +93,21 @@ const Home = () => {
   const [showOldPwd, setShowOldPwd] = useState(false);
   const [showNewPwd, setShowNewPwd] = useState(false);
   const [showConfirmPwd, setShowConfirmPwd] = useState(false);
+
+  // Ref để xử lý click ra ngoài để tắt dropdown
+  const userDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   // Hàm Lưu thông tin
   const handleSaveProfile = async () => {
     try {
@@ -315,7 +330,7 @@ const Home = () => {
                 </button>
 
                 {/* Cụm thông tin User + Dropdown */}
-                <div style={{ position: 'relative' }}>
+                <div style={{ position: 'relative' }} ref={userDropdownRef}>
                     <div 
                     onClick={() => setShowDropdown(!showDropdown)}
                     style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#1e293b', padding: '6px 14px', borderRadius: '10px', background: '#f1f5f9', border: '1px solid #e2e8f0' }}
