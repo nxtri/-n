@@ -77,7 +77,7 @@ const incidentController = {
         where: whereCondition,
         include: [
           { model: User, as: 'tenant', attributes: ['fullName', 'phone', 'email'] },
-          { model: Room, as: 'room', attributes: ['roomNumber', 'roomCode'] }
+          { model: Room, as: 'room', attributes: ['roomNumber', 'roomCode', 'roomType'] }
         ],
         order: [['createdAt', 'DESC']]
       });

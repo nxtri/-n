@@ -38,9 +38,11 @@ const serviceBillController = {
       }
 
       const room = contract.room;
+      const isWholeHouse = room.roomType === 'WHOLE_HOUSE';
 
       // 🧮 HỆ THỐNG TỰ ĐỘNG TÍNH TIỀN THEO PHÂN LOẠI:
-      const totalElectricity = (electricityUsage || 0) * room.electricityPrice;
+      // Nếu là Nhà nguyên căn thì tiền điện = 0 (khách tự trả bên điện lực)
+      const totalElectricity = isWholeHouse ? 0 : (electricityUsage || 0) * room.electricityPrice;
       const totalWater = (waterUsage || 0) * room.waterPrice;
       const totalParking = (vehicleCount || 0) * room.parkingPrice;
       
@@ -51,7 +53,11 @@ const serviceBillController = {
       if (billType === 'UTILITY') {
         // 1. CHỈ TÍNH TIỀN ĐIỆN, NƯỚC
         totalAmount = totalElectricity + totalWater ;
-        emailMessage = `Chào ${contract.tenant.fullName},\n\nChủ nhà vừa chốt hóa đơn ĐIỆN NƯỚC tháng ${month}/${year} cho phòng ${room.roomNumber}.\n\nChi tiết:\n- Tiền điện (${electricityUsage} ký): ${totalElectricity.toLocaleString()}đ\n- Tiền nước (${waterUsage} khối): ${totalWater.toLocaleString()}đ\n\n💰 TỔNG CỘNG: ${totalAmount.toLocaleString()} VNĐ\n\nVui lòng đăng nhập website để thanh toán.\nCảm ơn bạn!`;
+        const elecDetail = isWholeHouse 
+          ? "- Tiền điện: Khách thanh toán trực tiếp cho bên điện lực" 
+          : `- Tiền điện (${electricityUsage} ký): ${totalElectricity.toLocaleString()}đ`;
+
+        emailMessage = `Chào ${contract.tenant.fullName},\n\nChủ nhà vừa chốt hóa đơn ĐIỆN NƯỚC tháng ${month}/${year} cho phòng ${room.roomNumber}.\n\nChi tiết:\n${elecDetail}\n- Tiền nước (${waterUsage} khối): ${totalWater.toLocaleString()}đ\n\n💰 TỔNG CỘNG: ${totalAmount.toLocaleString()} VNĐ\n\nVui lòng đăng nhập website để thanh toán.\nCảm ơn bạn!`;
       } else {
         // 2. TÍNH TOÀN BỘ (Dùng cho hóa đơn tổng hợp hoặc Robot tự quét)
         totalAmount = room.price + totalParking + room.internetPrice + room.servicePrice;

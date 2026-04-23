@@ -17,7 +17,8 @@ const contractController = {
         tenantName, tenantDob, tenantPhone, tenantIdentityNumber, tenantHometown,
         startDate, endDate,
         price, electricityPrice, waterPrice, internetPrice, parkingPrice, servicePrice,
-        members, startElectricity, startWater, vehicleCount, conditionDescription
+        members, startElectricity, startWater, vehicleCount, conditionDescription,
+        isDirectUtilityPayment
       } = req.body;
       
       const landlordId = req.user.id;
@@ -106,6 +107,8 @@ const contractController = {
         currentWater: Number(startWater) || 0,
         vehicleCount: Number(vehicleCount) || 0,
 
+        isDirectUtilityPayment: isDirectUtilityPayment === 'true' || isDirectUtilityPayment === true,
+
         // Nhóm Thành viên
         members: members,
         
@@ -154,7 +157,7 @@ const contractController = {
         contractOptions.include.push({
           model: Room,
           as: 'room',
-          attributes: ['roomNumber', 'roomCode', 'price', 'address', 'houseNumber'],
+          attributes: ['roomNumber', 'roomCode', 'price', 'address', 'houseNumber', 'roomType'],
           paranoid: false, // <-- Thêm cái này để không mất hợp đồng của phòng đã xoá
           where: { landlordId: currentUserId },
           required: true // BẮT BUỘC: Chỉ lấy Hợp đồng của phòng do Chủ nhà này sở hữu
@@ -166,7 +169,7 @@ const contractController = {
           model: Room,
           as: 'room',
           paranoid: false, // <-- Thêm cái này nữa
-          attributes: ['roomNumber', 'roomCode', 'price', 'address', 'houseNumber']
+          attributes: ['roomNumber', 'roomCode', 'price', 'address', 'houseNumber', 'roomType']
         });
       }
 
@@ -231,7 +234,7 @@ const contractController = {
           status: 'ACTIVE' 
         },
         include: [
-          { model: Room, as: 'room', attributes: ['roomNumber', 'roomCode', 'price', 'address', 'houseNumber'] }
+          { model: Room, as: 'room', attributes: ['roomNumber', 'roomCode', 'price', 'address', 'houseNumber', 'roomType'] }
         ]
       });
 
@@ -264,6 +267,7 @@ const contractController = {
         startDate: req.body.startDate, endDate: req.body.endDate,
         price: Number(req.body.price) || 0, electricityPrice: Number(req.body.electricityPrice) || 0, waterPrice: Number(req.body.waterPrice) || 0, internetPrice: Number(req.body.internetPrice) || 0, parkingPrice: Number(req.body.parkingPrice) || 0, servicePrice: Number(req.body.servicePrice) || 0,
         vehicleCount: Number(req.body.vehicleCount) || 0,
+        isDirectUtilityPayment: req.body.isDirectUtilityPayment === 'true' || req.body.isDirectUtilityPayment === true,
         members: req.body.members,
         conditionDescription: req.body.conditionDescription || ''
       };

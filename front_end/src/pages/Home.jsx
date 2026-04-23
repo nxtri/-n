@@ -68,6 +68,7 @@ const Home = () => {
   // ==========================================
   const [searchTerm, setSearchTerm] = useState('');
   const [activeLocation, setActiveLocation] = useState('Tất cả');
+  const [activeType, setActiveType] = useState('all');
 
   // ==========================================
   // STATE CHO MODAL BỘ LỌC CHUYÊN SÂU
@@ -193,6 +194,7 @@ const Home = () => {
 
     // 1. Lọc theo thanh tìm kiếm & Nút nhanh
     if (activeLocation !== 'Tất cả') result = result.filter(r => r.address && r.address.includes(activeLocation));
+    if (activeType !== 'all') result = result.filter(r => r.roomType === activeType);
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       result = result.filter(r => 
@@ -205,7 +207,8 @@ const Home = () => {
     if (tempLocation.province) result = result.filter(r => r.address.includes(tempLocation.province));
     if (tempLocation.ward) result = result.filter(r => r.address.includes(tempLocation.ward));
 
-    // 3. Lọc theo Giá
+
+    // 4. Lọc theo Giá
     switch(tempPrice) {
       case '<1': result = result.filter(r => r.price < 1000000); break;
       case '1-2': result = result.filter(r => r.price >= 1000000 && r.price <= 2000000); break;
@@ -219,7 +222,7 @@ const Home = () => {
 
     
 
-    // 4. Lọc theo Khoảng Diện Tích (MỚI THÊM)
+    // 5. Lọc theo Khoảng Diện Tích (MỚI THÊM)
     switch(tempArea) {
       case '<20': result = result.filter(r => r.area && r.area < 20); break;
       case '20-30': result = result.filter(r => r.area && r.area >= 20 && r.area <= 30); break;
@@ -230,7 +233,7 @@ const Home = () => {
       default: break;
     }
 
-    // 5. Lọc Tiện ích (CẬP NHẬT THÊM NÓNG LẠNH)
+    // 6. Lọc Tiện ích (CẬP NHẬT THÊM NÓNG LẠNH)
     if (tempAmenities.includes('hasElevator')) result = result.filter(r => r.hasElevator);
     if (tempAmenities.includes('hasWashingMachine')) result = result.filter(r => r.hasWashingMachine);
     if (tempAmenities.includes('hasFridge')) result = result.filter(r => r.hasFridge);
@@ -241,8 +244,8 @@ const Home = () => {
     setShowFilterModal(false); // Đóng modal
   };
 
-  // Tự động chạy lọc nhanh khi đổi nút Tỉnh/Thành bên ngoài
-  useEffect(() => { applyFilters(); }, [activeLocation, searchTerm]);
+  // Tự động chạy lọc nhanh khi đổi nút Tỉnh/Thành/Loại hình bên ngoài
+  useEffect(() => { applyFilters(); }, [activeLocation, activeType, searchTerm]);
 
   // ==========================================
   // COMPONENT NÚT BẤM (PILL BUTTON) DÀNH RIÊNG CHO MODAL
@@ -277,7 +280,7 @@ const Home = () => {
         {label}
         {isActive && (
           <div style={{ position: 'absolute', top: 0, right: 0, width: 0, height: 0, borderTop: '20px solid #2563eb', borderLeft: '20px solid transparent' }}>
-            <span style={{ position: 'absolute', top: '-18px', right: '1px', color: 'white', fontSize: '10px', fontWeight: 'bold' }}>✓</span>
+            <span style={{ absolute: 'absolute', top: '-18px', right: '1px', color: 'white', fontSize: '10px', fontWeight: 'bold' }}>✓</span>
           </div>
         )}
       </button>
@@ -299,467 +302,657 @@ const Home = () => {
     { label: 'Tủ lạnh', val: 'hasFridge' }, { label: 'Bếp nấu', val: 'hasKitchen' }, 
     { label: 'Nóng lạnh', val: 'hasHeater' }
   ];
+  const ROOM_TYPES = [
+    { label: 'Tất cả', val: 'all' }, { label: 'Phòng trọ', val: 'SINGLE' }, { label: 'Nhà nguyên căn', val: 'WHOLE_HOUSE' }
+  ];
 
   return (
-    <div style={{ backgroundColor: '#f1f5f9', minHeight: '100vh', color: '#1e293b', fontFamily: "'Inter', sans-serif" }}>
-      
-      {/* HEADER TÌM KIẾM */}
-      <div style={{ backgroundColor: '#ffffff', padding: '15px 20px', borderBottom: '1px solid #e2e8f0', boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)' }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h1 style={{ color: '#3b82f6', margin: 0, fontSize: '24px', cursor: 'pointer' }} onClick={() => window.location.reload()}>PHONGTROSIEUCAP</h1>
-          <div style={{ display: 'flex', gap: '10px', flex: 1, maxWidth: '500px', margin: '0 20px' }}>
-            <input type="text" placeholder="📍 Tìm theo khu vực (Xã, Tỉnh) hoặc Mã phòng..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ flex: 1, padding: '10px 18px', borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#0f172a', outline: 'none', transition: 'border-color 0.2s' }} />
-            <button onClick={() => setShowFilterModal(true)} style={{ padding: '10px 20px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#ffffff', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500', transition: 'all 0.2s' }}>
-              <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5v-2z"/></svg>
-              Bộ lọc
-            </button>
+    <div className="bg-background font-body-md text-on-background min-h-screen flex flex-col">
+      {/* TopAppBar */}
+      <header className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm transition-all duration-200">
+        <div className="max-w-[1280px] mx-auto flex justify-between items-center h-20 px-8">
+          <div className="flex items-center gap-12">
+            <Link to="/" className="text-2xl font-black text-blue-600 tracking-tighter hover:opacity-80 transition-all">PHONGTROSIEUCAP</Link>
+            <nav className="hidden md:flex items-center gap-8">
+              <button 
+                onClick={() => { setActiveType('all'); setActiveLocation('Tất cả'); setSearchTerm(''); }}
+                className={`${activeType === 'all' ? 'text-blue-600 border-blue-600' : 'text-gray-600 border-transparent'} font-bold border-b-2 pb-1 text-label-md transition-all`}
+              >
+                Tất cả
+              </button>
+              <button 
+                onClick={() => setActiveType('SINGLE')}
+                className={`${activeType === 'SINGLE' ? 'text-blue-600 border-blue-600' : 'text-gray-600 border-transparent'} hover:text-blue-600 font-label-md text-label-md transition-all`}
+              >
+                Phòng trọ
+              </button>
+              <button 
+                onClick={() => setActiveType('WHOLE_HOUSE')}
+                className={`${activeType === 'WHOLE_HOUSE' ? 'text-blue-600 border-blue-600' : 'text-gray-600 border-transparent'} hover:text-blue-600 font-label-md text-label-md transition-all`}
+              >
+                Nhà nguyên căn
+              </button>
+            </nav>
           </div>
-          {/* ... (Các phần Logo và Thanh tìm kiếm giữ nguyên) ... */}
-
-          {/* ========================================================= */}
-          {/* HEADER BÊN PHẢI (CỤM NÚT QUẢN LÝ / PROFILE / ĐĂNG TIN)    */}
-          {/* ========================================================= */}
-<div>
-            {user ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                
-                {/* Nút Quản lý */}
-                <button onClick={() => navigate('/dashboard')} style={{ background: 'transparent', border: 'none', color: '#475569', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontWeight: '500' }}>
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44z"/></svg>
-                  Quản lý
-                </button>
-
-                {/* Cụm thông tin User + Dropdown */}
-                <div style={{ position: 'relative' }} ref={userDropdownRef}>
-                    <div 
-                    onClick={() => setShowDropdown(!showDropdown)}
-                    style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#1e293b', padding: '6px 14px', borderRadius: '10px', background: '#f1f5f9', border: '1px solid #e2e8f0' }}
+          
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4">
+              {user ? (
+                <div className="flex items-center gap-4">
+                   <button 
+                    onClick={() => navigate('/dashboard')}
+                    className="flex items-center gap-2 text-gray-600 hover:text-primary transition-all font-label-md text-label-md"
                   >
-                    <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#cbd5e1', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                      <svg width="14" height="14" fill="#64748b" viewBox="0 0 16 16"><path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/><path fillRule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/></svg>
-                    </div>
-                    <span style={{ fontSize: '14px', fontWeight: '500', maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {user.fullName || 'User'}
-                    </span>
-                    <span style={{ fontSize: '10px', color: '#94a3b8' }}>▼</span>
+                    <span className="material-symbols-outlined">dashboard</span>
+                    Quản lý
+                  </button>
+
+                  <div className="relative" ref={userDropdownRef}>
+                    <button 
+                      onClick={() => setShowDropdown(!showDropdown)}
+                      className="flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-lg border border-outline-variant/30 hover:bg-surface-container-high transition-all"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-primary-fixed-dim flex items-center justify-center font-bold text-on-primary-fixed text-sm">
+                        {user.fullName?.charAt(0) || 'U'}
+                      </div>
+                      <span className="text-sm font-semibold text-on-surface truncate max-w-[100px]">
+                        {user.fullName}
+                      </span>
+                      <span className="material-symbols-outlined text-sm">expand_more</span>
+                    </button>
+
+                    {showDropdown && (
+                      <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-outline-variant/20 py-2 z-50">
+                        <button 
+                          onClick={() => { setShowProfileModal(true); setShowDropdown(false); }}
+                          className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container transition-all flex items-center gap-3"
+                        >
+                          <span className="material-symbols-outlined text-lg">person</span>
+                          Hồ sơ cá nhân
+                        </button>
+                        <button 
+                          onClick={handleLogout}
+                          className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container/20 transition-all flex items-center gap-3"
+                        >
+                          <span className="material-symbols-outlined text-lg">logout</span>
+                          Đăng xuất
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Menu xổ xuống (Profile & Log out) */}
-                  {showDropdown && (
-                    <div style={{ position: 'absolute', top: '120%', right: 0, background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '8px 0', width: '150px', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', zIndex: 100 }}>
-                      <div 
-                        onClick={() => { setShowProfileModal(true); setShowDropdown(false); }}
-                        style={{ padding: '10px 18px', cursor: 'pointer', color: '#1e293b', fontSize: '14px', transition: '0.2s', display: 'flex', alignItems: 'center', gap: '10px' }}
-                        onMouseEnter={(e) => e.target.style.background = '#f1f5f9'} onMouseLeave={(e) => e.target.style.background = 'transparent'}
-                      >
-                        👤 Profile
-                      </div>
-                      <div 
-                        onClick={handleLogout}
-                        style={{ padding: '10px 18px', cursor: 'pointer', color: '#ef4444', fontSize: '14px', transition: '0.2s', display: 'flex', alignItems: 'center', gap: '10px' }}
-                        onMouseEnter={(e) => e.target.style.background = '#fef2f2'} onMouseLeave={(e) => e.target.style.background = 'transparent'}
-                      >
-                        🚪 Log out
-                      </div>
-                    </div>
+                  {user.role === 'LANDLORD' && (
+                    <button 
+                      onClick={() => navigate('/dashboard', { state: { targetTab: 'ADD_ROOM' } })}
+                      className="bg-primary text-on-primary font-bold px-6 py-2.5 rounded-lg text-label-md hover:opacity-90 transition-all active:scale-95 flex items-center gap-2"
+                    >
+                      <span className="material-symbols-outlined">add_circle</span>
+                      Đăng tin
+                    </button>
                   )}
                 </div>
-
-                {/* Nút Đăng tin (Chỉ Chủ nhà mới thấy) */}
-                {user.role === 'LANDLORD' && (
-                  <button onClick={() => navigate('/dashboard', { state: { targetTab: 'ADD_ROOM' } })} style={{ background: '#2563eb', color: '#f8fafc', border: 'none', padding: '10px 20px', borderRadius: '25px', display: 'flex', alignItems: 'center', gap: '5px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"/></svg>
-                    Đăng tin
-                  </button>
-                )}
-
-              </div>
-            ) : (
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button onClick={() => navigate('/login')} style={{ padding: '10px 20px', background: 'transparent', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '10px', cursor: 'pointer', fontWeight: '500' }}>Đăng nhập</button>
-                <button onClick={() => navigate('/register')} style={{ padding: '10px 20px', background: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: '600', boxShadow: '0 4px 6px -1px rgba(37,99,235,0.2)' }}>Đăng ký</button>
-              </div>
-            )}
+              ) : (
+                <>
+                  <button onClick={() => navigate('/login')} className="text-gray-600 font-label-md text-label-md hover:text-primary transition-all">Đăng nhập</button>
+                  <button onClick={() => navigate('/register')} className="bg-primary text-on-primary font-bold px-6 py-2.5 rounded-lg text-label-md hover:opacity-90 transition-all active:scale-95">Đăng ký</button>
+                </>
+              )}
+            </div>
           </div>
-          
         </div>
-      </div>
+      </header>
 
-      {/* DANH SÁCH PHÒNG TRỌ NẰM DƯỚI */}
-      <div style={{ width: '100%', margin: '20px auto', display: 'flex', boxSizing: 'border-box', gap: '20px', padding: '0 40px', }}>
-        <div style={{ flex: '7' }}>
-          <h2 style={{ color: '#0f172a', marginTop: 0, fontSize: '28px', fontWeight: '700' }}>Chào mừng đến với Phòng Trọ Siêu Cấp</h2>
-          <p style={{ color: '#64748b', fontSize: '15px', marginBottom: '20px' }}>Có {filteredRooms.length} tin đăng cho thuê</p>
-          
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '25px', overflowX: 'auto', paddingBottom: '10px' }}>
+      <main className="mt-20 flex-grow">
+        {/* Hero Section */}
+        <section className="relative bg-surface-container-low py-16 overflow-hidden">
+          <div className="max-w-[1280px] mx-auto px-8 relative z-10 text-center py-12">
+            <h1 className="font-display-xl text-display-xl text-on-surface mb-8 max-w-2xl mx-auto tracking-tight">
+              Tìm kiếm phòng trọ sinh viên lý tưởng
+            </h1>
+            
+            {/* Advanced Search Bar */}
+            <div className="max-w-4xl mx-auto bg-white p-2 rounded-full shadow-2xl flex flex-col md:flex-row items-center gap-2 border border-outline-variant/30">
+              <div className="flex-1 flex items-center gap-3 px-6 md:border-r border-outline-variant/30 w-full md:w-auto">
+                <span className="material-symbols-outlined text-primary">location_on</span>
+                <input 
+                  type="text" 
+                  placeholder="Bạn muốn tìm ở đâu?" 
+                  className="w-full bg-transparent border-none focus:ring-0 text-body-md text-on-surface"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="flex-1 flex items-center gap-3 px-6 md:border-r border-outline-variant/30 w-full md:w-auto">
+                <span className="material-symbols-outlined text-primary">home</span>
+                <select 
+                  className="w-full bg-transparent border-none focus:ring-0 text-body-md text-on-surface cursor-pointer"
+                  value={activeType}
+                  onChange={(e) => setActiveType(e.target.value)}
+                >
+                  <option value="all">Loại bất động sản</option>
+                  <option value="SINGLE">Phòng trọ</option>
+                  <option value="WHOLE_HOUSE">Nhà nguyên căn</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2 pr-2 w-full md:w-auto justify-end">
+                <button 
+                  onClick={() => setShowFilterModal(true)}
+                  className="flex items-center gap-2 px-6 py-3 rounded-full hover:bg-surface-container transition-colors font-label-md text-label-md text-on-surface-variant"
+                >
+                  <span className="material-symbols-outlined text-xl">tune</span>
+                  Lọc
+                </button>
+                <button 
+                  onClick={applyFilters}
+                  className="bg-primary text-on-primary px-10 py-3 rounded-full font-label-md text-label-md font-bold hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-primary/20"
+                >
+                  Tìm kiếm
+                </button>
+              </div>
+            </div>
+          </div>
+          <div className="absolute top-0 right-0 w-1/3 h-full bg-primary/5 rounded-l-full blur-3xl -z-0"></div>
+          <div className="absolute bottom-0 left-0 w-1/4 h-1/2 bg-secondary/5 rounded-r-full blur-3xl -z-0"></div>
+        </section>
+
+        {/* Quick Filters */}
+        <section className="max-w-[1280px] mx-auto px-8 py-8">
+          <div className="flex flex-wrap items-center gap-3">
             {['Tất cả', 'Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Bình Dương'].map(loc => (
-              <button key={loc} onClick={() => setActiveLocation(loc)} style={{ padding: '10px 20px', borderRadius: '10px', cursor: 'pointer', background: activeLocation === loc ? '#2563eb' : '#ffffff', color: activeLocation === loc ? '#ffffff' : '#64748b', border: activeLocation === loc ? '1px solid #2563eb' : '1px solid #e2e8f0', fontWeight: '500', transition: 'all 0.2s', boxShadow: activeLocation === loc ? '0 4px 6px -1px rgba(37,99,235,0.2)' : 'none' }}>{loc}</button>
+              <button 
+                key={loc}
+                onClick={() => setActiveLocation(loc)}
+                className={`px-6 py-2 rounded-full transition-all text-label-md font-semibold ${
+                  activeLocation === loc 
+                    ? 'bg-primary text-on-primary shadow-lg shadow-primary/20' 
+                    : 'bg-white border border-outline-variant text-on-surface-variant hover:border-primary hover:text-primary'
+                }`}
+              >
+                {loc}
+              </button>
             ))}
           </div>
+        </section>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            {filteredRooms.map((room) => {
-              let firstImage = "https://placehold.co/280x180/333/999?text=Chua+Co+Anh";
-              if (room.images && JSON.parse(room.images).length > 0) firstImage = `http://localhost:5000/uploads/${JSON.parse(room.images)[0]}`;
+        {/* Listing Section */}
+        <section className="max-w-[1280px] mx-auto px-8 pb-20">
+          <div className="flex justify-between items-end mb-10">
+            <div>
+              <h2 className="font-headline-lg text-headline-lg text-on-surface">Kết quả tìm kiếm</h2>
+              <p className="text-on-surface-variant font-body-md mt-1">
+                Có {filteredRooms.length} tin đăng phù hợp với yêu cầu của bạn
+              </p>
+            </div>
+          </div>
+
+          {/* Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredRooms.length === 0 ? (
+              <div className="col-span-full py-20 text-center">
+                <span className="material-symbols-outlined text-6xl text-outline-variant mb-4">search_off</span>
+                <p className="text-xl text-on-surface-variant">Không tìm thấy phòng nào phù hợp.</p>
+              </div>
+            ) : filteredRooms.map((room) => {
+              let images = [];
+              try { images = JSON.parse(room.images) || []; } catch(e) {}
+              const firstImage = images.length > 0 ? `http://localhost:5000/uploads/${images[0]}` : "https://via.placeholder.com/400x300?text=Chua+Co+Anh";
 
               return (
-                <Link to={`/room/${room.id}`} key={room.id} style={{ textDecoration: 'none', color: 'inherit' }}>
-                  <div style={{ display: 'flex', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', height: '200px', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }} onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0,0,0,0.05)'; }}>
-                    
-                    {/* KHU VỰC ẢNH VÀ NHÃN TRẠNG THÁI */}
-                    <div style={{ width: '300px', position: 'relative' }}>
-                      <img src={firstImage} alt="Room" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      
-                      {/* 🚨 THẺ LABEL HIỂN THỊ TRẠNG THÁI */}
-                      <div style={{ position: 'absolute', top: '10px', left: '10px' }}>
-                        {room.status === 'AVAILABLE' ? (
-                          <span style={{ background: '#10b981', color: '#f8fafc', padding: '4px 10px', borderRadius: '15px', fontSize: '11px', fontWeight: 'bold', boxShadow: '0 2px 5px rgba(0,0,0,0.5)' }}>
-                            ✨ ĐANG TRỐNG
-                          </span>
-                        ) : (
-                          <span style={{ background: '#f59e0b', color: '#f8fafc', padding: '4px 10px', borderRadius: '15px', fontSize: '11px', fontWeight: 'bold', boxShadow: '0 2px 5px rgba(0,0,0,0.5)' }}>
-                            ⏳ Sắp trống ({room.intendedMoveOutDate})
-                          </span>
-                        )}
-                      </div>
+                <article 
+                  key={room.id}
+                  className="bg-white rounded-2xl overflow-hidden custom-shadow card-hover transition-all duration-300 border border-outline-variant/10 flex flex-col group cursor-pointer"
+                  onClick={() => navigate(`/room/${room.id}`)}
+                >
+                  <div className="relative h-60 overflow-hidden">
+                    <img 
+                      src={firstImage} 
+                      alt={room.roomNumber} 
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    <div className="absolute top-4 left-4">
+                      {room.status === 'AVAILABLE' ? (
+                        <div className="px-3 py-1 bg-secondary text-on-secondary text-[10px] font-bold rounded-full uppercase tracking-wider shadow-sm">Trống</div>
+                      ) : (
+                        <div className="px-3 py-1 bg-tertiary text-on-tertiary text-[10px] font-bold rounded-full uppercase tracking-wider shadow-sm">Sắp trống</div>
+                      )}
                     </div>
-                  
-                  {/* CỘT THÔNG TIN PHÒNG (Đoạn này giữ nguyên của bạn) */}
-                  <div style={{ flex: 1, padding: '10px 15px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    
-                    {/* Tiêu đề phòng */}
-                    <h3 style={{ margin: 0, color: '#ef4444', fontSize: '18px', fontWeight: '700', textTransform: 'uppercase', textAlign: 'left' }}>
-                      CHO THUÊ PHÒNG {room.roomNumber} {room.roomCode ? `(Mã phòng: ${room.roomCode})` : ''} - {room.address}
-                    </h3>
+                    <button className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-on-surface-variant hover:text-error transition-all hover:bg-white active:scale-90">
+                      <span className="material-symbols-outlined text-xl">favorite</span>
+                    </button>
+                  </div>
 
-                    {/* Dòng 2: Giá, Diện tích, Số người */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-                      <span style={{ color: '#10b981', fontWeight: '700', fontSize: '20px' }}>{room.price?.toLocaleString()} đ/tháng</span>
-                      <span style={{ color: '#64748b', fontSize: '14px', fontWeight: '500' }}>📐 {room.area || 0} m²</span>
-                      <span style={{ color: '#64748b', fontSize: '14px', fontWeight: '500' }}>👥 {room.maxOccupants} người</span>
-                      
-                      {/* HIỂN THỊ SAO ĐÁNH GIÁ */}
+                  <div className="p-6 flex flex-col flex-grow">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-headline-md text-headline-md text-on-surface line-clamp-1 group-hover:text-primary transition-colors">
+                        {room.roomType === 'WHOLE_HOUSE' ? 'NHÀ NGUYÊN CĂN' : 'PHÒNG TRỌ'} {room.roomNumber} {room.roomCode && `(Mã: ${room.roomCode})`}
+                      </h3>
                       {room.reviewCount > 0 && (
-                        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ display: 'flex' }}>
-                           {renderStars(room.avgRating, `room-${room.id}`)}
-                          </div>
-                          <span style={{ color: '#94a3b8', fontSize: '13px', fontWeight: '500' }}>
-                            {room.avgRating} ({room.reviewCount} đánh giá)
-                          </span>
+                        <div className="flex items-center gap-1 text-tertiary bg-tertiary-fixed/30 px-2 py-0.5 rounded-md">
+                          <span className="material-symbols-outlined text-lg fill-current">star</span>
+                          <span className="font-bold text-sm">{room.avgRating}</span>
                         </div>
                       )}
                     </div>
-
-                    {/* Dòng 3: Địa chỉ */}
-                    <div style={{ color: '#64748b', fontSize: '14px', display: 'flex', alignItems: 'flex-start', gap: '6px', fontWeight: '400' }}>
-                      <span style={{ color: '#ef4444' }}>📍</span>
-                      <span style={{ lineHeight: '1.4' }}>{room.houseNumber ? `${room.houseNumber}, ` : ''}{room.address}</span>
-                    </div>
                     
+                    <p className="text-primary font-price-tag text-xl mb-4">
+                      {room.price?.toLocaleString()} đ<span className="text-sm font-normal text-on-surface-variant">/tháng</span>
+                    </p>
 
-{/* Dòng 4: Các tiện ích nổi bật và Thông tin chủ nhà */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', marginTop: 'auto', gap: '10px' }}>
-                      
-                      {/* --- NHÓM BÊN TRÁI: CÁC TIỆN ÍCH --- */}
-                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        {room.hasElevator && <span style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '4px 12px', borderRadius: '15px', fontSize: '12px', fontWeight: '500' }}>🛗 Thang máy</span>}
-                        {room.hasWashingMachine && <span style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '4px 12px', borderRadius: '15px', fontSize: '12px', fontWeight: '500' }}>🧺 Máy giặt</span>}
-                        {room.hasFridge && <span style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '4px 12px', borderRadius: '15px', fontSize: '12px', fontWeight: '500' }}>❄️ Tủ lạnh</span>}
-                        {room.hasKitchen && <span style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '4px 12px', borderRadius: '15px', fontSize: '12px', fontWeight: '500' }}>🍳 Bếp nấu</span>}
-                        {room.hasHeater && <span style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', padding: '4px 12px', borderRadius: '15px', fontSize: '12px', fontWeight: '500' }}>🚿 Nóng lạnh</span>}
-                        
-                        {!(room.hasElevator || room.hasWashingMachine || room.hasFridge || room.hasKitchen || room.hasHeater) && (
-                          <span style={{ color: '#64748b', fontSize: '13px', fontStyle: 'italic' }}>Chưa cập nhật tiện ích</span>
-                        )}
+                    <div className="flex items-center gap-4 text-on-surface-variant text-sm mb-6 pb-6 border-b border-outline-variant/20">
+                      <div className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-lg text-primary">square_foot</span>
+                        {room.area} m²
                       </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-lg text-primary">group</span>
+                        {room.maxOccupants} người
+                      </div>
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="material-symbols-outlined text-lg text-primary">location_on</span>
+                        {room.address?.split(',').slice(-2).join(',')}
+                      </div>
+                    </div>
 
-                      {/* --- NHÓM BÊN PHẢI: THÔNG TIN CHỦ NHÀ --- */}
-                      <div style={{ padding: '8px 14px', background: '#f8fafc', border: '1px solid #f1f5f9', borderRadius: '10px', fontSize: '13px', color: '#64748b', display: 'flex', gap: '15px', alignItems: 'center' }}>
-                        <div>👤 Chủ nhà: <strong style={{ color: '#1e293b' }}>{room.landlord?.fullName || 'Đang cập nhật'}</strong></div>
-                        <div style={{ width: '1px', height: '14px', background: '#e2e8f0' }}></div>
-                        <div>📞 SĐT: <strong style={{ color: '#2563eb' }}>{room.landlord?.phone || '...'}</strong></div>
+                    <div className="mt-auto flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-secondary-fixed-dim flex items-center justify-center font-bold text-on-secondary-fixed shadow-inner">
+                          {room.landlord?.fullName?.charAt(0) || 'L'}
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-on-surface">{room.landlord?.fullName}</p>
+                          <p className="text-[10px] text-on-surface-variant uppercase tracking-tight">Chủ sở hữu</p>
+                        </div>
                       </div>
-                      
+                      <button className="bg-surface-container text-primary font-bold px-5 py-2.5 rounded-xl text-sm border border-primary/10 hover:bg-primary hover:text-on-primary transition-all shadow-sm">
+                        Chi tiết
+                      </button>
                     </div>
                   </div>
-                  {/* KẾT THÚC ĐOẠN DÁN */}
-
-                  </div>
-                </Link>
+                </article>
               );
             })}
           </div>
-        </div>
-      </div>
+        </section>
+      </main>
 
-      {/* ========================================================= */}
-      {/* SIÊU MODAL BỘ LỌC TÌM KIẾM (Y HỆT ẢNH THIẾT KẾ)            */}
-      {/* ========================================================= */}
+      {/* Footer */}
+      <footer className="w-full py-16 bg-white border-t border-gray-100">
+        <div className="max-w-[1280px] mx-auto px-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+          <div className="space-y-6">
+            <p className="text-2xl font-black text-blue-600 tracking-tighter">PHONGTROSIEUCAP</p>
+            <p className="text-on-surface-variant leading-relaxed font-body-sm">
+              Nền tảng tìm kiếm và cho thuê phòng trọ hàng đầu dành cho sinh viên Việt Nam. Uy tín, nhanh chóng và hiệu quả.
+            </p>
+          </div>
+          <div>
+            <p className="font-bold text-on-surface mb-6 uppercase tracking-wider text-xs">Về chúng tôi</p>
+            <ul className="space-y-3">
+              <li><Link to="#" className="text-on-surface-variant hover:text-primary transition-all text-sm">Giới thiệu</Link></li>
+              <li><Link to="#" className="text-on-surface-variant hover:text-primary transition-all text-sm">Điều khoản dịch vụ</Link></li>
+              <li><Link to="#" className="text-on-surface-variant hover:text-primary transition-all text-sm">Chính sách bảo mật</Link></li>
+            </ul>
+          </div>
+          <div>
+            <p className="font-bold text-on-surface mb-6 uppercase tracking-wider text-xs">Hỗ trợ</p>
+            <ul className="space-y-3">
+              <li><Link to="#" className="text-on-surface-variant hover:text-primary transition-all text-sm">Trung tâm trợ giúp</Link></li>
+              <li><Link to="#" className="text-on-surface-variant hover:text-primary transition-all text-sm">Liên hệ hỗ trợ</Link></li>
+              <li><Link to="#" className="text-on-surface-variant hover:text-primary transition-all text-sm">Câu hỏi thường gặp</Link></li>
+            </ul>
+          </div>
+          <div>
+            <p className="font-bold text-on-surface mb-6 uppercase tracking-wider text-xs">Liên hệ</p>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 text-on-surface-variant text-sm">
+                <span className="material-symbols-outlined text-primary text-xl">mail</span>
+                support@phongtrosieucap.vn
+              </div>
+              <div className="flex items-center gap-3 text-on-surface-variant text-sm">
+                <span className="material-symbols-outlined text-primary text-xl">phone</span>
+                1900 1234
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-[1280px] mx-auto px-8 mt-16 pt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6">
+          <p className="text-on-surface-variant text-sm">© 2024 PHONGTROSIEUCAP. All rights reserved.</p>
+          <div className="flex gap-6">
+            <span className="material-symbols-outlined cursor-pointer text-outline hover:text-primary transition-all" title="Language">public</span>
+            <span className="material-symbols-outlined cursor-pointer text-outline hover:text-primary transition-all" title="Share">share</span>
+            <span className="material-symbols-outlined cursor-pointer text-outline hover:text-primary transition-all" title="Like">thumb_up</span>
+          </div>
+        </div>
+      </footer>
+
+      {/* Filter Modal (Styled with Tailwind) */}
       {showFilterModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
-          
-          <div style={{ background: '#ffffff', width: '650px', maxHeight: '90vh', borderRadius: '16px', display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid #e2e8f0', color: '#1e293b', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)' }}>
-            
-            {/* Modal Header */}
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '700', color: '#0f172a' }}>Bộ lọc</h3>
-              <button onClick={() => setShowFilterModal(false)} style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '28px', cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={(e) => e.target.style.color = '#475569'} onMouseLeave={(e) => e.target.style.color = '#94a3b8'}>×</button>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center items-center z-[9999] p-4">
+          <div className="bg-white w-full max-w-[650px] max-h-[90vh] rounded-3xl flex flex-col overflow-hidden shadow-2xl border border-outline-variant/20 animate-in fade-in zoom-in duration-300">
+            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-on-surface flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">tune</span>
+                Bộ lọc nâng cao
+              </h3>
+              <button 
+                onClick={() => setShowFilterModal(false)}
+                className="w-10 h-10 rounded-full hover:bg-surface-container transition-all flex items-center justify-center text-on-surface-variant"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
             </div>
 
-            {/* Modal Body (Cuộn được) */}
-            <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
-              
-              {/* 1. Khu vực */}
-              <div style={{ marginBottom: '25px' }}>
-                <h4 style={{ color: '#475569', margin: '0 0 15px', fontWeight: '600', fontSize: '16px' }}>Lọc theo khu vực</h4>
-                <div style={{ display: 'flex', gap: '15px' }}>
-                  
-                  {/* CỘT 1: CHỌN TỈNH/THÀNH */}
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '13px', color: '#64748b', display: 'block', marginBottom: '8px', fontWeight: '500' }}>Thành phố / Tỉnh</label>
+            <div className="p-8 overflow-y-auto flex-1 space-y-10">
+              {/* Khu vực */}
+              <div className="space-y-4">
+                <h4 className="font-bold text-on-surface text-sm uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-1.5 h-4 bg-primary rounded-full"></span>
+                  Lọc theo khu vực
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-on-surface-variant px-1">Thành phố / Tỉnh</label>
                     <select 
+                      className="w-full p-3.5 bg-surface-container-low border border-outline-variant/30 rounded-xl text-on-surface focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                       onChange={(e) => {
                         const code = e.target.value;
                         const name = e.target.options[e.target.selectedIndex].text;
-                        // Cập nhật Tỉnh và xóa trắng ô Xã
                         setTempLocation({ province: code ? name : '', ward: '' });
                         if (code) {
-                          // Ép API v2 lấy thẳng danh sách Xã của Tỉnh đó (depth=2)
                           axios.get(`https://provinces.open-api.vn/api/v2/p/${code}?depth=2`)
                             .then(res => setWards(res.data.wards || []));
                         } else {
                           setWards([]);
                         }
                       }}
-                      style={{ width: '100%', padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#1e293b', outline: 'none', fontSize: '14px', appearance: 'none', cursor: 'pointer' }}
                     >
                       <option value="">Toàn quốc</option>
                       {provinces.map(p => <option key={p.code} value={p.code}>{p.name}</option>)}
                     </select>
                   </div>
-
-                  {/* CỘT 2: CHỌN PHƯỜNG/XÃ */}
-                  <div style={{ flex: 1 }}>
-                    <label style={{ fontSize: '13px', color: '#64748b', display: 'block', marginBottom: '8px', fontWeight: '500' }}>Phường / Xã</label>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-on-surface-variant px-1">Phường / Xã</label>
                     <select 
                       disabled={!tempLocation.province}
+                      className="w-full p-3.5 bg-surface-container-low border border-outline-variant/30 rounded-xl text-on-surface disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-primary/20 outline-none transition-all"
                       onChange={(e) => setTempLocation({ ...tempLocation, ward: e.target.value ? e.target.options[e.target.selectedIndex].text : '' })}
-                      style={{ width: '100%', padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', color: '#1e293b', outline: 'none', fontSize: '14px', appearance: 'none', cursor: 'pointer' }}
                     >
                       <option value="">Tất cả</option>
                       {wards.map(w => <option key={w.code} value={w.code}>{w.name}</option>)}
                     </select>
                   </div>
-
                 </div>
               </div>
 
-              {/* 2. Khoảng giá */}
-              <div style={{ marginBottom: '25px' }}>
-                <h4 style={{ color: '#475569', margin: '0 0 15px', fontWeight: '600', fontSize: '16px' }}>Khoảng giá</h4>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+              {/* Khoảng giá */}
+              <div className="space-y-4">
+                <h4 className="font-bold text-on-surface text-sm uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-1.5 h-4 bg-primary rounded-full"></span>
+                  Khoảng giá (VND)
+                </h4>
+                <div className="flex flex-wrap gap-2.5">
                   {PRICE_RANGES.map(item => (
-                    <FilterPill key={item.val} label={item.label} value={item.val} currentVal={tempPrice} onClick={setTempPrice} />
+                    <button
+                      key={item.val}
+                      onClick={() => setTempPrice(item.val)}
+                      className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all border ${
+                        tempPrice === item.val 
+                        ? 'bg-primary text-on-primary border-primary shadow-md shadow-primary/20' 
+                        : 'bg-white border-outline-variant/30 text-on-surface-variant hover:border-primary/50'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
                   ))}
                 </div>
               </div>
 
-              {/* 3. Khoảng diện tích */}
-              <div style={{ marginBottom: '25px' }}>
-                <h4 style={{ color: '#475569', margin: '0 0 15px', fontWeight: '600', fontSize: '16px' }}>Khoảng diện tích</h4>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+              {/* Khoảng diện tích */}
+              <div className="space-y-4">
+                <h4 className="font-bold text-on-surface text-sm uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-1.5 h-4 bg-primary rounded-full"></span>
+                  Diện tích (m²)
+                </h4>
+                <div className="flex flex-wrap gap-2.5">
                   {AREA_RANGES.map(item => (
-                    <FilterPill key={item.val} label={item.label} value={item.val} currentVal={tempArea} onClick={setTempArea} />
+                    <button
+                      key={item.val}
+                      onClick={() => setTempArea(item.val)}
+                      className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all border ${
+                        tempArea === item.val 
+                        ? 'bg-primary text-on-primary border-primary shadow-md shadow-primary/20' 
+                        : 'bg-white border-outline-variant/30 text-on-surface-variant hover:border-primary/50'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
                   ))}
                 </div>
               </div>
 
-              {/* 4. Đặc điểm nổi bật (Cho phép chọn nhiều) */}
-              <div style={{ marginBottom: '20px' }}>
-                <h4 style={{ color: '#475569', margin: '0 0 15px', fontWeight: '600', fontSize: '16px' }}>Đặc điểm nổi bật</h4>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                  {AMENITIES_LIST.map(item => (
-                    <FilterPill key={item.val} label={item.label} value={item.val} currentVal={tempAmenities} onClick={setTempAmenities} isMulti={true} />
-                  ))}
+              {/* Tiện ích */}
+              <div className="space-y-4">
+                <h4 className="font-bold text-on-surface text-sm uppercase tracking-wider flex items-center gap-2">
+                  <span className="w-1.5 h-4 bg-primary rounded-full"></span>
+                  Tiện ích đi kèm
+                </h4>
+                <div className="flex flex-wrap gap-2.5">
+                  {AMENITIES_LIST.map(item => {
+                    const isActive = tempAmenities.includes(item.val);
+                    return (
+                      <button
+                        key={item.val}
+                        onClick={() => {
+                          setTempAmenities(isActive ? tempAmenities.filter(v => v !== item.val) : [...tempAmenities, item.val]);
+                        }}
+                        className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all border flex items-center gap-2 ${
+                          isActive 
+                          ? 'bg-primary text-on-primary border-primary shadow-md shadow-primary/20' 
+                          : 'bg-white border-outline-variant/30 text-on-surface-variant hover:border-primary/50'
+                        }`}
+                      >
+                        {isActive && <span className="material-symbols-outlined text-sm">check_circle</span>}
+                        {item.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-
             </div>
 
-            {/* Modal Footer (Nút Áp dụng) */}
-            <div style={{ padding: '20px 24px', borderTop: '1px solid #f1f5f9', background: '#ffffff' }}>
+            <div className="p-6 bg-surface-container-low border-t border-outline-variant/20 flex gap-4">
               <button 
-                onClick={applyFilters} 
-                style={{ width: '100%', padding: '14px', background: '#2563eb', color: '#ffffff', fontSize: '16px', fontWeight: '700', border: 'none', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 4px 6px -1px rgba(37,99,235,0.2)' }}
-                onMouseEnter={(e) => e.target.style.background = '#1d4ed8'}
-                onMouseLeave={(e) => e.target.style.background = '#2563eb'}
+                onClick={() => {
+                  setTempPrice('all'); setTempArea('all'); setTempAmenities([]); setTempLocation({ province: '', ward: '' });
+                }}
+                className="flex-1 py-4 text-on-surface font-bold hover:bg-surface-container transition-all rounded-2xl border border-outline-variant/30"
               >
-                Áp dụng
+                Đặt lại
+              </button>
+              <button 
+                onClick={applyFilters}
+                className="flex-[2] py-4 bg-primary text-on-primary font-bold rounded-2xl hover:opacity-90 transition-all shadow-lg shadow-primary/20"
+              >
+                Áp dụng lọc
               </button>
             </div>
-
           </div>
         </div>
       )}
-      {/* ========================================================= */}
-      {/* MODAL THÔNG TIN NGƯỜI DÙNG (XEM VÀ SỬA)                   */}
-      {/* ========================================================= */}
-{/* ========================================================= */}
-      {/* MODAL THÔNG TIN NGƯỜI DÙNG & ĐỔI MẬT KHẨU                 */}
-      {/* ========================================================= */}
+
+      {/* Profile Modal (Tailwind Style) */}
       {showProfileModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
-          <div style={{ background: '#ffffff', width: '550px', borderRadius: '16px', padding: '40px', border: '1px solid #e2e8f0', color: '#1e293b', position: 'relative', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)' }}>
-            
-            <button 
-              onClick={() => { setShowProfileModal(false); setIsEditingProfile(false); setIsChangingPassword(false); }} 
-              style={{ position: 'absolute', top: '20px', right: '24px', background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '24px', cursor: 'pointer', transition: 'color 0.2s' }}
-              onMouseEnter={(e) => e.target.style.color = '#475569'} onMouseLeave={(e) => e.target.style.color = '#94a3b8'}
-            >✖</button>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center items-center z-[9999] p-4">
+          <div className="bg-white w-full max-w-[550px] rounded-3xl overflow-hidden shadow-2xl border border-outline-variant/20 animate-in fade-in slide-in-from-bottom-8 duration-300">
+            <div className="p-8 relative">
+              <button 
+                onClick={() => { setShowProfileModal(false); setIsEditingProfile(false); setIsChangingPassword(false); }}
+                className="absolute top-6 right-6 w-9 h-9 rounded-full hover:bg-surface-container transition-all flex items-center justify-center text-outline"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
 
-            <h2 style={{ textAlign: 'center', margin: '0 0 35px 0', color: '#0f172a', fontSize: '24px', fontWeight: '700' }}>
-              {isChangingPassword ? 'Đổi mật khẩu' : isEditingProfile ? 'Chỉnh sửa thông tin' : 'Thông tin người dùng'}
-            </h2>
+              <h2 className="text-2xl font-bold text-on-surface text-center mb-8">
+                {isChangingPassword ? '🔐 Đổi mật khẩu' : isEditingProfile ? '✍️ Cập nhật hồ sơ' : '👤 Thông tin cá nhân'}
+              </h2>
 
-            {/* NẾU ĐANG Ở CHẾ ĐỘ ĐỔI MẬT KHẨU */}
-            {isChangingPassword ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '20px' }}>
-                <div>
-                  <label style={{ fontSize: '13px', color: '#64748b', display: 'block', marginBottom: '5px' }}>Mật khẩu hiện tại</label>
-                  <div style={{ position: 'relative' }}>
-                    <input type={showOldPwd ? "text" : "password"} value={passwordData.oldPassword} onChange={e => setPasswordData({...passwordData, oldPassword: e.target.value})} style={{ width: '100%', padding: '12px', background: '#f8fafc', color: '#1e293b', border: '1px solid #e2e8f0', borderRadius: '8px', boxSizing: 'border-box', paddingRight: '40px', outline: 'none' }} />
-                    <span onClick={() => setShowOldPwd(!showOldPwd)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center' }}>
-                      {showOldPwd ? <EyeIcon /> : <EyeOffIcon />}
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <label style={{ fontSize: '13px', color: '#64748b', display: 'block', marginBottom: '5px' }}>Mật khẩu mới (ít nhất 6 ký tự)</label>
-                  <div style={{ position: 'relative' }}>
-                    <input type={showNewPwd ? "text" : "password"} value={passwordData.newPassword} onChange={e => setPasswordData({...passwordData, newPassword: e.target.value})} style={{ width: '100%', padding: '12px', background: '#f8fafc', color: '#1e293b', border: '1px solid #e2e8f0', borderRadius: '8px', boxSizing: 'border-box', paddingRight: '40px', outline: 'none' }} />
-                    <span onClick={() => setShowNewPwd(!showNewPwd)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center' }}>
-                      {showNewPwd ? <EyeIcon /> : <EyeOffIcon />}
-                    </span>
-                  </div>
-                </div>
-                <div>
-                  <label style={{ fontSize: '13px', color: '#64748b', display: 'block', marginBottom: '5px' }}>Xác nhận mật khẩu mới</label>
-                  <div style={{ position: 'relative' }}>
-                    <input type={showConfirmPwd ? "text" : "password"} value={passwordData.confirmPassword} onChange={e => setPasswordData({...passwordData, confirmPassword: e.target.value})} style={{ width: '100%', padding: '12px', background: '#f8fafc', color: '#1e293b', border: '1px solid #e2e8f0', borderRadius: '8px', boxSizing: 'border-box', paddingRight: '40px', outline: 'none' }} />
-                    <span onClick={() => setShowConfirmPwd(!showConfirmPwd)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center' }}>
-                      {showConfirmPwd ? <EyeIcon /> : <EyeOffIcon />}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              /* NẾU Ở CHẾ ĐỘ XEM / SỬA PROFILE BÌNH THƯỜNG */
-              <>
-              <div style={{ display: 'flex', gap: '40px', marginBottom: '10px' }}>
-                {/* Cột trái */}
-                <div style={{ flex: 1 }}>
-                  <p style={{ color: '#64748b', margin: '0 0 5px 0', fontSize: '13px' }}>Họ tên</p>
-                  {isEditingProfile ? (
-                    <input type="text" value={profileData.fullName} onChange={e => setProfileData({...profileData, fullName: e.target.value})} style={{ width: '100%', padding: '8px', marginBottom: '15px', background: '#334155', color: '#f8fafc', border: 'none', borderRadius: '4px' }} />
-                  ) : (
-                    <p style={{ margin: '0 0 20px 0', fontSize: '15px' }}>{user?.fullName}</p>
-                  )}
-
-                  <p style={{ color: '#64748b', margin: '0 0 5px 0', fontSize: '13px' }}>Số điện thoại</p>
-                  {isEditingProfile ? (
-                    <input type="text" value={profileData.phone} onChange={e => setProfileData({...profileData, phone: e.target.value})} style={{ width: '100%', padding: '10px', marginBottom: '20px', background: '#f8fafc', color: '#1e293b', border: '1px solid #e2e8f0', borderRadius: '8px', outline: 'none' }} />
-                  ) : (
-                    <p style={{ margin: '0 0 20px 0', fontSize: '15px', fontWeight: '500' }}>{user?.phone || 'Chưa cập nhật'}</p>
-                  )}
-
-                  <p style={{ color: '#64748b', margin: '0 0 5px 0', fontSize: '13px' }}>Ngày sinh</p>
-                  {isEditingProfile ? (
-                    <input type="date" value={profileData.dob} onChange={e => setProfileData({...profileData, dob: e.target.value})} style={{ width: '100%', padding: '10px', marginBottom: '20px', background: '#f8fafc', color: '#1e293b', border: '1px solid #e2e8f0', borderRadius: '8px', outline: 'none' }} />
-                  ) : (
-                    <p style={{ margin: '0 0 20px 0', fontSize: '15px', fontWeight: '500' }}>{user?.dob || 'Chưa cập nhật'}</p>
-                  )}
-
-                  <p style={{ color: '#64748b', margin: '0 0 5px 0', fontSize: '13px' }}>Địa chỉ</p>
-                  {isEditingProfile ? (
-                    <input type="text" value={profileData.address} onChange={e => setProfileData({...profileData, address: e.target.value})} style={{ width: '100%', padding: '10px', marginBottom: '20px', background: '#f8fafc', color: '#1e293b', border: '1px solid #e2e8f0', borderRadius: '8px', outline: 'none' }} />
-                  ) : (
-                    <p style={{ margin: '0 0 20px 0', fontSize: '15px', fontWeight: '500' }}>{user?.address || 'Chưa cập nhật'}</p>
-                  )}
-                </div>
-
-                {/* Cột phải */}
-                <div style={{ flex: 1 }}>
-                  <p style={{ color: '#64748b', margin: '0 0 5px 0', fontSize: '13px' }}>Email (Không thể đổi)</p>
-                  <p style={{ margin: '0 0 20px 0', fontSize: '15px', color: '#475569' }}>{user?.email}</p>
-
-                  <p style={{ color: '#64748b', margin: '0 0 5px 0', fontSize: '13px' }}>Số CMND/CCCD</p>
-                  {isEditingProfile ? (
-                    <input type="text" value={profileData.identityNumber} onChange={e => setProfileData({...profileData, identityNumber: e.target.value})} style={{ width: '100%', padding: '8px', marginBottom: '15px', background: '#334155', color: '#f8fafc', border: 'none', borderRadius: '4px' }} />
-                  ) : (
-                    <p style={{ margin: '0 0 20px 0', fontSize: '15px' }}>{user?.identityNumber || 'Chưa cập nhật'}</p>
-                  )}
-                </div>
-              </div>
-              {/* KHU VỰC NGÂN HÀNG CHỈ HIỆN CHO CHỦ NHÀ NẰM TRỌN TRONG CỘT NÀY */}
-              {user?.role === 'LANDLORD' && (
-                <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '1px dashed #475569' }}>
-                  <p style={{ color: '#0ea5e9', margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold' }}>💳 Thông tin nhận tiền (VietQR)</p>
-                  
-                  <p style={{ color: '#64748b', margin: '0 0 5px 0', fontSize: '13px' }}>Ngân hàng</p>
-                  {isEditingProfile ? (
-                    <select value={profileData.bankName} onChange={e => setProfileData({...profileData, bankName: e.target.value})} style={{ width: '100%', padding: '8px', marginBottom: '15px', background: '#334155', color: '#f8fafc', border: 'none', borderRadius: '4px' }}>
-                      <option value="MB">MBBank</option>
-                      <option value="VCB">Vietcombank</option>
-                      <option value="TCB">Techcombank</option>
-                      <option value="ACB">ACB</option>
-                      <option value="BIDV">BIDV</option>
-                      <option value="VPB">VPBank</option>
-                      <option value="ICB">Vietinbank</option>
-                      <option value="VBA">Agribank</option>
-                      <option value="STB">Sacombank</option>
-                      <option value="SHB">SHB</option>
-                      <option value="TPB">TPBank</option>
-                      <option value="HDB">HDBank</option>
-                      <option value="VIB">VIB</option>
-                    </select>
-                  ) : <p style={{ margin: '0 0 15px 0', fontSize: '15px' }}>{user?.bankName || 'Chưa cập nhật'}</p>}
-
-                  <p style={{ color: '#64748b', margin: '0 0 5px 0', fontSize: '13px' }}>Số tài khoản</p>
-                  {isEditingProfile ? <input type="text" value={profileData.accountNumber} onChange={e => setProfileData({...profileData, accountNumber: e.target.value})} style={{ width: '100%', padding: '8px', marginBottom: '15px', background: '#334155', color: '#f8fafc', border: 'none', borderRadius: '4px' }} /> : <p style={{ margin: '0 0 15px 0', fontSize: '15px', color: '#fbbf24', fontWeight: 'bold' }}>{user?.accountNumber || 'Chưa cập nhật'}</p>}
-
-                  <p style={{ color: '#64748b', margin: '0 0 5px 0', fontSize: '13px' }}>Tên chủ tài khoản</p>
-                  {isEditingProfile ? <input type="text" value={profileData.accountHolder} onChange={e => setProfileData({...profileData, accountHolder: e.target.value.toUpperCase()})} placeholder="VIET HOA KHONG DAU" style={{ width: '100%', padding: '8px', marginBottom: '15px', background: '#334155', color: '#f8fafc', border: 'none', borderRadius: '4px' }} /> : <p style={{ margin: '0 0 15px 0', fontSize: '15px' }}>{user?.accountHolder || 'Chưa cập nhật'}</p>}
-                </div>
-                
-              )}
-              </>
-            )}
-            
-            {/* CÁC NÚT CHỨC NĂNG BÊN DƯỚI */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '15px', marginTop: '10px' }}>
               {isChangingPassword ? (
-                <>
-                  <button onClick={() => { setIsChangingPassword(false); setPasswordData({oldPassword: '', newPassword: '', confirmPassword: ''}); }} style={{ padding: '10px 20px', background: 'transparent', color: '#ccc', border: '1px solid #444', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Hủy bỏ</button>
-                  <button onClick={handleSavePassword} style={{ padding: '10px 20px', background: '#ff5a2c', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Lưu mật khẩu</button>
-                </>
-              ) : !isEditingProfile ? (
-                <>
-                  <button onClick={() => setIsChangingPassword(true)} style={{ padding: '10px 20px', background: 'transparent', color: '#ccc', border: '1px solid #444', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Đổi mật khẩu</button>
-                  <button onClick={() => setIsEditingProfile(true)} style={{ padding: '10px 20px', background: '#0b5ed7', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Chỉnh sửa thông tin</button>
-                </>
+                <div className="space-y-5">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-bold text-on-surface-variant px-1">Mật khẩu hiện tại</label>
+                    <div className="relative">
+                      <input 
+                        type={showOldPwd ? "text" : "password"} 
+                        className="w-full p-4 bg-surface-container-low border border-outline-variant/30 rounded-2xl focus:ring-2 focus:ring-primary/20 outline-none"
+                        value={passwordData.oldPassword}
+                        onChange={e => setPasswordData({...passwordData, oldPassword: e.target.value})}
+                      />
+                      <button 
+                        onClick={() => setShowOldPwd(!showOldPwd)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-outline"
+                      >
+                        <span className="material-symbols-outlined">{showOldPwd ? 'visibility' : 'visibility_off'}</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-bold text-on-surface-variant px-1">Mật khẩu mới</label>
+                    <div className="relative">
+                      <input 
+                        type={showNewPwd ? "text" : "password"} 
+                        className="w-full p-4 bg-surface-container-low border border-outline-variant/30 rounded-2xl focus:ring-2 focus:ring-primary/20 outline-none"
+                        value={passwordData.newPassword}
+                        onChange={e => setPasswordData({...passwordData, newPassword: e.target.value})}
+                      />
+                      <button 
+                        onClick={() => setShowNewPwd(!showNewPwd)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-outline"
+                      >
+                        <span className="material-symbols-outlined">{showNewPwd ? 'visibility' : 'visibility_off'}</span>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-bold text-on-surface-variant px-1">Xác nhận mật khẩu mới</label>
+                    <div className="relative">
+                      <input 
+                        type={showConfirmPwd ? "text" : "password"} 
+                        className="w-full p-4 bg-surface-container-low border border-outline-variant/30 rounded-2xl focus:ring-2 focus:ring-primary/20 outline-none"
+                        value={passwordData.confirmPassword}
+                        onChange={e => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                      />
+                      <button 
+                        onClick={() => setShowConfirmPwd(!showConfirmPwd)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-outline"
+                      >
+                        <span className="material-symbols-outlined">{showConfirmPwd ? 'visibility' : 'visibility_off'}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
               ) : (
-                <>
-                  <button onClick={() => setIsEditingProfile(false)} style={{ padding: '10px 20px', background: 'transparent', color: '#ccc', border: '1px solid #444', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Hủy bỏ</button>
-                  <button onClick={handleSaveProfile} style={{ padding: '10px 20px', background: '#28a745', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Lưu thay đổi</button>
-                </>
-              )}
-            </div>
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-primary px-1">Họ và tên</label>
+                        {isEditingProfile ? (
+                          <input type="text" className="w-full p-3 bg-surface-container border-b-2 border-primary rounded-lg outline-none" value={profileData.fullName} onChange={e => setProfileData({...profileData, fullName: e.target.value})} />
+                        ) : (
+                          <p className="p-3 text-lg font-semibold text-on-surface">{user?.fullName}</p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-primary px-1">Số điện thoại</label>
+                        {isEditingProfile ? (
+                          <input type="text" className="w-full p-3 bg-surface-container border-b-2 border-primary rounded-lg outline-none" value={profileData.phone} onChange={e => setProfileData({...profileData, phone: e.target.value})} />
+                        ) : (
+                          <p className="p-3 text-lg font-semibold text-on-surface">{user?.phone || 'Chưa cập nhật'}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-primary px-1">Vai trò</label>
+                        <p className="p-3 text-lg font-black text-primary italic uppercase tracking-tighter">
+                          {user?.role === 'LANDLORD' ? '🚀 Chủ nhà' : '🏠 Người thuê'}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-primary px-1">Email</label>
+                        <p className="p-3 text-sm text-on-surface-variant font-medium">{user?.email}</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {!isEditingProfile && (
+                    <button 
+                      onClick={() => setIsChangingPassword(true)}
+                      className="w-full py-4 flex items-center justify-center gap-2 text-primary font-bold hover:bg-primary/5 transition-all rounded-2xl border-2 border-dashed border-primary/20"
+                    >
+                      <span className="material-symbols-outlined text-xl">lock_reset</span>
+                      Thay đổi mật khẩu đăng nhập
+                    </button>
+                  )}
 
+                  {user?.role === 'LANDLORD' && (
+                    <div className="mt-8 p-6 bg-surface-container-low rounded-3xl border border-outline-variant/30 space-y-4">
+                      <h4 className="font-bold text-on-surface flex items-center gap-2">
+                        <span className="material-symbols-outlined text-primary">payments</span>
+                        Thông tin thanh toán (VietQR)
+                      </h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-[10px] font-bold text-outline uppercase tracking-wider">Ngân hàng</label>
+                          {isEditingProfile ? (
+                            <select className="w-full p-2.5 bg-white border border-outline-variant/30 rounded-lg text-sm" value={profileData.bankName} onChange={e => setProfileData({...profileData, bankName: e.target.value})}>
+                              <option value="MB">MBBank</option>
+                              <option value="VCB">Vietcombank</option>
+                            </select>
+                          ) : <p className="font-bold text-on-surface">{user?.bankName}</p>}
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-outline uppercase tracking-wider">Số tài khoản</label>
+                          {isEditingProfile ? (
+                            <input type="text" className="w-full p-2.5 bg-white border border-outline-variant/30 rounded-lg text-sm" value={profileData.accountNumber} onChange={e => setProfileData({...profileData, accountNumber: e.target.value})} />
+                          ) : <p className="font-bold text-primary">{user?.accountNumber}</p>}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="mt-10 flex gap-4">
+                {isEditingProfile || isChangingPassword ? (
+                  <>
+                    <button 
+                      onClick={() => { setIsEditingProfile(false); setIsChangingPassword(false); }}
+                      className="flex-1 py-4 font-bold text-on-surface-variant hover:bg-surface-container transition-all rounded-2xl"
+                    >
+                      Hủy bỏ
+                    </button>
+                    <button 
+                      onClick={isChangingPassword ? handleSavePassword : handleSaveProfile}
+                      className="flex-[2] py-4 bg-primary text-on-primary font-bold rounded-2xl hover:shadow-lg shadow-primary/20 transition-all"
+                    >
+                      {isChangingPassword ? 'Cập nhật mật khẩu' : 'Lưu thay đổi'}
+                    </button>
+                  </>
+                ) : (
+                  <button 
+                    onClick={() => setIsEditingProfile(true)}
+                    className="w-full py-4 bg-on-surface text-surface font-bold rounded-2xl hover:opacity-90 transition-all flex items-center justify-center gap-2"
+                  >
+                    <span className="material-symbols-outlined">edit_square</span>
+                    Chỉnh sửa thông tin hồ sơ
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
-      </div>
+    </div>
   );
 };
 

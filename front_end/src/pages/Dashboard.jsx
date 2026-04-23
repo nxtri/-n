@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import roomApi from '../api/roomApi';
 import axios from 'axios';
@@ -325,6 +325,23 @@ const Dashboard = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [rooms, setRooms] = useState([]);
   const [contracts, setContracts] = useState([]);
+  const [expandedTenantRooms, setExpandedTenantRooms] = useState({}); // Trạng thái đóng/mở cho danh sách người thuê
+
+  const metrics = useMemo(() => {
+    const total = rooms.length;
+    const occupied = rooms.filter(r => r.status === 'RENTED').length;
+    const available = rooms.filter(r => r.status === 'AVAILABLE').length;
+    const maintenance = rooms.filter(r => r.status === 'MAINTENANCE').length;
+    const deposited = rooms.filter(r => r.status === 'DEPOSITED').length;
+    const upcoming = rooms.filter(r => r.status === 'UPCOMING').length;
+    const hidden = rooms.filter(r => r.status === 'HIDDEN').length;
+    const rate = total > 0 ? ((occupied / total) * 100).toFixed(0) : 0;
+    const revenue = contracts
+      .filter(c => c.status === 'ACTIVE')
+      .reduce((sum, c) => sum + (Number(c.price) || 0), 0);
+    return { total, occupied, available, maintenance, deposited, upcoming, hidden, rate, revenue };
+  }, [rooms, contracts]);
+
   const [bills, setBills] = useState([]);
 
   const [viewContract, setViewContract] = useState(null);
@@ -335,11 +352,26 @@ const Dashboard = () => {
   const [selectedProvince, setSelectedProvince] = useState({ code: '', name: '' });
   const [selectedDistrict, setSelectedDistrict] = useState({ code: '', name: '' });
   const [selectedWard, setSelectedWard] = useState({ code: '', name: '' });
+  // State cho custom searchable dropdown Tỉnh/Thành & Phường/Xã
+  const [provinceDropdownOpen, setProvinceDropdownOpen] = useState(false);
+  const [wardDropdownOpen, setWardDropdownOpen] = useState(false);
+  const [provinceSearch, setProvinceSearch] = useState('');
+  const [wardSearch, setWardSearch] = useState('');
+  // Đóng dropdown khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.province-dropdown-container')) setProvinceDropdownOpen(false);
+      if (!e.target.closest('.ward-dropdown-container')) setWardDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [newRoom, setNewRoom] = useState({ 
     roomNumber: '', houseNumber: '', price: '', description: '', area: '', address: '',
+    roomType: 'SINGLE', numFloors: '', numBedrooms: '', numBathrooms: '',
     maxOccupants: 1, electricityPrice: '', waterPrice: '', internetPrice: '', parkingPrice: '', servicePrice: '',
     hasElevator: false, hasWashingMachine: false, hasFridge: false, hasKitchen: false, hasHeater: false
   });
@@ -373,7 +405,9 @@ const Dashboard = () => {
     // Thành viên
     members: [],
     // Tình trạng bàn giao
-    conditionDescription: ''
+    conditionDescription: '',
+    // Cờ đánh dấu khách tự thanh toán điện lực
+    isDirectUtilityPayment: false
   });
   const [billContract, setBillContract] = useState(null);
   const [billData, setBillData] = useState({ month: new Date().getMonth() + 1, year: new Date().getFullYear(), electricityUsage: '', waterUsage: '', vehicleCount: '' });
@@ -515,6 +549,7 @@ const handleProvinceChange = async (e) => {
     setViewRoomDetails(null); // Tắt popup nếu đang mở
     setNewRoom({
       roomNumber: room.roomNumber, houseNumber: room.houseNumber || '', price: room.price, description: room.description || '', area: room.area || '', address: room.address || '',
+      roomType: room.roomType || 'SINGLE', numFloors: room.numFloors || '', numBedrooms: room.numBedrooms || '', numBathrooms: room.numBathrooms || '',
       maxOccupants: room.maxOccupants, electricityPrice: room.electricityPrice || '', waterPrice: room.waterPrice || '', internetPrice: room.internetPrice || '', parkingPrice: room.parkingPrice || '', servicePrice: room.servicePrice || '',
       hasElevator: room.hasElevator, hasWashingMachine: room.hasWashingMachine, hasFridge: room.hasFridge, hasKitchen: room.hasKitchen, hasHeater: room.hasHeater
     });
@@ -572,7 +607,12 @@ const handleCreateRoom = async (e) => {
       setActiveTab('ALL_ROOMS'); 
       fetchRooms();
       // Reset form
-      setNewRoom({ roomNumber: '', houseNumber: '', price: '', description: '', area: '', address: '', maxOccupants: 1, electricityPrice: '', waterPrice: '', internetPrice: '', parkingPrice: '', servicePrice: '', hasElevator: false, hasWashingMachine: false, hasFridge: false, hasKitchen: false, hasHeater: false });
+      setNewRoom({ 
+        roomNumber: '', houseNumber: '', price: '', description: '', area: '', address: '', 
+        roomType: 'SINGLE', numFloors: '', numBedrooms: '', numBathrooms: '',
+        maxOccupants: 1, electricityPrice: '', waterPrice: '', internetPrice: '', parkingPrice: '', servicePrice: '', 
+        hasElevator: false, hasWashingMachine: false, hasFridge: false, hasKitchen: false, hasHeater: false 
+      });
       setImageFiles([]); setImagePreviews([]);
       // Reset dropdown địa chỉ
       setSelectedProvince({code: '', name: ''}); setSelectedDistrict({code: '', name: ''}); setSelectedWard({code: '', name: ''});
@@ -636,6 +676,7 @@ const handleCreateRoom = async (e) => {
       startDate: contract.startDate || '', endDate: contract.endDate || '',
       price: contract.price || 0, electricityPrice: contract.electricityPrice || 0, waterPrice: contract.waterPrice || 0, internetPrice: contract.internetPrice || 0, parkingPrice: contract.parkingPrice || 0, servicePrice: contract.servicePrice || 0,
       startElectricity: contract.startElectricity || '', startWater: contract.startWater || '', vehicleCount: contract.vehicleCount || 0,
+      isDirectUtilityPayment: !!contract.isDirectUtilityPayment,
       members: parsedMembers
     });
   };
@@ -668,11 +709,12 @@ const handleCreateRoom = async (e) => {
 
       // 4. Nhóm Chi phí (Giá đàm phán)
       formData.append('price', contractData.price);
-      formData.append('electricityPrice', contractData.electricityPrice);
-      formData.append('waterPrice', contractData.waterPrice);
+      formData.append('electricityPrice', contractData.isDirectUtilityPayment ? 0 : contractData.electricityPrice);
+      formData.append('waterPrice', contractData.isDirectUtilityPayment ? 0 : contractData.waterPrice);
       formData.append('internetPrice', contractData.internetPrice);
       formData.append('parkingPrice', contractData.parkingPrice);
       formData.append('servicePrice', contractData.servicePrice);
+      formData.append('isDirectUtilityPayment', contractData.isDirectUtilityPayment);
       
       formData.append('startElectricity', contractData.startElectricity);
       formData.append('startWater', contractData.startWater);
@@ -857,46 +899,58 @@ const handleCreateRoom = async (e) => {
 
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', fontFamily: "'Inter', sans-serif", backgroundColor: '#f1f5f9' }}>
+    <div className="flex flex-col h-screen font-['Inter'] bg-surface-container-lowest text-on-surface">
       
       {/* 1. THANH ĐIỀU HƯỚNG TRÊN CÙNG */}
-      <div style={{ background: '#ffffff', color: '#0f172a', padding: '10px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 4px rgba(15, 23, 42, 0.05)', borderBottom: '1px solid #e2e8f0', zIndex: 10 }}>
-        <h2 style={{ margin: 0, cursor: 'pointer', color: '#2563eb', fontWeight: '800' }} onClick={() => navigate('/')}>PHONGTROSIEUCAP</h2>
+      <div className="bg-surface-container-lowest text-on-surface px-6 py-3 flex justify-between items-center shadow-sm border-b border-outline-variant/30 z-10 sticky top-0">
+        <h2 className="m-0 cursor-pointer text-primary font-black text-2xl tracking-tight flex items-center gap-2" onClick={() => navigate('/')}>
+          <span className="material-symbols-outlined text-[28px] fill-1">real_estate_agent</span>
+          PHONGTROSIEUCAP
+        </h2>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+        <div className="flex items-center gap-4 md:gap-6">
           {/* KHU VỰC CHUÔNG THÔNG BÁO */}
-          <div style={{ position: 'relative' }} ref={notificationRef}>
+          <div className="relative" ref={notificationRef}>
             <button 
               onClick={() => setShowNotifications(!showNotifications)}
-              style={{ background: 'transparent', border: 'none', fontSize: '20px', cursor: 'pointer', position: 'relative' }}
+              className="bg-surface-container-low border border-outline-variant/30 text-on-surface-variant w-10 h-10 rounded-full flex justify-center items-center cursor-pointer relative hover:scale-110 hover:bg-surface-container-high transition-all shadow-sm"
               title="Thông báo"
             >
-              🔔
+              <span className="material-symbols-outlined text-[20px]">notifications</span>
               {/* Hiển thị số chấm đỏ nếu có thông báo chưa đọc */}
               {notifications.filter(n => !n.isRead).length > 0 && (
-                <span style={{ position: 'absolute', top: '-5px', right: '-5px', background: 'red', color: 'white', fontSize: '10px', fontWeight: 'bold', padding: '2px 5px', borderRadius: '50%' }}>
+                <span className="absolute -top-1 -right-1 bg-error text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shadow-sm border border-white">
                   {notifications.filter(n => !n.isRead).length}
                 </span>
               )}
             </button>
             {/* Popup Danh sách thông báo */}
             {showNotifications && (
-              <div style={{ position: 'absolute', right: 0, top: '40px', width: '350px', background: '#ffffff', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 1000, overflow: 'hidden', border: '1px solid #e2e8f0' }}>
-                <div style={{ background: '#f8fafc', padding: '12px 15px', borderBottom: '1px solid #e2e8f0', fontWeight: 'bold', color: '#0f172a' }}>Thông báo của bạn</div>
-                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+              <div className="absolute right-0 top-[120%] w-[380px] bg-surface-container-lowest rounded-3xl shadow-2xl border border-outline-variant/30 z-[1000] overflow-hidden animate-in fade-in slide-in-from-top-4 origin-top-right">
+                <div className="bg-surface-container-low px-6 py-4 border-b border-outline-variant/30 font-black text-on-surface flex justify-between items-center">
+                  <span className="flex items-center gap-2"><span className="material-symbols-outlined text-primary">notifications_active</span> Thông báo của bạn</span>
+                  <span className="text-[11px] font-bold opacity-60 bg-surface-container-high px-2 py-1 rounded-md">{notifications.filter(n => !n.isRead).length} chưa đọc</span>
+                </div>
+                <div className="max-h-[400px] overflow-y-auto no-scrollbar">
                   {notifications.length === 0 ? (
-                    <div style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>Chưa có thông báo nào</div>
+                    <div className="p-8 text-center text-on-surface-variant italic font-medium opacity-60">Chưa có thông báo nào</div>
                   ) : (
                     notifications.map(noti => (
                       <div 
                         key={noti.id} 
                         onClick={() => handleReadNotification(noti.id)}
-                        style={{ padding: '15px', borderBottom: '1px solid #f1f5f9', background: noti.isRead ? '#ffffff' : '#f1f5f9', cursor: 'pointer', transition: '0.2s', textAlign: 'left' }}
+                        className={`p-5 border-b border-outline-variant/10 cursor-pointer transition-all hover:bg-surface-container-low flex gap-4 ${noti.isRead ? 'bg-surface-container-lowest opacity-70' : 'bg-primary/5 relative'}`}
                       >
-                        <div style={{ fontWeight: '600', fontSize: '14px', color: '#2563eb', marginBottom: '5px' }}>{noti.title}</div>
-                        <div style={{ fontSize: '13px', color: '#475569', whiteSpace: 'pre-wrap' }}>{noti.message}</div>
-                        <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '8px', textAlign: 'right' }}>
-                          {new Date(noti.createdAt).toLocaleString('vi-VN')}
+                        {!noti.isRead && <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>}
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${noti.isRead ? 'bg-surface-container-high text-on-surface-variant' : 'bg-primary/20 text-primary'}`}>
+                           <span className="material-symbols-outlined text-[20px]">{noti.title.includes('Sự cố') ? 'engineering' : noti.title.includes('Hóa đơn') ? 'receipt_long' : 'notifications'}</span>
+                        </div>
+                        <div>
+                          <div className={`font-black text-[14px] mb-1 leading-tight ${noti.isRead ? 'text-on-surface' : 'text-primary'}`}>{noti.title}</div>
+                          <div className="text-[13px] text-on-surface-variant whitespace-pre-wrap leading-relaxed font-medium">{noti.message}</div>
+                          <div className="text-[11px] text-on-surface-variant mt-2 opacity-60 font-bold flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[14px]">schedule</span> {new Date(noti.createdAt).toLocaleString('vi-VN')}
+                          </div>
                         </div>
                       </div>
                     ))
@@ -909,102 +963,100 @@ const handleCreateRoom = async (e) => {
           {/* NÚT XEM NỘI QUY */}
           <button 
             onClick={() => setShowRuleModal(true)}
-            style={{ 
-              background: '#f1f5f9', 
-              border: '1px solid #e2e8f0', 
-              color: '#475569', 
-              padding: '6px 12px', 
-              borderRadius: '20px', 
-              cursor: 'pointer', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '5px',
-              fontSize: '13px',
-              fontWeight: '600',
-              transition: '0.2s'
-            }}
-            onMouseEnter={(e) => { e.target.style.background = '#e2e8f0'; e.target.style.color = '#0f172a'; }}
-            onMouseLeave={(e) => { e.target.style.background = '#f1f5f9'; e.target.style.color = '#475569'; }}
+            className="hidden md:flex bg-surface-container-low border border-outline-variant/30 text-on-surface-variant px-4 py-2 rounded-full cursor-pointer items-center gap-2 text-[13px] font-black tracking-wide transition-all hover:bg-surface-container-high hover:text-on-surface hover:shadow-sm"
             title="Xem nội quy hệ thống"
           >
-            📜 Nội quy
+            <span className="material-symbols-outlined text-[18px]">gavel</span> Nội quy
           </button>
 
-          <div style={{ position: 'relative' }} ref={userDropdownRef}>
-            <div onClick={() => setShowDropdown(!showDropdown)} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#0f172a', padding: '6px 12px', borderRadius: '20px', background: '#f1f5f9', border: '1px solid #e2e8f0', transition: '0.2s' }}>
-              <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#2563eb', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <span style={{ color: '#ffffff', fontWeight: 'bold', fontSize: '14px' }}>{user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}</span>
+          <div className="relative" ref={userDropdownRef}>
+            <div 
+              onClick={() => setShowDropdown(!showDropdown)} 
+              className="flex items-center gap-3 cursor-pointer text-on-surface pl-2 pr-4 py-1.5 rounded-full bg-surface-container-low border border-outline-variant/30 transition-all hover:bg-surface-container-high hover:shadow-md"
+            >
+              <div className="w-8 h-8 rounded-full bg-primary flex justify-center items-center shadow-inner">
+                <span className="text-white font-black text-[14px]">{user.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}</span>
               </div>
-              <span style={{ fontSize: '14px', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: '500' }}>{user.fullName}</span>
-              <span style={{ fontSize: '10px', color: '#64748b' }}>▼</span>
+              <span className="text-[14px] max-w-[120px] overflow-hidden text-ellipsis whitespace-nowrap font-bold hidden md:inline-block">{user.fullName}</span>
+              <span className="text-[14px] text-on-surface-variant opacity-60 material-symbols-outlined hidden md:inline-block">expand_more</span>
             </div>
             {showDropdown && (
-              <div style={{ position: 'absolute', top: '120%', right: 0, background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '5px 0', width: '140px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 100 }}>
-                <div onClick={() => { setShowProfileModal(true); setShowDropdown(false); }} style={{ padding: '10px 15px', cursor: 'pointer', color: '#475569', fontSize: '14px', transition: '0.2s', fontWeight: '500' }} onMouseEnter={(e) => { e.target.style.background = '#f8fafc'; e.target.style.color = '#0f172a'; }} onMouseLeave={(e) => { e.target.style.background = 'transparent'; e.target.style.color = '#475569'; }}>👤 Hồ sơ</div>
-                <div onClick={handleLogout} style={{ padding: '10px 15px', cursor: 'pointer', color: '#ef4444', fontSize: '14px', transition: '0.2s', fontWeight: '500' }} onMouseEnter={(e) => { e.target.style.background = '#fef2f2'; }} onMouseLeave={(e) => e.target.style.background = 'transparent'}>🚪 Đăng xuất</div>
+              <div className="absolute top-[120%] right-0 bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-2 w-[180px] shadow-2xl z-[100] animate-in fade-in slide-in-from-top-2 origin-top-right">
+                <div className="px-4 py-3 border-b border-outline-variant/30 mb-1">
+                  <div className="font-black text-sm truncate">{user.fullName}</div>
+                  <div className="font-bold text-[10px] text-on-surface-variant uppercase tracking-widest">{user.role}</div>
+                </div>
+                <div onClick={() => { setShowProfileModal(true); setShowDropdown(false); }} className="px-4 py-2.5 rounded-xl cursor-pointer text-on-surface-variant text-[13px] font-bold transition-all hover:bg-surface-container-low hover:text-primary flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[18px]">manage_accounts</span> Hồ sơ cá nhân
+                </div>
+                <div onClick={handleLogout} className="px-4 py-2.5 rounded-xl cursor-pointer text-error text-[13px] font-bold transition-all hover:bg-error/10 flex items-center gap-3 mt-1">
+                  <span className="material-symbols-outlined text-[18px]">logout</span> Đăng xuất
+                </div>
               </div>
             )}
           </div>
           {user.role === 'LANDLORD' && (
-            <button onClick={() => { setEditingRoomId(null); setActiveTab('ADD_ROOM'); }} style={{ background: '#2563eb', color: '#ffffff', border: 'none', padding: '8px 15px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(37,99,235,0.2)' }}>
-              📝 Đăng tin mới
+            <button onClick={() => { setEditingRoomId(null); setActiveTab('ADD_ROOM'); }} className="hidden md:flex bg-primary text-on-primary border-none px-6 py-2.5 rounded-2xl font-black cursor-pointer shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all items-center gap-2 tracking-wide">
+              <span className="material-symbols-outlined text-[20px]">add_circle</span> Đăng tin
             </button>
           )}
-          
         </div>
       </div>
           
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      <div className="flex flex-1 overflow-hidden">
         {/* 2. SIDEBAR */}
-        <div style={{ width: '260px', background: '#ffffff', borderRight: '1px solid #e2e8f0', overflowY: 'auto', padding: '20px 0', textAlign: 'left' }}>
+        <div className="w-[280px] bg-surface-container-lowest border-r border-outline-variant/30 overflow-y-auto py-6 text-left no-scrollbar flex flex-col gap-2 shrink-0 shadow-[4px_0_24px_rgba(0,0,0,0.02)] z-0">
           {user.role === 'LANDLORD' ? (
             <>
-              <div onClick={() => setIsRoomMenuOpen(!isRoomMenuOpen)} style={{ padding: '12px 20px', cursor: 'pointer', fontWeight: '600', color: isRoomMenuOpen ? '#2563eb' : '#0f172a', display: 'flex', justifyContent: 'space-between', background: isRoomMenuOpen ? '#f8fafc' : 'transparent', transition: '0.2s' }}>
-                <span>🏠 Danh sách phòng</span><span style={{ color: '#64748b' }}>{isRoomMenuOpen ? '▼' : '▶'}</span>
+              <div onClick={() => setIsRoomMenuOpen(!isRoomMenuOpen)} className={`mx-4 px-4 py-3.5 rounded-2xl cursor-pointer font-black flex justify-between items-center transition-all ${isRoomMenuOpen ? 'text-primary bg-primary/10 shadow-sm' : 'text-on-surface hover:bg-surface-container-low'}`}>
+                <span className="flex items-center gap-3"><span className="material-symbols-outlined text-[22px]">real_estate_agent</span> Quản lý phòng</span>
+                <span className="text-on-surface-variant opacity-60 material-symbols-outlined text-[20px] transition-transform">{isRoomMenuOpen ? 'expand_less' : 'expand_more'}</span>
               </div>
               {isRoomMenuOpen && (
-                <div style={{ paddingBottom: '10px', background: '#f8fafc' }}>
-                  <div onClick={() => setActiveTab('ALL_ROOMS')} style={{ padding: '10px 20px 10px 40px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: activeTab === 'ALL_ROOMS' ? '#eff6ff' : 'transparent', color: activeTab === 'ALL_ROOMS' ? '#2563eb' : '#475569', fontWeight: activeTab === 'ALL_ROOMS' ? '600' : '400', borderRight: activeTab === 'ALL_ROOMS' ? '3px solid #2563eb' : 'none', transition: '0.2s' }}>
-                    <span>• Tất cả phòng</span>
-                    <span style={{ fontSize: '18px', fontWeight: '700', opacity: 0.8 }}>({rooms.length})</span>
-                  </div>
-                  <div onClick={() => setActiveTab('RENTED')} style={{ padding: '10px 20px 10px 40px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: activeTab === 'RENTED' ? '#eff6ff' : 'transparent', color: activeTab === 'RENTED' ? '#2563eb' : '#475569', fontWeight: activeTab === 'RENTED' ? '600' : '400', borderRight: activeTab === 'RENTED' ? '3px solid #2563eb' : 'none', transition: '0.2s' }}>
-                    <span>• Đang cho thuê</span>
-                    <span style={{ fontSize: '18px', fontWeight: '700', opacity: 0.8 }}>({rooms.filter(r=>r.status === 'RENTED' && !r.isHidden).length})</span>
-                  </div>
-                  <div onClick={() => setActiveTab('AVAILABLE')} style={{ padding: '10px 20px 10px 40px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: activeTab === 'AVAILABLE' ? '#eff6ff' : 'transparent', color: activeTab === 'AVAILABLE' ? '#2563eb' : '#475569', fontWeight: activeTab === 'AVAILABLE' ? '600' : '400', borderRight: activeTab === 'AVAILABLE' ? '3px solid #2563eb' : 'none', transition: '0.2s' }}>
-                    <span>• Phòng trống</span>
-                    <span style={{ fontSize: '18px', fontWeight: '700', opacity: 0.8 }}>({rooms.filter(r=>r.status === 'AVAILABLE' && !r.isHidden && (!r.depositNote || r.depositNote.trim() === '')).length})</span>
-                  </div>
-                  <div onClick={() => setActiveTab('DEPOSITED')} style={{ padding: '10px 20px 10px 40px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: activeTab === 'DEPOSITED' ? '#eff6ff' : 'transparent', color: activeTab === 'DEPOSITED' ? '#2563eb' : '#475569', fontWeight: activeTab === 'DEPOSITED' ? '600' : '400', borderRight: activeTab === 'DEPOSITED' ? '3px solid #2563eb' : 'none', transition: '0.2s' }}>
-                    <span>• Phòng đã cọc</span>
-                    <span style={{ fontSize: '18px', fontWeight: '700', opacity: 0.8 }}>({rooms.filter(r => r.depositNote && r.depositNote.trim() !== '' && !r.isHidden).length})</span>
-                  </div>
-                  <div onClick={() => setActiveTab('UPCOMING')} style={{ padding: '10px 20px 10px 40px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: activeTab === 'UPCOMING' ? '#eff6ff' : 'transparent', color: activeTab === 'UPCOMING' ? '#2563eb' : '#475569', fontWeight: activeTab === 'UPCOMING' ? '600' : '400', borderRight: activeTab === 'UPCOMING' ? '3px solid #2563eb' : 'none', transition: '0.2s' }}>
-                    <span>• Sắp trống / Đăng tin</span>
-                    <span style={{ fontSize: '18px', fontWeight: '700', opacity: 0.8 }}>({rooms.filter(r => r.status === 'RENTED' && !r.isHidden && contracts.some(c => c.roomId === r.id && c.status === 'ACTIVE' && c.intendedMoveOutDate)).length})</span>
-                  </div>
-                  <div onClick={() => setActiveTab('HIDDEN')} style={{ padding: '10px 20px 10px 40px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: activeTab === 'HIDDEN' ? '#eff6ff' : 'transparent', color: activeTab === 'HIDDEN' ? '#2563eb' : '#475569', fontWeight: activeTab === 'HIDDEN' ? '600' : '400', borderRight: activeTab === 'HIDDEN' ? '3px solid #2563eb' : 'none', transition: '0.2s' }}>
-                    <span>• Phòng bị ẩn</span>
-                    <span style={{ fontSize: '18px', fontWeight: '700', opacity: 0.8 }}>({rooms.filter(r => r.isHidden).length})</span>
-                  </div>
-                  <div onClick={() => setActiveTab('MAINTENANCE')} style={{ padding: '10px 20px 10px 40px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: activeTab === 'MAINTENANCE' ? '#eff6ff' : 'transparent', color: activeTab === 'MAINTENANCE' ? '#2563eb' : '#475569', fontWeight: activeTab === 'MAINTENANCE' ? '600' : '400', borderRight: activeTab === 'MAINTENANCE' ? '3px solid #2563eb' : 'none', transition: '0.2s' }}>
-                    <span>• Đang bảo trì</span>
-                    <span style={{ fontSize: '18px', fontWeight: '700', opacity: 0.8 }}>({rooms.filter(r=>r.status === 'MAINTENANCE' && !r.isHidden).length})</span>
-                  </div>
+                <div className="pb-4 pt-1 flex flex-col gap-1.5">
+                  {[
+                    { id: 'ALL_ROOMS', label: 'Tất cả phòng', count: rooms.length },
+                    { id: 'RENTED', label: 'Đang cho thuê', count: rooms.filter(r=>r.status === 'RENTED' && !r.isHidden).length },
+                    { id: 'AVAILABLE', label: 'Phòng trống', count: rooms.filter(r=>r.status === 'AVAILABLE' && !r.isHidden && (!r.depositNote || r.depositNote.trim() === '')).length },
+                    { id: 'DEPOSITED', label: 'Phòng đã cọc', count: rooms.filter(r => r.depositNote && r.depositNote.trim() !== '' && !r.isHidden).length },
+                    { id: 'UPCOMING', label: 'Sắp trống', count: rooms.filter(r => r.status === 'RENTED' && !r.isHidden && contracts.some(c => c.roomId === r.id && c.status === 'ACTIVE' && c.intendedMoveOutDate)).length },
+                    { id: 'HIDDEN', label: 'Phòng bị ẩn', count: rooms.filter(r => r.isHidden).length },
+                    { id: 'MAINTENANCE', label: 'Đang bảo trì', count: rooms.filter(r=>r.status === 'MAINTENANCE' && !r.isHidden).length }
+                  ].map(tab => (
+                    <div 
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)} 
+                      className={`mx-6 px-4 py-2.5 rounded-xl cursor-pointer flex justify-between items-center transition-all ${activeTab === tab.id ? 'bg-surface-container-high text-primary font-black border-l-4 border-primary' : 'text-on-surface-variant font-bold hover:bg-surface-container-low hover:text-on-surface border-l-4 border-transparent'}`}
+                    >
+                      <span className="flex items-center gap-2">{tab.label}</span>
+                      <span className={`text-[11px] font-black px-2 py-0.5 rounded-md ${activeTab === tab.id ? 'bg-primary/10' : 'bg-surface-container-high'}`}>{tab.count}</span>
+                    </div>
+                  ))}
                 </div>
               )}
-              <div onClick={() => setActiveTab('TENANTS')} style={{ padding: '12px 20px', cursor: 'pointer', fontWeight: '600', background: activeTab === 'TENANTS' ? '#eff6ff' : 'transparent', color: activeTab === 'TENANTS' ? '#2563eb' : '#0f172a', borderRight: activeTab === 'TENANTS' ? '3px solid #2563eb' : 'none', transition: '0.2s' }}>👥 Danh sách người thuê</div>
+              
+              <div onClick={() => setActiveTab('TENANTS')} className={`mx-4 px-4 py-3.5 rounded-2xl cursor-pointer font-black flex items-center gap-3 transition-all ${activeTab === 'TENANTS' ? 'text-primary bg-primary/10 shadow-sm' : 'text-on-surface hover:bg-surface-container-low'}`}>
+                <span className="material-symbols-outlined text-[22px]">groups</span> Người thuê
+              </div>
+              
               {/* MENU SỰ CỐ CHO CHỦ NHÀ */}
-              <div onClick={() => setActiveTab('INCIDENTS')} style={{ padding: '12px 20px', cursor: 'pointer', fontWeight: '600', background: activeTab === 'INCIDENTS' ? '#eff6ff' : 'transparent', color: activeTab === 'INCIDENTS' ? '#2563eb' : '#0f172a', borderRight: activeTab === 'INCIDENTS' ? '3px solid #2563eb' : 'none', transition: '0.2s' }}>🛠️ Quản lý Sự cố</div>
+              <div onClick={() => setActiveTab('INCIDENTS')} className={`mx-4 px-4 py-3.5 rounded-2xl cursor-pointer font-black flex items-center gap-3 transition-all ${activeTab === 'INCIDENTS' ? 'text-primary bg-primary/10 shadow-sm' : 'text-on-surface hover:bg-surface-container-low'}`}>
+                <span className="material-symbols-outlined text-[22px]">engineering</span> Quản lý Sự cố
+              </div>
+              
               {/* MENU TÀI CHÍNH */}
-              <div onClick={() => setIsFinanceMenuOpen(!isFinanceMenuOpen)} style={{ padding: '12px 20px', cursor: 'pointer', fontWeight: '600', color: isFinanceMenuOpen ? '#2563eb' : '#0f172a', display: 'flex', justifyContent: 'space-between', background: isFinanceMenuOpen ? '#f8fafc' : 'transparent', transition: '0.2s' }}>
-                <span>💰 Tài chính</span><span style={{ color: '#64748b' }}>{isFinanceMenuOpen ? '▼' : '▶'}</span>
+              <div onClick={() => setIsFinanceMenuOpen(!isFinanceMenuOpen)} className={`mx-4 px-4 py-3.5 rounded-2xl cursor-pointer font-black flex justify-between items-center transition-all ${isFinanceMenuOpen ? 'text-primary bg-primary/10 shadow-sm' : 'text-on-surface hover:bg-surface-container-low'}`}>
+                <span className="flex items-center gap-3"><span className="material-symbols-outlined text-[22px]">account_balance_wallet</span> Tài chính</span>
+                <span className="text-on-surface-variant opacity-60 material-symbols-outlined text-[20px] transition-transform">{isFinanceMenuOpen ? 'expand_less' : 'expand_more'}</span>
               </div>
               {isFinanceMenuOpen && (
-                <div style={{ paddingBottom: '10px', background: '#f8fafc' }}>
-                  <div onClick={() => setActiveTab('LANDLORD_BILLS')} style={{ padding: '10px 20px 10px 40px', cursor: 'pointer', background: activeTab === 'LANDLORD_BILLS' ? '#eff6ff' : 'transparent', color: activeTab === 'LANDLORD_BILLS' ? '#2563eb' : '#475569', fontWeight: activeTab === 'LANDLORD_BILLS' ? '600' : '400', borderRight: activeTab === 'LANDLORD_BILLS' ? '3px solid #2563eb' : 'none' }}>• Quản lý Hóa đơn</div>
-                  <div onClick={() => setActiveTab('LANDLORD_REVENUE')} style={{ padding: '10px 20px 10px 40px', cursor: 'pointer', background: activeTab === 'LANDLORD_REVENUE' ? '#eff6ff' : 'transparent', color: activeTab === 'LANDLORD_REVENUE' ? '#2563eb' : '#475569', fontWeight: activeTab === 'LANDLORD_REVENUE' ? '600' : '400', borderRight: activeTab === 'LANDLORD_REVENUE' ? '3px solid #2563eb' : 'none' }}>• Báo cáo Doanh thu</div>
+                <div className="pb-4 pt-1 flex flex-col gap-1.5">
+                  <div onClick={() => setActiveTab('LANDLORD_BILLS')} className={`mx-6 px-4 py-2.5 rounded-xl cursor-pointer flex items-center gap-2 transition-all ${activeTab === 'LANDLORD_BILLS' ? 'bg-surface-container-high text-primary font-black border-l-4 border-primary' : 'text-on-surface-variant font-bold hover:bg-surface-container-low hover:text-on-surface border-l-4 border-transparent'}`}>
+                     Hóa đơn & Thu tiền
+                  </div>
+                  <div onClick={() => setActiveTab('LANDLORD_REVENUE')} className={`mx-6 px-4 py-2.5 rounded-xl cursor-pointer flex items-center gap-2 transition-all ${activeTab === 'LANDLORD_REVENUE' ? 'bg-surface-container-high text-primary font-black border-l-4 border-primary' : 'text-on-surface-variant font-bold hover:bg-surface-container-low hover:text-on-surface border-l-4 border-transparent'}`}>
+                     Báo cáo Doanh thu
+                  </div>
                 </div>
               )}
             </>
@@ -1013,17 +1065,17 @@ const handleCreateRoom = async (e) => {
               {/* TAB 1: PHÒNG ĐANG THUÊ */}
               <div 
                 onClick={() => setActiveTab('TENANT_ROOMS')} 
-                style={{ padding: '12px 20px', cursor: 'pointer', fontWeight: 'bold', background: activeTab === 'TENANT_ROOMS' ? '#e6f0fa' : 'transparent', color: activeTab === 'TENANT_ROOMS' ? '#0b5ed7' : '#333' }}
+                className={`mx-4 px-4 py-4 rounded-2xl cursor-pointer font-black flex items-center gap-3 transition-all ${activeTab === 'TENANT_ROOMS' ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105' : 'text-on-surface hover:bg-surface-container-low'}`}
               >
-                🏠 Phòng đang thuê
+                <span className="material-symbols-outlined text-[22px]">home</span> Phòng đang thuê
               </div>
 
               {/* TAB SỰ CỐ & HỖ TRỢ KHÁCH THUÊ */}
               <div 
                 onClick={() => setActiveTab('INCIDENTS')} 
-                style={{ padding: '12px 20px', cursor: 'pointer', fontWeight: 'bold', background: activeTab === 'INCIDENTS' ? '#e6f0fa' : 'transparent', color: activeTab === 'INCIDENTS' ? '#0b5ed7' : '#333' }}
+                className={`mx-4 px-4 py-4 rounded-2xl cursor-pointer font-black flex items-center gap-3 transition-all ${activeTab === 'INCIDENTS' ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105' : 'text-on-surface hover:bg-surface-container-low'}`}
               >
-                🛠️ Sự cố & Hỗ trợ
+                <span className="material-symbols-outlined text-[22px]">support_agent</span> Sự cố & Hỗ trợ
               </div>
 
               {/* TAB 2: THANH TOÁN HÓA ĐƠN (CÓ XỔ XUỐNG) */}
@@ -1033,37 +1085,23 @@ const handleCreateRoom = async (e) => {
                   setIsTenantBillsMenuOpen(!isTenantBillsMenuOpen); // Bật/tắt menu con
                   if(!selectedRoomId) setSelectedRoomId('ALL');     // Mặc định chọn Tất cả
                 }} 
-                style={{ padding: '12px 20px', cursor: 'pointer', fontWeight: 'bold', background: activeTab === 'TENANT_BILLS' ? '#e6f0fa' : 'transparent', color: activeTab === 'TENANT_BILLS' ? '#0b5ed7' : '#333', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                className={`mx-4 px-4 py-4 rounded-2xl cursor-pointer font-black flex justify-between items-center transition-all mt-2 ${activeTab === 'TENANT_BILLS' ? 'bg-primary/10 text-primary shadow-sm' : 'text-on-surface hover:bg-surface-container-low'}`}
               >
-                <span>🧾 Thanh toán hóa đơn</span>
-                {/* Mũi tên xổ xuống */}
-                <span style={{ fontSize: '11px' }}>{isTenantBillsMenuOpen && activeTab === 'TENANT_BILLS' ? '▼' : '▶'}</span>
+                <span className="flex items-center gap-3"><span className="material-symbols-outlined text-[22px]">receipt_long</span> Thanh toán</span>
+                <span className="material-symbols-outlined text-[20px] opacity-80 transition-transform">{isTenantBillsMenuOpen && activeTab === 'TENANT_BILLS' ? 'expand_less' : 'expand_more'}</span>
               </div>
 
-{/* MENU CON: TẤT CẢ & TỪNG PHÒNG CỦA KHÁCH THUÊ */}
+              {/* MENU CON: TẤT CẢ & TỪNG PHÒNG CỦA KHÁCH THUÊ */}
               {isTenantBillsMenuOpen && activeTab === 'TENANT_BILLS' && (
-                <div style={{ background: '#f8fafc', padding: '5px 0', borderBottom: '1px solid #e2e8f0' }}>
-                  
+                <div className="flex flex-col gap-1.5 mt-2">
                   {/* Nút: Tất cả */}
                   <div 
                     onClick={() => setSelectedRoomId('ALL')}
-                    style={{ 
-                      padding: '10px 20px 10px 45px', 
-                      cursor: 'pointer', 
-                      // Hiệu ứng nền xanh khi được chọn giống hệt ảnh 1
-                      background: (!selectedRoomId || selectedRoomId === 'ALL') ? '#eff6ff' : 'transparent', 
-                      color: (!selectedRoomId || selectedRoomId === 'ALL') ? '#2563eb' : '#475569', 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center', 
-                      fontSize: '14px',
-                      fontWeight: (!selectedRoomId || selectedRoomId === 'ALL') ? '600' : '400',
-                      borderRight: (!selectedRoomId || selectedRoomId === 'ALL') ? '3px solid #2563eb' : 'none'
-                    }}
+                    className={`mx-6 px-4 py-2.5 rounded-xl cursor-pointer flex justify-between items-center transition-all ${(!selectedRoomId || selectedRoomId === 'ALL') ? 'bg-surface-container-high text-primary font-black border-l-4 border-primary' : 'text-on-surface-variant font-bold hover:bg-surface-container-low hover:text-on-surface border-l-4 border-transparent'}`}
                   >
-                    <span>• Tất cả</span>
+                    <span className="flex items-center gap-2">Tất cả</span>
                     {totalTenantUnpaid > 0 && (
-                      <span style={{ background: '#ef4444', color: '#ffffff', fontSize: '11px', padding: '2px 7px', borderRadius: '10px', fontWeight: 'bold' }}>
+                      <span className="bg-error text-white text-[10px] px-2 py-0.5 rounded-full font-black shadow-sm tracking-widest">
                         {totalTenantUnpaid}
                       </span>
                     )}
@@ -1074,29 +1112,16 @@ const handleCreateRoom = async (e) => {
                     <div 
                       key={room.id}
                       onClick={() => setSelectedRoomId(room.id)}
-                      style={{ 
-                        padding: '10px 20px 10px 45px', 
-                        cursor: 'pointer', 
-                        // Hiệu ứng nền xanh khi được chọn giống hệt ảnh 1
-                        background: selectedRoomId === room.id ? '#eff6ff' : 'transparent', 
-                        color: selectedRoomId === room.id ? '#2563eb' : '#475569', 
-                        display: 'flex', 
-                        justifyContent: 'space-between', 
-                        alignItems: 'center', 
-                        fontSize: '14px',
-                        fontWeight: selectedRoomId === room.id ? '600' : '400',
-                        borderRight: selectedRoomId === room.id ? '3px solid #2563eb' : 'none'
-                      }}
+                      className={`mx-6 px-4 py-2.5 rounded-xl cursor-pointer flex justify-between items-center transition-all ${selectedRoomId === room.id ? 'bg-surface-container-high text-primary font-black border-l-4 border-primary' : 'text-on-surface-variant font-bold hover:bg-surface-container-low hover:text-on-surface border-l-4 border-transparent'}`}
                     >
-                      <span>• {room.roomNumber}</span>
+                      <span className="flex items-center gap-2">{room.roomNumber}</span>
                       {room.unpaidCount > 0 && (
-                        <span style={{ background: '#ef4444', color: '#ffffff', fontSize: '11px', padding: '2px 7px', borderRadius: '10px', fontWeight: 'bold' }}>
+                        <span className="bg-error text-white text-[10px] px-2 py-0.5 rounded-full font-black shadow-sm tracking-widest">
                           {room.unpaidCount}
                         </span>
                       )}
                     </div>
                   ))}
-
                 </div>
               )}
             </>
@@ -1104,504 +1129,471 @@ const handleCreateRoom = async (e) => {
         </div>
 
         {/* 3. MAIN CONTENT */}
-        <div style={{ flex: 1, padding: '30px', overflowY: 'auto' }}>
+        <div className="flex-1 px-4 py-6 md:px-8 md:py-8 overflow-y-auto no-scrollbar relative bg-surface-container-low/30">
           
           {(activeTab === 'ALL_ROOMS' || activeTab === 'AVAILABLE' || activeTab === 'RENTED' || activeTab === 'MAINTENANCE' || activeTab === 'UPCOMING' || activeTab === 'DEPOSITED' || activeTab === 'HIDDEN') && (
-            <div>
-              {/* Đổi Tiêu đề tương ứng với Tab */}
-              <h2 style={{ marginTop: 0, color: '#0f172a', fontWeight: '700' }}>
-                {activeTab === 'UPCOMING' ? 'Quản lý phòng Sắp trống (Đang tìm khách)' : 
-                activeTab === 'AVAILABLE' ? 'DANH SÁCH PHÒNG TRỐNG' : 
-                activeTab === 'RENTED' ? 'DANH SÁCH PHÒNG ĐANG CHO THUÊ' : 
-                activeTab === 'MAINTENANCE' ? 'PHÒNG ĐANG BẢO TRÌ' : 
-                activeTab === 'HIDDEN' ? 'DANH SÁCH PHÒNG BỊ ẨN (VI PHẠM)' : 
-                 activeTab === 'DEPOSITED' ? 'Quản lý phòng Đã nhận cọc' : 'Danh sách Phòng'}
-              </h2>
+            <div className="max-w-[1200px] mx-auto py-8 px-4 lg:px-8 space-y-12 font-['Inter']">
+              {/* Metrics Bento Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="bg-surface-container-lowest rounded-3xl p-8 shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-outline-variant/30 flex items-center gap-6 group hover:border-primary/30 transition-all duration-300">
+                  <div className="w-16 h-16 rounded-2xl bg-primary-container/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="material-symbols-outlined text-[32px]">real_estate_agent</span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest opacity-60">Tổng số phòng</p>
+                    <h3 className="text-3xl font-black text-on-surface mt-1">{metrics.total}</h3>
+                  </div>
+                </div>
 
-              {/* 🚨 THANH TÌM KIẾM PHÒNG 🚨 */}
-              <div style={{ marginBottom: '25px', position: 'relative', maxWidth: '600px' }}>
-                <span style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#64748b' }}>🔍</span>
-                <input 
-                  type="text" 
-                  placeholder="Tìm theo mã phòng, số phòng, địa chỉ..." 
-                  value={roomSearchTerm}
-                  onChange={(e) => setRoomSearchTerm(e.target.value)}
-                  style={{ width: '100%', padding: '12px 15px 12px 40px', borderRadius: '30px', border: '1px solid #e2e8f0', fontSize: '14px', outline: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', boxSizing: 'border-box', color: '#0f172a', backgroundColor: '#ffffff' }}
-                />
-                {roomSearchTerm && (
-                  <button onClick={() => setRoomSearchTerm('')} style={{ position: 'absolute', right: '15px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: '16px' }}>✖</button>
-                )}
+                <div className="bg-surface-container-lowest rounded-3xl p-8 shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-outline-variant/30 flex items-center gap-6 group hover:border-secondary/30 transition-all duration-300">
+                  <div className="w-16 h-16 rounded-2xl bg-secondary-container/20 text-secondary flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="material-symbols-outlined text-[32px]">check_circle</span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest opacity-60">Tỷ lệ lấp đầy</p>
+                    <h3 className="text-3xl font-black text-on-surface mt-1">{metrics.rate}%</h3>
+                  </div>
+                </div>
+
+                <div className="bg-surface-container-lowest rounded-3xl p-8 shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-outline-variant/30 flex items-center gap-6 group hover:border-tertiary/30 transition-all duration-300">
+                  <div className="w-16 h-16 rounded-2xl bg-tertiary-container/10 text-tertiary flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <span className="material-symbols-outlined text-[32px]">payments</span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-on-surface-variant uppercase tracking-widest opacity-60">Doanh thu dự kiến</p>
+                    <h3 className="text-3xl font-black text-on-surface mt-1">{metrics.revenue.toLocaleString()} <span className="text-sm font-normal">đ</span></h3>
+                  </div>
+                </div>
               </div>
-{/* --- KHU VỰC FORM TẠO HỢP ĐỒNG (BẢN ĐẦY ĐỦ PHÁP LÝ) --- */}
-              {contractRoom && (
-                <div style={{ background: '#ffffff', padding: '25px', marginBottom: '20px', border: '2px solid #2563eb', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                  <h3 style={{ marginTop: 0, color: '#2563eb', borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-                    {editingContractId ? '✏️ Cập nhật Hợp đồng Phòng ' : '✍️ Ký hợp đồng cho Phòng '} {contractRoom.roomNumber}
-                  </h3>
-                  
-                  {/* PHẦN 1: THÔNG TIN BÊN A (CHỦ NHÀ) */}
-                  <h4 style={{ color: '#0f172a', marginBottom: '10px' }}>1. Thông tin Chủ nhà (Bên A)</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginBottom: '20px', background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                    <input type="text" placeholder="Họ và tên *" value={contractData.landlordName} onChange={e => setContractData({...contractData, landlordName: e.target.value})} style={{ padding: '9px', borderRadius: '4px', border: '1px solid #e2e8f0' }} />
-                    <input type="text" placeholder="Số điện thoại *" value={contractData.landlordPhone} onChange={e => setContractData({...contractData, landlordPhone: e.target.value})} style={{ padding: '9px', borderRadius: '4px', border: '1px solid #e2e8f0' }} />
-                    <input type="text" placeholder="Số CCCD/CMND *" value={contractData.landlordIdentityNumber} onChange={e => setContractData({...contractData, landlordIdentityNumber: e.target.value})} style={{ padding: '9px', borderRadius: '4px', border: '1px solid #e2e8f0' }} />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', gridColumn: 'span 1' }}>
-                        <span style={{ fontSize: '13px', color: '#64748b', whiteSpace: 'nowrap' }}>Ngày sinh:</span>
-                        <input type="date" value={contractData.landlordDob} onChange={e => setContractData({...contractData, landlordDob: e.target.value})} style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #e2e8f0' }} />
-                    </div>
-                    <input type="text" placeholder="Quê quán / Thường trú *" value={contractData.landlordHometown} onChange={e => setContractData({...contractData, landlordHometown: e.target.value})} style={{ padding: '9px', borderRadius: '4px', border: '1px solid #e2e8f0', gridColumn: 'span 2' }} />
-                  </div>
 
-                  {/* PHẦN 2: THÔNG TIN BÊN B (ĐẠI DIỆN THUÊ) */}
-                  <h4 style={{ color: '#0f172a', marginBottom: '10px' }}>2. Thông tin Người đại diện thuê (Bên B)</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginBottom: '20px', background: '#eff6ff', padding: '15px', borderRadius: '8px', border: '1px solid #bfdbfe' }}>
-                    <input type="text" placeholder="Họ và tên *" value={contractData.tenantName} onChange={e => setContractData({...contractData, tenantName: e.target.value})} style={{ padding: '9px', borderRadius: '4px', border: '1px solid #e2e8f0' }} />
-                    <input 
-                      type="email" 
-                      placeholder="Email (Gõ xong bấm ra ngoài để tự điền) *" 
-                      value={contractData.tenantEmail} 
-                      onChange={e => setContractData({...contractData, tenantEmail: e.target.value})} 
-                      
-                      // BỔ SUNG SỰ KIỆN NÀY
-                      onBlur={handleCheckTenantEmail} 
-                      
-                      style={{ padding: '9px', borderRadius: '4px', border: '1px solid #e2e8f0' }} 
-                    /> 
-                    <input type="text" placeholder="Số điện thoại *" value={contractData.tenantPhone} onChange={e => setContractData({...contractData, tenantPhone: e.target.value})} style={{ padding: '9px', borderRadius: '4px', border: '1px solid #e2e8f0' }} />
-                    <input type="text" placeholder="Số CCCD/CMND *" value={contractData.tenantIdentityNumber} onChange={e => setContractData({...contractData, tenantIdentityNumber: e.target.value})} style={{ padding: '9px', borderRadius: '4px', border: '1px solid #e2e8f0' }} />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '13px', color: '#64748b', whiteSpace: 'nowrap' }}>Ngày sinh:</span>
-                        <input type="date" value={contractData.tenantDob} onChange={e => setContractData({...contractData, tenantDob: e.target.value})} style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #e2e8f0' }} />
-                    </div>
-                    <input type="text" placeholder="Quê quán / Thường trú *" value={contractData.tenantHometown} onChange={e => setContractData({...contractData, tenantHometown: e.target.value})} style={{ padding: '9px', borderRadius: '4px', border: '1px solid #e2e8f0' }} />
-                  </div>
-
-                  {/* PHẦN 3: THỜI HẠN & ẢNH ĐÍNH KÈM */}
-                  <h4 style={{ color: '#0f172a', marginBottom: '10px' }}>3. Thời hạn hợp đồng</h4>
-                  <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: '13px', color: '#475569', fontWeight: 'bold' }}>Ngày bắt đầu:</label>
-                      <input type="date" value={contractData.startDate} onChange={e => setContractData({...contractData, startDate: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '9px', borderRadius: '4px', border: '1px solid #e2e8f0', marginTop: '5px' }} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: '13px', color: '#475569', fontWeight: 'bold' }}>Ngày kết thúc:</label>
-                      <input type="date" value={contractData.endDate} onChange={e => setContractData({...contractData, endDate: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '9px', borderRadius: '4px', border: '1px solid #e2e8f0', marginTop: '5px' }} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: '13px', color: '#475569', fontWeight: 'bold' }}>Ảnh hợp đồng (Có thể chọn nhiều):</label>
-                      <input 
-                        type="file" 
-                        multiple // BẮT BUỘC PHẢI CÓ CHỮ NÀY ĐỂ CHỌN NHIỀU ẢNH
-                        onChange={(e) => {
-                          const files = Array.from(e.target.files);
-                          console.log("DANH SÁCH ẢNH VỪA CHỌN:", files); // Camera 1
-                          setContractImages(files); // Lưu vào state contractImages
-                        }} 
-                        style={{ width: '100%', boxSizing: 'border-box', padding: '9px', background: '#f8fafc', borderRadius: '4px', border: '1px dashed #cbd5e1', marginTop: '5px' }} 
-                      />
-                    </div>
-                  </div>
-
-{/* PHẦN 4: THÀNH VIÊN Ở CÙNG (ĐẦY ĐỦ THÔNG TIN) */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <h4 style={{ color: '#0f172a', margin: 0 }}>4. Danh sách người ở cùng (Không tính người đại diện)</h4>
-                    {/* Cập nhật nút thêm người: Thêm các trường dob và hometown */}
-                    <button onClick={() => setContractData({...contractData, members: [...contractData.members, { fullName: '', dob: '', phone: '', identityNumber: '', hometown: '' }]})} style={{ padding: '5px 12px', background: '#17a2b8', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>
-                      + Thêm người ở
+              {/* Action Bar */}
+              <div className="flex flex-col gap-6 bg-surface-container-lowest p-8 rounded-[2rem] border border-outline-variant/30 shadow-sm transition-all duration-300 hover:shadow-md">
+                {/* Top Row: Categories */}
+                <div className="flex flex-wrap items-center gap-3 pb-2">
+                  {[
+                    { id: 'ALL_ROOMS', label: 'Tất cả phòng', count: metrics.total, icon: 'list_alt' },
+                    { id: 'RENTED', label: 'Đang cho thuê', count: metrics.occupied, icon: 'person' },
+                    { id: 'AVAILABLE', label: 'Phòng trống', count: metrics.available, icon: 'meeting_room' },
+                    { id: 'DEPOSITED', label: 'Phòng đã cọc', count: metrics.deposited, icon: 'lock' },
+                    { id: 'UPCOMING', label: 'Sắp trống / Đăng tin', count: metrics.upcoming, icon: 'campaign' },
+                    { id: 'HIDDEN', label: 'Phòng bị ẩn', count: metrics.hidden, icon: 'visibility_off' },
+                    { id: 'MAINTENANCE', label: 'Đang bảo trì', count: metrics.maintenance, icon: 'build' }
+                  ].map(tab => (
+                    <button 
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`px-5 py-3 rounded-2xl text-[13px] font-black flex items-center gap-2.5 transition-all duration-300 ${
+                        activeTab === tab.id 
+                        ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105 ring-2 ring-primary/20' 
+                        : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest hover:translate-y-[-2px]'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[20px]">{tab.icon}</span>
+                      <span>{tab.label}</span>
+                      <span className={`ml-1 text-[11px] opacity-60 font-bold ${activeTab === tab.id ? 'text-white' : ''}`}>({tab.count})</span>
                     </button>
-                  </div>
-                  
-                  {contractData.members.map((member, index) => (
-                    <div key={index} style={{ marginBottom: '15px', background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px dashed #cbd5e1', position: 'relative' }}>
-                      
-                      {/* Nút Xóa Thành Viên */}
-                      <button onClick={() => { const newMembers = contractData.members.filter((_, i) => i !== index); setContractData({...contractData, members: newMembers}); }} style={{ position: 'absolute', top: '10px', right: '10px', background: '#ef4444', color: '#ffffff', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '5px 15px', fontWeight: 'bold', fontSize: '12px' }}>
-                        Xóa
-                      </button>
-                      
-                      <h5 style={{ margin: '0 0 10px 0', color: '#64748b' }}>Thành viên {index + 1}</h5>
-                      
-                      {/* Lưới thông tin thành viên */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                        <input type="text" placeholder="Họ và tên *" value={member.fullName} onChange={(e) => { const newMembers = [...contractData.members]; newMembers[index].fullName = e.target.value; setContractData({...contractData, members: newMembers}); }} style={{ padding: '8px', border: '1px solid #e2e8f0', borderRadius: '4px' }} />
-                        <input type="text" placeholder="Số điện thoại" value={member.phone} onChange={(e) => { const newMembers = [...contractData.members]; newMembers[index].phone = e.target.value; setContractData({...contractData, members: newMembers}); }} style={{ padding: '8px', border: '1px solid #e2e8f0', borderRadius: '4px' }} />
-                        <input type="text" placeholder="Số CCCD/CMND *" value={member.identityNumber} onChange={(e) => { const newMembers = [...contractData.members]; newMembers[index].identityNumber = e.target.value; setContractData({...contractData, members: newMembers}); }} style={{ padding: '8px', border: '1px solid #e2e8f0', borderRadius: '4px' }} />
-                        
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span style={{ fontSize: '13px', color: '#64748b', whiteSpace: 'nowrap' }}>Ngày sinh:</span>
-                            <input type="date" value={member.dob} onChange={(e) => { const newMembers = [...contractData.members]; newMembers[index].dob = e.target.value; setContractData({...contractData, members: newMembers}); }} style={{ flex: 1, padding: '7px', border: '1px solid #e2e8f0', borderRadius: '4px' }} />
-                        </div>
-                        <input type="text" placeholder="Quê quán / Thường trú *" value={member.hometown} onChange={(e) => { const newMembers = [...contractData.members]; newMembers[index].hometown = e.target.value; setContractData({...contractData, members: newMembers}); }} style={{ padding: '8px', border: '1px solid #e2e8f0', borderRadius: '4px', gridColumn: 'span 2' }} />
-                      </div>
-
-                    </div>
                   ))}
+                </div>
+
+                {/* Bottom Row: Search & Add */}
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-4 border-t border-outline-variant/20">
+                  <div className="relative w-full md:max-w-md group">
+                    <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors text-[22px]">search</span>
+                    <input 
+                      type="text" 
+                      placeholder="Tìm mã phòng, địa chỉ hoặc tên khách thuê..." 
+                      value={roomSearchTerm}
+                      onChange={(e) => setRoomSearchTerm(e.target.value)}
+                      className="w-full pl-14 pr-12 py-4 bg-surface-container-low border border-outline-variant/50 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all outline-none placeholder:opacity-50"
+                    />
+                    {roomSearchTerm && (
+                      <button onClick={() => setRoomSearchTerm('')} className="absolute right-5 top-1/2 -translate-y-1/2 text-outline hover:text-error transition-colors p-1">
+                        <span className="material-symbols-outlined text-[20px]">close</span>
+                      </button>
+                    )}
+                  </div>
                   
-                  {contractData.members.length === 0 && <p style={{ fontSize: '13px', color: '#888', fontStyle: 'italic', margin: '0 0 20px 0' }}>Chưa có thành viên nào. Bấm "+ Thêm người ở" nếu phòng có nhiều người.</p>}
-                  {/* PHẦN 5: GIÁ ĐÀM PHÁN THỰC TẾ */}
-                  <h4 style={{ color: '#0f172a', marginBottom: '10px', marginTop: '20px' }}>5. Chi phí & Chỉ số ban đầu</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', marginBottom: '20px', background: '#fef3c7', padding: '15px', borderRadius: '8px', border: '1px solid #fde68a' }}>
-                    <div><label style={{ fontSize: '12px', color: '#475569' }}>Giá phòng (đ/Tháng):</label><input type="number" value={contractData.price} onChange={e => setContractData({...contractData, price: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '4px' }} /></div>
-                    <div><label style={{ fontSize: '12px', color: '#475569' }}>Giá điện (đ/Ký):</label><input type="number" value={contractData.electricityPrice} onChange={e => setContractData({...contractData, electricityPrice: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '4px' }} /></div>
-                    <div><label style={{ fontSize: '12px', color: '#475569' }}>Giá nước (đ/Khối):</label><input type="number" value={contractData.waterPrice} onChange={e => setContractData({...contractData, waterPrice: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '4px' }} /></div>
-                    
-                    {/* 3 Ô MỚI */}
-                    <div><label style={{ fontSize: '12px', color: '#ef4444', fontWeight: 'bold' }}>Chỉ số ĐIỆN ban đầu:</label><input type="number" placeholder="Số trên đồng hồ" value={contractData.startElectricity} onChange={e => setContractData({...contractData, startElectricity: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', border: '1px solid #ef4444', borderRadius: '4px' }} /></div>
-                    <div><label style={{ fontSize: '12px', color: '#ef4444', fontWeight: 'bold' }}>Chỉ số NƯỚC ban đầu:</label><input type="number" placeholder="Số trên đồng hồ" value={contractData.startWater} onChange={e => setContractData({...contractData, startWater: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', border: '1px solid #ef4444', borderRadius: '4px' }} /></div>
+                  <button 
+                    onClick={() => setActiveTab('ADD_ROOM')}
+                    className="w-full md:w-auto px-10 py-4 bg-primary text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 hover:bg-primary-container hover:text-primary hover:scale-105 transition-all shadow-xl shadow-primary/20 active:scale-95"
+                  >
+                    <span className="material-symbols-outlined text-[22px] font-bold">add_circle</span>
+                    THÊM PHÒNG MỚI
+                  </button>
+                </div>
+              </div>
+
+              {/* Form Areas (Redesigned) */}
+              {contractRoom && (
+                <div className="bg-surface-container-lowest p-8 rounded-3xl border-2 border-primary/30 shadow-2xl animate-in fade-in slide-in-from-top-4 space-y-8">
+                  <div className="flex items-center justify-between pb-4 border-b border-outline-variant/30">
                     <div>
-                      <label style={{ fontSize: '12px', color: '#2563eb', fontWeight: 'bold' }}>Số lượng xe (Chiếc):</label>
-                      <div style={{ display: 'flex', gap: '5px' }}>
-                        <input type="number" placeholder="Số xe" value={contractData.vehicleCount} onChange={e => setContractData({...contractData, vehicleCount: e.target.value})} style={{ width: '40%', boxSizing: 'border-box', padding: '8px', border: '1px solid #2563eb', borderRadius: '4px' }} />
-                        <input type="number" placeholder="Giá/xe" value={contractData.parkingPrice} onChange={e => setContractData({...contractData, parkingPrice: e.target.value})} style={{ width: '60%', boxSizing: 'border-box', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '4px' }} />
-                      </div>
+                      <h3 className="text-2xl font-black text-primary">
+                        {editingContractId ? '✏️ Cập nhật Hợp đồng' : '✍️ Ký hợp đồng mới'}
+                      </h3>
+                      <p className="text-sm text-on-surface-variant font-medium opacity-70">Phòng: {contractRoom.roomNumber} | {contractRoom.address}</p>
                     </div>
-                    
-                    <div><label style={{ fontSize: '12px', color: '#475569' }}>Mạng Internet (đ/Tháng):</label><input type="number" value={contractData.internetPrice} onChange={e => setContractData({...contractData, internetPrice: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '4px' }} /></div>
-                    <div><label style={{ fontSize: '12px', color: '#475569' }}>Phí Dịch vụ (đ/Tháng):</label><input type="number" value={contractData.servicePrice} onChange={e => setContractData({...contractData, servicePrice: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '4px' }} /></div>
-                  </div>
-
-                  {/* PHẦN 6: TÌNH TRẠNG BÀN GIAO */}
-                  <h4 style={{ color: '#0f172a', marginBottom: '10px', marginTop: '20px' }}>6. Tình trạng phòng bàn giao</h4>
-                  <div style={{ background: '#f1f5f9', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #cbd5e1' }}>
-                    <div style={{ marginBottom: '10px' }}>
-                      <label style={{ fontSize: '13px', color: '#475569', fontWeight: 'bold' }}>Mô tả chi tiết đồ dùng, trạng thái (Text):</label>
-                      <textarea rows="3" value={contractData.conditionDescription} onChange={e => setContractData({...contractData, conditionDescription: e.target.value})} style={{ width: '100%', boxSizing: 'border-box', padding: '9px', borderRadius: '4px', border: '1px solid #e2e8f0', marginTop: '5px' }} placeholder="VD: Tường sạch, có 1 giường, 1 nệm cũ, tủ lạnh hoạt động bình thường..." />
-                    </div>
-                    <div style={{ display: 'flex', gap: '15px' }}>
-                      <div style={{ flex: 1 }}>
-                        <label style={{ fontSize: '13px', color: '#475569', fontWeight: 'bold' }}>Ảnh tình trạng phòng:</label>
-                        <input type="file" multiple accept="image/*" onChange={(e) => setConditionImages(Array.from(e.target.files))} style={{ width: '100%', boxSizing: 'border-box', padding: '9px', background: '#ffffff', borderRadius: '4px', border: '1px dashed #cbd5e1', marginTop: '5px' }} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <label style={{ fontSize: '13px', color: '#475569', fontWeight: 'bold' }}>Video tình trạng phòng (nếu có):</label>
-                        <input type="file" multiple accept="video/*" onChange={(e) => setConditionVideos(Array.from(e.target.files))} style={{ width: '100%', boxSizing: 'border-box', padding: '9px', background: '#ffffff', borderRadius: '4px', border: '1px dashed #cbd5e1', marginTop: '5px' }} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* NÚT LƯU CÓ CHỨC NĂNG HỦY VÀ PHÂN BIỆT SỬA/TẠO MỚI */}
-                  <div style={{ textAlign: 'right' }}>
-                    <button onClick={() => { setContractRoom(null); setEditingContractId(null); setConditionImages([]); setConditionVideos([]); setContractImages([]); }} style={{ padding: '10px 20px', background: 'transparent', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', marginRight: '10px' }}>Hủy bỏ</button>
-                    <button onClick={handleCreateContract} style={{ padding: '10px 25px', background: editingContractId ? '#10b981' : '#2563eb', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
-                      {editingContractId ? 'Lưu Cập Nhật' : 'Tạo Hợp Đồng'}
+                    <button onClick={() => { setContractRoom(null); setEditingContractId(null); }} className="p-2 hover:bg-error/10 hover:text-error rounded-full transition-all">
+                      <span className="material-symbols-outlined">close</span>
                     </button>
+                  </div>
+                  
+                  <div className="space-y-10">
+                    {/* SECTION 1: LANDLORD */}
+                    <div>
+                      <h4 className="text-sm font-black text-on-surface-variant uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-[10px]">01</span>
+                        Bên cho thuê (Bên A)
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-surface-container-low p-6 rounded-2xl border border-outline-variant/30">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Họ và tên *</label>
+                          <input type="text" value={contractData.landlordName} onChange={e => setContractData({...contractData, landlordName: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-sm font-bold" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Số điện thoại *</label>
+                          <input type="text" value={contractData.landlordPhone} onChange={e => setContractData({...contractData, landlordPhone: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-sm font-bold" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Số CCCD *</label>
+                          <input type="text" value={contractData.landlordIdentityNumber} onChange={e => setContractData({...contractData, landlordIdentityNumber: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-sm font-bold" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECTION 2: TENANT */}
+                    <div>
+                      <h4 className="text-sm font-black text-on-surface-variant uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center text-[10px]">02</span>
+                        Bên thuê (Bên B)
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-secondary-container/5 p-6 rounded-2xl border border-secondary/20">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Họ và tên *</label>
+                          <input type="text" value={contractData.tenantName} onChange={e => setContractData({...contractData, tenantName: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl focus:ring-2 focus:ring-secondary/20 outline-none text-sm font-bold" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Email *</label>
+                          <input type="email" value={contractData.tenantEmail} onChange={e => setContractData({...contractData, tenantEmail: e.target.value})} onBlur={handleCheckTenantEmail} className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl focus:ring-2 focus:ring-secondary/20 outline-none text-sm font-bold" placeholder="Gõ email để tự điền..." />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Số điện thoại *</label>
+                          <input type="text" value={contractData.tenantPhone} onChange={e => setContractData({...contractData, tenantPhone: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl focus:ring-2 focus:ring-secondary/20 outline-none text-sm font-bold" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECTION 3: MEMBERS */}
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-sm font-black text-on-surface-variant uppercase tracking-widest flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-lg bg-tertiary/10 text-tertiary flex items-center justify-center text-[10px]">03</span>
+                          Thành viên ở cùng
+                        </h4>
+                        <button onClick={() => setContractData({...contractData, members: [...contractData.members, { fullName: '', dob: '', phone: '', identityNumber: '', hometown: '' }]})} className="px-4 py-1.5 bg-tertiary text-on-tertiary rounded-lg text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-sm">
+                          + Thêm người
+                        </button>
+                      </div>
+                      <div className="space-y-4">
+                        {contractData.members.map((member, idx) => (
+                          <div key={idx} className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-surface-container-low p-4 rounded-2xl border border-outline-variant/30 relative group">
+                            <input type="text" placeholder="Họ và tên" value={member.fullName} onChange={e => { const m = [...contractData.members]; m[idx].fullName = e.target.value; setContractData({...contractData, members: m}); }} className="px-3 py-2 bg-white border border-outline-variant rounded-lg text-xs font-bold outline-none" />
+                            <input type="text" placeholder="Số điện thoại" value={member.phone} onChange={e => { const m = [...contractData.members]; m[idx].phone = e.target.value; setContractData({...contractData, members: m}); }} className="px-3 py-2 bg-white border border-outline-variant rounded-lg text-xs font-bold outline-none" />
+                            <input type="text" placeholder="Số CCCD" value={member.identityNumber} onChange={e => { const m = [...contractData.members]; m[idx].identityNumber = e.target.value; setContractData({...contractData, members: m}); }} className="px-3 py-2 bg-white border border-outline-variant rounded-lg text-xs font-bold outline-none" />
+                            <div className="flex gap-2">
+                              <input type="date" value={member.dob} onChange={e => { const m = [...contractData.members]; m[idx].dob = e.target.value; setContractData({...contractData, members: m}); }} className="flex-1 px-3 py-2 bg-white border border-outline-variant rounded-lg text-xs font-bold outline-none" />
+                              <button onClick={() => { const m = contractData.members.filter((_, i) => i !== idx); setContractData({...contractData, members: m}); }} className="p-2 text-error hover:bg-error/10 rounded-lg transition-all"><span className="material-symbols-outlined text-[20px]">delete</span></button>
+                            </div>
+                          </div>
+                        ))}
+                        {contractData.members.length === 0 && <p className="text-xs text-on-surface-variant italic opacity-50">Chưa có thành viên nào khác.</p>}
+                      </div>
+                    </div>
+
+                    {/* SECTION 4: FINANCE */}
+                    <div>
+                      <h4 className="text-sm font-black text-on-surface-variant uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-error/10 text-error flex items-center justify-center text-[10px]">04</span>
+                        Chi phí & Chỉ số ban đầu
+                      </h4>
+                      <div className="bg-surface-container-low p-6 rounded-3xl border border-outline-variant/30 space-y-6">
+                        <div className="flex items-center gap-3 p-4 bg-primary-container/10 rounded-2xl border border-primary/20">
+                          <input type="checkbox" checked={contractData.isDirectUtilityPayment} onChange={e => setContractData({...contractData, isDirectUtilityPayment: e.target.checked})} className="w-5 h-5 rounded-lg text-primary focus:ring-0 cursor-pointer" id="directUtility" />
+                          <label htmlFor="directUtility" className="text-xs font-bold text-primary cursor-pointer uppercase tracking-tight">Khách thuê tự thanh toán hóa đơn điện/nước trực tiếp</label>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Giá thuê (đ/tháng)</label>
+                            <input type="number" value={contractData.price} onChange={e => setContractData({...contractData, price: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-black text-primary outline-none" />
+                          </div>
+                          {!contractData.isDirectUtilityPayment && (
+                            <>
+                              <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Giá điện (đ/số)</label>
+                                <input type="number" value={contractData.electricityPrice} onChange={e => setContractData({...contractData, electricityPrice: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none" />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Giá nước (đ/khối)</label>
+                                <input type="number" value={contractData.waterPrice} onChange={e => setContractData({...contractData, waterPrice: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none" />
+                              </div>
+                            </>
+                          )}
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Số điện ban đầu</label>
+                            <input type="number" value={contractData.startElectricity} onChange={e => setContractData({...contractData, startElectricity: e.target.value})} className="w-full px-4 py-2 bg-white border-2 border-error/30 rounded-xl text-sm font-black text-error outline-none" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Số nước ban đầu</label>
+                            <input type="number" value={contractData.startWater} onChange={e => setContractData({...contractData, startWater: e.target.value})} className="w-full px-4 py-2 bg-white border-2 border-error/30 rounded-xl text-sm font-black text-error outline-none" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-4 pt-8 border-t border-outline-variant/30">
+                      <button onClick={() => setContractRoom(null)} className="px-8 py-3 rounded-2xl border border-outline-variant text-on-surface-variant font-black uppercase tracking-widest text-[10px] hover:bg-surface-container-low transition-all">Hủy bỏ</button>
+                      <button onClick={handleCreateContract} className="px-12 py-4 bg-primary text-on-primary rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-primary/30 hover:scale-105 transition-all active:scale-95">
+                        {editingContractId ? 'Lưu Cập Nhật' : 'Xác nhận Ký Hợp Đồng'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
 
-
-
-              {/* --- KHU VỰC FORM CHỐT HÓA ĐƠN (CÓ CHỈ SỐ ĐẦU/CUỐI & TỰ TÍNH TIỀN) --- */}
+              {/* Bill Form Modal */}
               {billContract && (() => {
-                // Tự động tính toán hiển thị ngay khi đang gõ
                 const elecUsage = Math.max(0, (Number(billData.newElectricity) || 0) - (Number(billContract.currentElectricity) || 0));
                 const waterUsage = Math.max(0, (Number(billData.newWater) || 0) - (Number(billContract.currentWater) || 0));
-                
-                // LẤY TRỰC TIẾP SỐ XE TỪ HỢP ĐỒNG (Không cần nhập nữa)
-                const vehicleCount = Number(billContract.vehicleCount) || 0;
-
-                // Lấy giá trị từ Hợp Đồng (Bên B phải chịu giá này)
-                const roomPrice = Number(billContract.price) || 0;
                 const elecPrice = Number(billContract.electricityPrice) || 0;
                 const waterPrice = Number(billContract.waterPrice) || 0;
-                const parkingPrice = Number(billContract.parkingPrice) || 0;
-                const internetPrice = Number(billContract.internetPrice) || 0;
-                const servicePrice = Number(billContract.servicePrice) || 0;
-
-                const totalAmount = roomPrice + (elecUsage * elecPrice) + (waterUsage * waterPrice) + (vehicleCount * parkingPrice) + internetPrice + servicePrice;
-
                 return (
-                  <div style={{ background: '#fef3c7', padding: '25px', marginBottom: '20px', border: '1px solid #fde68a', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                    <h3 style={{ marginTop: 0, color: '#92400e', borderBottom: '1px solid #fde68a', paddingBottom: '10px' }}>
-                      🧾 Chốt Hóa Đơn - Phòng {billContract.room?.roomNumber}
-                    </h3>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
-                      <div>
-                        <label style={{ fontSize: '13px', color: '#475569', fontWeight: 'bold' }}>Kỳ hóa đơn (Tháng):</label>
-                        {/* FIX LỖI DROPDOWN: Dùng mảng cố định 12 tháng */}
-                        <select value={billData.month || (new Date().getMonth() + 1)} onChange={e => setBillData({...billData, month: parseInt(e.target.value)})} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0', marginTop: '5px', backgroundColor: '#ffffff', color: '#0f172a' }}>
-                          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(m => (
-                            <option key={m} value={m}>Tháng {m}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label style={{ fontSize: '13px', color: '#475569', fontWeight: 'bold' }}>Năm:</label>
-                        <input type="number" value={billData.year || new Date().getFullYear()} onChange={e => setBillData({...billData, year: parseInt(e.target.value)})} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0', marginTop: '5px', boxSizing: 'border-box' }} />
-                      </div>
-                    </div>
-
-                    {/* KHU VỰC NHẬP ĐIỆN / NƯỚC  */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '20px', background: '#ffffff', padding: '15px', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
-                      
-                      {/* ĐIỆN */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', alignItems: 'end' }}>
-                        <div>
-                          <label style={{ fontSize: '13px', color: '#475569' }}>Chỉ số điện THÁNG CŨ:</label>
-                          <input type="number" value={billContract.currentElectricity || 0} readOnly style={{ width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#f1f5f9', fontWeight: 'bold', color: '#475569' }} title="Tự động lấy từ tháng trước" />
+                  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-on-surface/40 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="w-full max-w-4xl max-h-[95vh] overflow-y-auto bg-surface-container-lowest p-8 rounded-[2.5rem] border-t-8 border-tertiary shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 space-y-8 no-scrollbar">
+                      <div className="flex items-center justify-between pb-6 border-b border-outline-variant/30">
+                        <div className="flex items-center gap-4">
+                          <div className="w-14 h-14 rounded-2xl bg-tertiary/10 text-tertiary flex items-center justify-center">
+                            <span className="material-symbols-outlined text-3xl">receipt_long</span>
+                          </div>
+                          <div>
+                            <h3 className="text-3xl font-black text-on-surface tracking-tight">Chốt Hóa Đơn</h3>
+                            <p className="text-sm text-on-surface-variant font-bold opacity-60">
+                              Phòng {billContract.room?.roomNumber} • Kỳ tháng {billData.month}/{billData.year}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <label style={{ fontSize: '13px', color: '#ef4444', fontWeight: 'bold' }}>Chỉ số điện MỚI:</label>
-                          <input type="number" placeholder="Nhập số trên đồng hồ" value={billData.newElectricity || ''} onChange={e => setBillData({...billData, newElectricity: e.target.value})} style={{ width: '100%', padding: '8px', border: '2px solid #ef4444', borderRadius: '6px' }} />
-                        </div>
-                        <div style={{ padding: '8px', background: '#eff6ff', color: '#2563eb', borderRadius: '6px', textAlign: 'center', fontWeight: 'bold' }}>
-                          Sử dụng: {elecUsage} ký
-                        </div>
-                      </div>
-
-                      {/* NƯỚC */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', alignItems: 'end' }}>
-                        <div>
-                          <label style={{ fontSize: '13px', color: '#475569' }}>Chỉ số nước THÁNG CŨ:</label>
-                          <input type="number" value={billContract.currentWater || 0} readOnly style={{ width: '100%', padding: '8px', border: '1px solid #e2e8f0', borderRadius: '6px', background: '#f1f5f9', fontWeight: 'bold', color: '#475569' }} title="Tự động lấy từ tháng trước" />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: '13px', color: '#ef4444', fontWeight: 'bold' }}>Chỉ số nước MỚI:</label>
-                          <input type="number" placeholder="Nhập số trên đồng hồ" value={billData.newWater || ''} onChange={e => setBillData({...billData, newWater: e.target.value})} style={{ width: '100%', padding: '8px', border: '2px solid #ef4444', borderRadius: '6px' }} />
-                        </div>
-                        <div style={{ padding: '8px', background: '#eff6ff', color: '#2563eb', borderRadius: '6px', textAlign: 'center', fontWeight: 'bold' }}>
-                          Sử dụng: {waterUsage} khối
-                        </div>
-                      </div>
-
-                      
-                    </div>
-
-                    {/* BẢNG TÍNH DỰ KIẾN (CHỈ CÒN ĐIỆN & NƯỚC) */}
-                    <div style={{ background: '#ffffff', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px dashed #2563eb' }}>
-                      <p style={{ margin: '0 0 10px 0', fontWeight: 'bold', color: '#2563eb' }}>Hóa Đơn Điện Nước Dự Kiến:</p>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '8px', fontSize: '14px', color: '#475569' }}>
-                        
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span>Tiền điện ({elecUsage} ký x {elecPrice.toLocaleString()}đ):</span> 
-                          <strong>{(elecUsage * elecPrice).toLocaleString('vi-VN')} đ</strong>
-                        </div>
-                        
-                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span>Tiền nước ({waterUsage} khối x {waterPrice.toLocaleString()}đ):</span> 
-                          <strong>{(waterUsage * waterPrice).toLocaleString('vi-VN')} đ</strong>
-                        </div>
-
+                        <button onClick={() => setBillContract(null)} className="w-12 h-12 flex items-center justify-center hover:bg-error/10 hover:text-error rounded-full transition-all group">
+                          <span className="material-symbols-outlined group-hover:rotate-90 transition-transform">close</span>
+                        </button>
                       </div>
                       
-                      <div style={{ marginTop: '15px', paddingTop: '10px', borderTop: '2px dashed #e2e8f0', display: 'flex', justifyContent: 'space-between', fontSize: '18px', fontWeight: 'bold', color: '#ef4444' }}>
-                        <span>TỔNG TIỀN ĐIỆN NƯỚC:</span>
-                        <span>{((elecUsage * elecPrice) + (waterUsage * waterPrice)).toLocaleString('vi-VN')} đ</span>
-                      </div>
-                    </div>
-
-                    <div style={{ textAlign: 'right' }}>
-                      <button onClick={() => setBillContract(null)} style={{ padding: '10px 20px', background: 'transparent', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', marginRight: '10px' }}>Hủy bỏ</button>
-
-                      <button 
-                        onClick={handleCreateBill} 
-                        disabled={isCreatingBill} // Khóa nút nếu đang xử lý
-                        style={{ 
-                          padding: '10px 25px', 
-                          background: isCreatingBill ? '#94a3b8' : '#eab308', // Đổi màu xám khi đang tải
-                          color: 'white', 
-                          border: 'none', 
-                          borderRadius: '6px', 
-                          cursor: isCreatingBill ? 'not-allowed' : 'pointer', 
-                          fontWeight: '600' 
-                        }}
-                      >
-                        {isCreatingBill ? '⏳ Đang xử lý...' : '🚀 Chốt & Tạo Hóa Đơn'}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })()}
-              
-
-
-
-
-
-
-              {/* DANH SÁCH PHÒNG */}
-              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-                {displayedRooms.map((room) => {
-                  // Lấy hợp đồng đang hoạt động (nếu có) để xử lý logic gọn gàng hơn
-                  const activeContract = contracts.find(c => c.roomId === room.id && c.status === 'ACTIVE');
-                  const isReturningSoon = activeContract && !!activeContract.intendedMoveOutDate;
-
-                  return (
-                    <div 
-                      key={room.id} 
-                      style={{ 
-                        border: '1px solid #e2e8f0', 
-                        padding: '20px', 
-                        borderRadius: '16px', 
-                        width: '330px', 
-                        backgroundColor: 'rgba(255, 255, 255, 0.9)', 
-                        backdropFilter: 'blur(10px)',
-                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)', 
-                        color: '#0f172a', 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        boxSizing: 'border-box', 
-                        transition: 'all 0.3s ease', 
-                        cursor: 'default',
-                        position: 'relative'
-                      }} 
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-5px)';
-                        e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)';
-                      }}
-                    >
-                      
-                      {/* TIÊU ĐỀ PHÒNG */}
-                      {/* TIÊU ĐỀ PHÒNG VÀ ĐÁNH GIÁ (GÓC PHẢI) */}
-                      <h3 onClick={() => handleViewRoomDetails(room)} style={{ margin: '0 0 15px 0', color: '#2563eb', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', paddingBottom: '10px' }}>
-                        <span>
-                          Phòng {room.roomNumber} <br /> 
-                          {room.roomCode && <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 'normal'  }}>Mã phòng: {room.roomCode}</span>}
-                        </span>
-                        
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          {room.reviewCount > 0 && (
-                            <div style={{ display: 'flex', alignItems: 'center', background: '#fffbeb', padding: '4px 8px', borderRadius: '12px', border: '1px solid #fef3c7' }}>
-                              <span style={{ color: '#fbbf24', fontSize: '16px', marginRight: '4px' }}>★</span>
-                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#92400e' }}>
-                                {room.avgRating} <span style={{ fontSize: '12px', color: '#b45309', fontWeight: 'normal' }}>({room.reviewCount})</span>
-                              </span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {!billContract.isDirectUtilityPayment ? (
+                          <>
+                            <div className="bg-surface-container-low p-8 rounded-[2rem] border border-outline-variant/30 space-y-6 group hover:border-primary/30 transition-all">
+                              <div className="flex items-center justify-between">
+                                <h4 className="text-xs font-black text-on-surface-variant uppercase tracking-widest opacity-60">Chỉ số Điện</h4>
+                                <span className="text-[10px] font-black bg-primary/10 text-primary px-3 py-1 rounded-full">{elecPrice.toLocaleString()} đ/số</span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                  <label className="text-[10px] font-black opacity-40 uppercase ml-1">Số cũ</label>
+                                  <div className="px-5 py-4 bg-white border border-outline-variant/50 rounded-2xl text-lg font-black text-on-surface opacity-40">{billContract.currentElectricity || 0}</div>
+                                </div>
+                                <div className="space-y-2">
+                                  <label className="text-[10px] font-black text-error uppercase ml-1">Số mới *</label>
+                                  <input type="number" autoFocus value={billData.newElectricity || ''} onChange={e => setBillData({...billData, newElectricity: e.target.value})} className="w-full px-5 py-4 bg-white border-2 border-error rounded-2xl text-lg font-black focus:ring-4 focus:ring-error/10 outline-none transition-all" />
+                                </div>
+                              </div>
+                              <div className="pt-6 border-t border-dashed border-outline-variant/30 flex justify-between items-center">
+                                <span className="text-xs font-black text-on-surface-variant uppercase opacity-50">Thành tiền:</span>
+                                <span className="text-2xl font-black text-primary">{(elecUsage * elecPrice).toLocaleString()} <span className="text-xs font-normal">đ</span></span>
+                              </div>
                             </div>
-                          )}
-                          <span title="Xem chi tiết" style={{ fontSize: '18px' }}>🔍</span>
-                        </div>
-                      </h3>
-                      
-                      {/* THÔNG TIN CHI TIẾT TRÊN THẺ (Khu vực này co giãn để đẩy nút xuống đáy) */}
-                      <div style={{ flex: 1, marginBottom: '15px', display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                        <p style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '20px', textAlign: 'center', margin: '0 0 15px 0' }}>
-                          <strong>Giá phòng:</strong> {room.price?.toLocaleString()} đ<span style={{ fontSize: '14px', color: '#64748b', fontWeight: 'normal' }}>/tháng</span>
-                        </p>
-                        
-                        <p style={{ fontSize: '14px', margin: '5px 0', color: '#475569' }}>
-                          <strong>Diện tích:</strong> {room.area || 0} m²
-                        </p>
-                        
-                        <p style={{ fontSize: '14px', margin: '5px 0', color: '#475569', lineHeight: '1.5' }}>
-                          <strong>Địa chỉ:</strong> {room.houseNumber ? `${room.houseNumber}, ` : ''}{room.address}
-                        </p>
-                        
-                        <p style={{ fontSize: '14px', margin: '10px 0 5px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#475569' }}>
-                          <strong>Trạng thái:</strong> 
-                          <span style={{ background: room.isHidden ? '#fee2e2' : (room.status === 'AVAILABLE' ? '#dcfce7' : room.status === 'RENTED' ? '#fee2e2' : '#fef9c3'), color: room.isHidden ? '#991b1b' : (room.status === 'AVAILABLE' ? '#166534' : room.status === 'RENTED' ? '#991b1b' : '#854d0e'), padding: '4px 10px', borderRadius: '20px', fontWeight: 'bold', fontSize: '12px' }}>
-                            {room.isHidden ? '🚫 Bị ẩn bởi Admin' : (room.status === 'AVAILABLE' ? 'Đang trống' : room.status === 'RENTED' ? 'Đã cho thuê' : 'Đang sửa')}
-                          </span>
-                        </p>
 
-                        {/* THẺ ĐÃ NHẬN CỌC NẰM GỌN GÀNG Ở ĐÂY */}
-                        {room.depositNote && (
-                          <div style={{ background: '#ecfdf5', color: '#065f46', padding: '12px', borderRadius: '8px', marginTop: '15px', fontSize: '13px', border: '1px dashed #10b981' }}>
-                            <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>🔒 ĐÃ NHẬN CỌC / GIỮ CHỖ:</div>
-                            <div style={{ fontStyle: 'italic', lineHeight: '1.4' }}>"{room.depositNote}"</div>
+                            <div className="bg-surface-container-low p-8 rounded-[2rem] border border-outline-variant/30 space-y-6 group hover:border-primary/30 transition-all">
+                              <div className="flex items-center justify-between">
+                                <h4 className="text-xs font-black text-on-surface-variant uppercase tracking-widest opacity-60">Chỉ số Nước</h4>
+                                <span className="text-[10px] font-black bg-primary/10 text-primary px-3 py-1 rounded-full">{waterPrice.toLocaleString()} đ/m³</span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                  <label className="text-[10px] font-black opacity-40 uppercase ml-1">Số cũ</label>
+                                  <div className="px-5 py-4 bg-white border border-outline-variant/50 rounded-2xl text-lg font-black text-on-surface opacity-40">{billContract.currentWater || 0}</div>
+                                </div>
+                                <div className="space-y-2">
+                                  <label className="text-[10px] font-black text-error uppercase ml-1">Số mới *</label>
+                                  <input type="number" value={billData.newWater || ''} onChange={e => setBillData({...billData, newWater: e.target.value})} className="w-full px-5 py-4 bg-white border-2 border-error rounded-2xl text-lg font-black focus:ring-4 focus:ring-error/10 outline-none transition-all" />
+                                </div>
+                              </div>
+                              <div className="pt-6 border-t border-dashed border-outline-variant/30 flex justify-between items-center">
+                                <span className="text-xs font-black text-on-surface-variant uppercase opacity-50">Thành tiền:</span>
+                                <span className="text-2xl font-black text-primary">{(waterUsage * waterPrice).toLocaleString()} <span className="text-xs font-normal">đ</span></span>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="col-span-full p-12 bg-primary/5 rounded-[2.5rem] border border-dashed border-primary/30 text-center space-y-4">
+                            <div className="w-20 h-20 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
+                              <span className="material-symbols-outlined text-4xl">contactless</span>
+                            </div>
+                            <div className="max-w-md mx-auto">
+                              <h4 className="text-xl font-black text-primary">Thanh toán trực tiếp</h4>
+                              <p className="text-sm font-bold text-on-surface-variant opacity-70 mt-2">Phòng này tự thanh toán điện/nước cho nhà cung cấp. Bạn chỉ cần chốt để hệ thống cập nhật chỉ số kỳ mới.</p>
+                            </div>
                           </div>
                         )}
                       </div>
 
-                      {/* KHU VỰC CÁC NÚT HÀNH ĐỘNG (Ép nằm dưới cùng nhờ margin-top: auto) */}
-                      <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        
-                        {room.isHidden && user.role === 'LANDLORD' && (
-                          <button onClick={() => alert('Vui lòng liên hệ số hotline Admin hoặc email admin@xyz.com để khiếu nại')} style={{ width: '100%', padding: '10px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }}>
-                            ⚠️ Khiếu nại
-                          </button>
-                        )}
-                        
-                        {!room.isHidden && (
-                          <>
-                            {/* 1. NÚT DÀNH CHO PHÒNG TRỐNG / ĐANG SỬA */}
-                            {user.role === 'LANDLORD' && room.status !== 'RENTED' && (
-                              <div style={{ display: 'flex', gap: '8px' }}>
-                                <button onClick={() => handleEditRoomClick(room)} style={{ flex: 1, padding: '8px', background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}>✏️ Sửa</button>
-                                <button onClick={() => handleDeleteRoom(room.id)} style={{ flex: 1, padding: '8px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}>🗑️ Xóa</button>
+                      <div className="flex flex-col sm:flex-row justify-end gap-4 pt-8 border-t border-outline-variant/30">
+                        <button onClick={() => setBillContract(null)} className="px-10 py-4 rounded-2xl border-2 border-outline-variant text-on-surface-variant font-black uppercase tracking-widest text-xs hover:bg-surface-container-low transition-all active:scale-95">Hủy bỏ</button>
+                        <button onClick={handleCreateBill} disabled={isCreatingBill} className={`px-16 py-4 ${isCreatingBill ? 'bg-outline-variant cursor-not-allowed' : 'bg-tertiary shadow-xl shadow-tertiary/30'} text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all`}>
+                          {isCreatingBill ? '⏳ Đang xử lý...' : 'Xác nhận Chốt Hóa Đơn 🚀'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Property Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-12">
+                {displayedRooms.length === 0 ? (
+                  <div className="col-span-full py-20 text-center bg-surface-container-lowest rounded-3xl border border-dashed border-outline-variant">
+                    <span className="material-symbols-outlined text-5xl text-outline mb-4 opacity-30">folder_open</span>
+                    <p className="text-on-surface-variant italic font-medium">Không tìm thấy phòng nào phù hợp.</p>
+                  </div>
+                ) : (
+                  displayedRooms.map((room) => {
+                    const activeContract = contracts.find(c => c.roomId === room.id && c.status === 'ACTIVE');
+                    const isReturningSoon = activeContract && !!activeContract.intendedMoveOutDate;
+                    const statusConfig = {
+                      AVAILABLE: { label: 'Đang trống', color: 'bg-secondary', icon: 'meeting_room' },
+                      RENTED: { label: 'Đã thuê', color: 'bg-primary', icon: 'person' },
+                      MAINTENANCE: { label: 'Bảo trì', color: 'bg-error', icon: 'build' },
+                      DEPOSITED: { label: 'Đã cọc', color: 'bg-tertiary', icon: 'lock' }
+                    };
+                    const config = statusConfig[room.status] || statusConfig.AVAILABLE;
+
+                    return (
+                      <div key={room.id} className="bg-surface-container-lowest rounded-3xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-outline-variant/30 hover:shadow-2xl hover:border-primary/20 transition-all duration-500 group flex flex-col">
+                        <div className="relative h-56 overflow-hidden bg-surface-container">
+                          <img 
+                            src={room.images?.[0] ? `http://localhost:5000/uploads/${room.images[0]}` : "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=1000"} 
+                            alt={room.roomNumber} 
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                          />
+                          <div className={`absolute top-4 left-4 ${config.color} text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg flex items-center gap-2`}>
+                            <span className="material-symbols-outlined text-[14px] font-black">{config.icon}</span>
+                            {config.label}
+                          </div>
+                          <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl text-[10px] font-black text-primary shadow-sm flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[14px] fill-1">star</span>
+                            {room.avgRating || '5.0'}
+                          </div>
+                        </div>
+
+                        <div className="p-6 flex flex-col flex-1 space-y-6">
+                          <div className="flex justify-between items-start">
+                            <div className="min-w-0">
+                              <h3 className="text-xl font-black text-on-surface line-clamp-1 group-hover:text-primary transition-colors">
+                                {(room.roomType === 'WHOLE_HOUSE' || /nhà|căn/i.test(room.roomNumber)) ? 'Nhà ' : 'Phòng '}{room.roomNumber}
+                              </h3>
+                              <p className="text-xs text-on-surface-variant flex items-center gap-1 mt-1 font-bold opacity-50">
+                                <span className="material-symbols-outlined text-[16px]">location_on</span>
+                                {room.address}
+                              </p>
+                            </div>
+                            <div className="text-right pl-4">
+                              <span className="text-2xl font-black text-primary block tracking-tighter">{(room.price || 0).toLocaleString()}</span>
+                              <span className="text-[10px] font-black text-on-surface-variant uppercase opacity-40">đ / tháng</span>
+                            </div>
+                          </div>
+
+                          <div className="flex gap-4 py-4 border-y border-outline-variant/30">
+                            <div className="flex items-center gap-1.5" title="Diện tích">
+                              <div className="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant">
+                                <span className="material-symbols-outlined text-[18px]">aspect_ratio</span>
+                              </div>
+                              <span className="text-xs font-black text-on-surface">{room.area}m²</span>
+                            </div>
+                            <div className="flex items-center gap-1.5" title="Sức chứa">
+                              <div className="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant">
+                                <span className="material-symbols-outlined text-[18px]">group</span>
+                              </div>
+                              <span className="text-xs font-black text-on-surface">{room.maxOccupants} người</span>
+                            </div>
+                          </div>
+
+                          <div className="space-y-4 flex-1 flex flex-col justify-end">
+                            {room.status === 'RENTED' && activeContract ? (
+                              <div className="bg-surface-container-low p-4 rounded-2xl border border-outline-variant/30 flex items-center justify-between">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                    <span className="material-symbols-outlined text-primary text-[20px] fill-1">person</span>
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-[10px] font-black text-on-surface-variant uppercase opacity-40 leading-tight">Đang thuê</p>
+                                    <p className="text-sm font-black text-on-surface truncate">{activeContract.tenantName}</p>
+                                  </div>
+                                </div>
+                                <div className="flex gap-1 shrink-0">
+                                  <button onClick={() => setViewContract(activeContract)} className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-all" title="Xem Hợp đồng">
+                                    <span className="material-symbols-outlined text-[20px]">description</span>
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="py-2">
+                                <p className="text-xs text-on-surface-variant font-bold opacity-40 italic">
+                                  {room.status === 'AVAILABLE' ? '— Sẵn sàng đón khách mới' : room.status === 'DEPOSITED' ? '— Đã nhận đặt cọc giữ chỗ' : '— Đang trong quá trình bảo trì'}
+                                </p>
                               </div>
                             )}
 
-                            {room.status === 'AVAILABLE' && (
-                              <button onClick={() => { /* logic setContractRoom cũ của bạn */ 
-                                setContractRoom(room);
-                                setContractData({
-                                    ...contractData, landlordName: user?.fullName || '', landlordDob: user?.dob || '', landlordPhone: user?.phone || '', landlordIdentityNumber: user?.identityNumber || '', landlordHometown: user?.address || '',
-                                    tenantEmail: '', tenantName: '', tenantDob: '', tenantPhone: '', tenantIdentityNumber: '', tenantHometown: '', startDate: '', endDate: '',
-                                    price: room.price || 0, electricityPrice: room.electricityPrice || 0, waterPrice: room.waterPrice || 0, internetPrice: room.internetPrice || 0, parkingPrice: room.parkingPrice || 0, servicePrice: room.servicePrice || 0, members: [], conditionDescription: ''
-                                });
-                                setConditionImages([]);
-                                setConditionVideos([]);
-                                setContractImages([]);
-                              }} style={{ width: '100%', padding: '10px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: '600' }}>✍️ Làm Hợp Đồng</button>
-                            )}
-                            
-                            {(room.status === 'AVAILABLE' || room.status === 'MAINTENANCE') && (
-                              <button onClick={() => roomApi.updateStatus(room.id, room.status === 'AVAILABLE' ? 'MAINTENANCE' : 'AVAILABLE').then(fetchRooms)} style={{ width: '100%', padding: '8px', background: room.status === 'AVAILABLE' ? '#f97316' : '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>{room.status === 'AVAILABLE' ? '🔧 Chuyển sang Bảo Trì' : '✅ Bảo Trì xong'}</button>
-                            )}
-
-                            {/* 2. NÚT DÀNH CHO PHÒNG ĐANG CHO THUÊ */}
-                            {room.status === 'RENTED' && activeContract && (
-                              <>
-                                {/* Hàng 1: Chốt điện nước + Kết thúc (Chia đôi) */}
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                  <button onClick={() => setBillContract(activeContract)} style={{ flex: '1', padding: '10px 5px', background: '#eab308', color: '#0f172a', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}>
-                                    🧾 Chốt Điện Nước
+                            <div className="grid grid-cols-2 gap-3">
+                              {room.status === 'AVAILABLE' ? (
+                                <>
+                                  <button onClick={() => { setContractRoom(room); setContractData({...contractData, price: room.price, electricityPrice: room.electricityPrice, waterPrice: room.waterPrice, internetPrice: room.internetPrice, parkingPrice: room.parkingPrice, servicePrice: room.servicePrice}); }} className="col-span-2 py-3.5 bg-secondary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-secondary/20 hover:scale-[1.02] active:scale-95 transition-all">
+                                    ✍️ Ký Hợp Đồng
                                   </button>
-                                  <button onClick={() => handleEndLease(room.id)} style={{ flex: '1', padding: '10px 5px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}>
-                                    ❌ Kết thúc
+                                  <button onClick={() => handleEditRoomClick(room)} className="py-3 bg-surface-container-high text-on-surface-variant rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-surface-container-highest transition-all flex items-center justify-center gap-2">
+                                    <span className="material-symbols-outlined text-[18px]">edit</span> Sửa
                                   </button>
-                                </div>
-
-                                {/* Hàng 2: Cập nhật HĐ + Xem HĐ (Chia đôi) */}
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                  <button onClick={() => handleEditContractClick(activeContract)} style={{ flex: 1, padding: '10px 5px', background: '#22c55e', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}>
-                                    ✏️ Cập nhật HĐ
+                                  <button onClick={() => handleDeleteRoom(room.id)} className="py-3 bg-error/10 text-error rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-error hover:text-white transition-all flex items-center justify-center gap-2">
+                                    <span className="material-symbols-outlined text-[18px]">delete</span> Xóa
                                   </button>
-                                  <button onClick={() => setViewContract(activeContract)} style={{ flex: 1, padding: '10px 5px', background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}>
-                                    📄 Xem Hợp Đồng
+                                  <button onClick={() => setDepositModal({ show: true, roomId: room.id, note: room.depositNote || '' })} className="col-span-2 py-3 bg-tertiary/10 text-tertiary rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-tertiary hover:text-white transition-all">
+                                    {room.depositNote ? '📝 Cập nhật cọc' : '💰 Nhận cọc giữ chỗ'}
                                   </button>
-                                </div>
-
-                                {/* Hàng 3: Báo trả phòng HOẶC Hủy (Độc quyền 1 trong 2) */}
-                                {!isReturningSoon ? (
-                                  <button 
-                                    onClick={() => { setTerminateData({ contractId: activeContract.id, moveOutDate: '', reason: '' }); setShowTerminateModal(true); }} 
-                                    style={{ width: '100%', padding: '10px', background: '#f97316', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}
-                                  >
-                                    ⚠️ Báo trước lấy lại phòng
-                                  </button>
-                                ) : (
-                                  <div style={{ background: '#fef3c7', color: '#92400e', padding: '12px', borderRadius: '8px', fontSize: '13px', textAlign: 'center', border: '1px solid #fde68a', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <span>⏳ Sắp trả phòng: <strong>{activeContract.intendedMoveOutDate}</strong></span>
-                                    <button onClick={() => handleCancelTermination(activeContract.id)} style={{ width: '100%', padding: '8px', background: '#64748b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
-                                      ✖ Hủy yêu cầu (Tiếp tục thuê)
+                                </>
+                              ) : room.status === 'RENTED' ? (
+                                <>
+                                  {!Boolean(activeContract?.isDirectUtilityPayment) && (
+                                    <button onClick={() => setBillContract(activeContract)} className="col-span-2 py-3.5 bg-tertiary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-tertiary/20 hover:scale-[1.02] active:scale-95 transition-all">
+                                      🧾 Chốt Điện Nước
                                     </button>
-                                  </div>
-                                )}
-                              </>
-                            )}
-
-                            {/* 3. NÚT QUẢN LÝ CỌC (Chỉ hiện khi phòng Trống hoặc Sắp Trống) */}
-                            {user.role === 'LANDLORD' && (room.status === 'AVAILABLE' || isReturningSoon) && (
-                              <button 
-                                onClick={() => setDepositModal({ show: true, roomId: room.id, note: room.depositNote || '' })} 
-                                style={{ width: '100%', padding: '10px', background: room.depositNote ? '#64748b' : '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '13px' }}
-                              >
-                                {room.depositNote ? '📝 Sửa / Xóa Ghi Chú Cọc' : '💰 Nhận Cọc / Giữ Chỗ'}
-                              </button>
-                            )}
-                          </>
-                        )}
-
+                                  )}
+                                  <button onClick={() => handleEditContractClick(activeContract)} className="py-3 bg-secondary/10 text-secondary border border-secondary/20 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-secondary hover:text-white transition-all">Sửa HĐ</button>
+                                  <button onClick={() => handleEndLease(room.id)} className="py-3 bg-error/10 text-error border border-error/20 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-error hover:text-white transition-all">Trả phòng</button>
+                                  {isReturningSoon ? (
+                                    <button onClick={() => handleCancelTermination(activeContract.id)} className="col-span-2 py-3 bg-outline-variant text-on-surface-variant rounded-2xl text-[10px] font-black uppercase tracking-widest">Hủy lịch trả</button>
+                                  ) : (
+                                    <button onClick={() => { setTerminateData({ contractId: activeContract.id, moveOutDate: '', reason: '' }); setShowTerminateModal(true); }} className="col-span-2 py-3 bg-tertiary/10 text-tertiary rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-tertiary hover:text-white transition-all">⚠️ Thông báo lấy lại</button>
+                                  )}
+                                </>
+                              ) : (
+                                <button onClick={() => roomApi.updateStatus(room.id, 'AVAILABLE').then(fetchRooms)} className="col-span-2 py-3.5 bg-secondary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-secondary/20 hover:scale-[1.02] transition-all">
+                                  ✅ Hoàn tất bảo trì
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </div>
           )}
@@ -1615,7 +1607,7 @@ const handleCreateRoom = async (e) => {
           {activeTab === 'ADD_ROOM' && (
             <div style={{ background: '#ffffff', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #2563eb', paddingBottom: '10px', marginBottom: '20px' }}>
-                <h2 style={{ margin: 0, color: '#0f172a' }}>{editingRoomId ? `Sửa thông tin: Phòng ${newRoom.roomNumber}` : 'Đăng tin phòng mới'}</h2>
+                <h2 style={{ margin: 0, color: '#0f172a' }}>{editingRoomId ? `Sửa thông tin: ${newRoom.roomType === 'WHOLE_HOUSE' ? '' : 'Phòng '}${newRoom.roomNumber}` : 'Đăng tin mới'}</h2>
                 {editingRoomId && <button onClick={() => { setEditingRoomId(null); setActiveTab('ALL_ROOMS'); }} style={{ padding: '8px 15px', background: '#64748b', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Hủy sửa</button>}
               </div>
 
@@ -1636,54 +1628,192 @@ const handleCreateRoom = async (e) => {
                 <fieldset style={{ marginBottom: '20px', borderColor: '#e2e8f0', padding: '15px', borderRadius: '8px' }}>
                   <legend style={{ fontWeight: 'bold', color: '#475569' }}>Thông tin cơ bản</legend>
                   
-                  {/* Hàng 1: Số phòng, Số người, Diện tích */}
+                  {/* Hàng 1: Loại hình, Số phòng, Số người, Diện tích */}
                   <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
-                    <input type="text" placeholder="Số phòng *" required value={newRoom.roomNumber} onChange={e => setNewRoom({...newRoom, roomNumber: e.target.value})} style={{ flex: 1, padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px' }} />
-                    <input type="number" placeholder="Số người ở tối đa *" required value={newRoom.maxOccupants} onChange={e => setNewRoom({...newRoom, maxOccupants: e.target.value})} style={{ flex: 1, padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px' }} />
-                    <input type="number" placeholder="Diện tích (m2) *" required value={newRoom.area} onChange={e => setNewRoom({...newRoom, area: e.target.value})} style={{ flex: 1, padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px' }} />
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '13px', color: '#64748b', display: 'block', marginBottom: '5px' }}>Loại hình *</label>
+                      <select value={newRoom.roomType} onChange={e => setNewRoom({...newRoom, roomType: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                        <option value="SINGLE">Phòng trọ</option>
+                        <option value="WHOLE_HOUSE">Nhà nguyên căn</option>
+                      </select>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '13px', color: '#64748b', display: 'block', marginBottom: '5px' }}>{newRoom.roomType === 'WHOLE_HOUSE' ? 'Tên căn / Số nhà' : 'Số phòng'} *</label>
+                      <input type="text" placeholder={newRoom.roomType === 'WHOLE_HOUSE' ? "Ví dụ: Căn A1, Nhà số 5..." : "Số phòng"} required value={newRoom.roomNumber} onChange={e => setNewRoom({...newRoom, roomNumber: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px', boxSizing: 'border-box' }} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '13px', color: '#64748b', display: 'block', marginBottom: '5px' }}>Số người tối đa *</label>
+                      <input type="number" placeholder="Số người ở tối đa" required value={newRoom.maxOccupants} onChange={e => setNewRoom({...newRoom, maxOccupants: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px', boxSizing: 'border-box' }} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: '13px', color: '#64748b', display: 'block', marginBottom: '5px' }}>Diện tích (m2) *</label>
+                      <input type="number" placeholder="Diện tích" required value={newRoom.area} onChange={e => setNewRoom({...newRoom, area: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px', boxSizing: 'border-box' }} />
+                    </div>
                   </div>
+
+                  {/* Hàng 1.5: Chi tiết Nhà nguyên căn (Chỉ hiện nếu chọn WHOLE_HOUSE) */}
+                  {newRoom.roomType === 'WHOLE_HOUSE' && (
+                    <div style={{ display: 'flex', gap: '15px', marginBottom: '15px' }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: '13px', color: '#64748b', display: 'block', marginBottom: '5px' }}>Số tầng</label>
+                        <input type="number" placeholder="Ví dụ: 3" value={newRoom.numFloors} onChange={e => setNewRoom({...newRoom, numFloors: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px', boxSizing: 'border-box' }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: '13px', color: '#64748b', display: 'block', marginBottom: '5px' }}>Số phòng ngủ</label>
+                        <input type="number" placeholder="Ví dụ: 4" value={newRoom.numBedrooms} onChange={e => setNewRoom({...newRoom, numBedrooms: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px', boxSizing: 'border-box' }} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: '13px', color: '#64748b', display: 'block', marginBottom: '5px' }}>Số nhà vệ sinh</label>
+                        <input type="number" placeholder="Ví dụ: 2" value={newRoom.numBathrooms} onChange={e => setNewRoom({...newRoom, numBathrooms: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px', boxSizing: 'border-box' }} />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Hàng 2: Số nhà, ngõ, ngách (VỪA THÊM VÀO ĐÂY) */}
                   <div style={{ marginBottom: '15px' }}>
                     <input type="text" placeholder="Số nhà, ngõ, ngách, tên đường... *" required value={newRoom.houseNumber} onChange={e => setNewRoom({...newRoom, houseNumber: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px', boxSizing: 'border-box' }} />
                   </div>
 
-                  {/* Hàng 3: Dropdown Tỉnh/Thành và Phường/Xã (Mô hình mới) */}
+                  {/* Hàng 3: Dropdown Tỉnh/Thành và Phường/Xã (Custom Searchable Dropdown) */}
                   <div style={{ marginBottom: '10px' }}>
                      <p style={{ margin: '0 0 5px 0', fontSize: '13px', color: '#64748b' }}>{editingRoomId ? `Khu vực cũ: ${newRoom.address} (Chọn lại bên dưới nếu muốn đổi)` : 'Chọn khu vực:'}</p>
                     <div style={{ display: 'flex', gap: '15px' }}>
                       
-                      {/* Ô CHỌN TỈNH/THÀNH */}
-                      <div style={{ flex: 1 }}>
-                        <input 
-                          type="text" 
-                          list="provinces-list" 
-                          required={!editingRoomId} 
-                          value={selectedProvince.name} 
-                          onChange={handleProvinceChange} 
-                          placeholder="-- Thành phố / Tỉnh --" 
-                          style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px', boxSizing: 'border-box' }} 
-                        />
-                        <datalist id="provinces-list">
-                          {provinces.map(p => <option key={p.code} value={p.name} />)}
-                        </datalist>
+                      {/* Ô CHỌN TỈNH/THÀNH (Custom Searchable Dropdown) */}
+                      <div className="province-dropdown-container" style={{ flex: 1, position: 'relative' }}>
+                        <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: '600', color: '#334155' }}>Tỉnh/Thành phố (*)</label>
+                        <div 
+                          onClick={() => { setProvinceDropdownOpen(!provinceDropdownOpen); setWardDropdownOpen(false); setProvinceSearch(''); }}
+                          style={{ 
+                            width: '100%', padding: '10px 35px 10px 12px', border: `1px solid ${provinceDropdownOpen ? '#3b82f6' : '#e2e8f0'}`, 
+                            borderRadius: '6px', boxSizing: 'border-box', cursor: 'pointer', background: '#ffffff',
+                            color: selectedProvince.name ? '#0f172a' : '#94a3b8', fontSize: '14px',
+                            boxShadow: provinceDropdownOpen ? '0 0 0 3px rgba(59,130,246,0.15)' : 'none', transition: 'all 0.2s'
+                          }}
+                        >
+                          {selectedProvince.name || '-- Chọn Tỉnh/TP --'}
+                          <span style={{ position: 'absolute', right: '12px', top: '38px', fontSize: '12px', color: '#64748b', transition: 'transform 0.2s', transform: provinceDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+                        </div>
+                        {provinceDropdownOpen && (
+                          <div style={{ 
+                            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000,
+                            background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0 0 8px 8px', 
+                            boxShadow: '0 10px 25px rgba(0,0,0,0.15)', maxHeight: '260px', overflow: 'hidden',
+                            animation: 'fadeIn 0.15s ease-out'
+                          }}>
+                            <div style={{ padding: '8px', borderBottom: '1px solid #f1f5f9', position: 'sticky', top: 0, background: '#ffffff', zIndex: 1 }}>
+                              <input 
+                                type="text" autoFocus
+                                placeholder="Nhập từ khóa để tìm kiếm" 
+                                value={provinceSearch} 
+                                onChange={(e) => setProvinceSearch(e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '4px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }}
+                              />
+                            </div>
+                            <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                              <div 
+                                onClick={() => { setSelectedProvince({ code: '', name: '' }); setSelectedWard({ code: '', name: '' }); setWards([]); setProvinceDropdownOpen(false); }}
+                                style={{ padding: '10px 14px', cursor: 'pointer', color: '#94a3b8', fontSize: '13px', borderBottom: '1px solid #f8fafc' }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                              >
+                                -- Chọn Tỉnh/TP --
+                              </div>
+                              {provinces.filter(p => p.name.toLowerCase().includes(provinceSearch.toLowerCase())).map(p => (
+                                <div 
+                                  key={p.code}
+                                  onClick={async () => {
+                                    setSelectedProvince({ code: p.code, name: p.name });
+                                    setSelectedWard({ code: '', name: '' }); setWards([]);
+                                    setProvinceDropdownOpen(false); setProvinceSearch('');
+                                    try {
+                                      const res = await axios.get(`https://provinces.open-api.vn/api/v2/p/${p.code}?depth=2`);
+                                      setWards(res.data.wards || []);
+                                    } catch (error) { console.error("Lỗi lấy danh sách phường/xã:", error); }
+                                  }}
+                                  style={{ 
+                                    padding: '10px 14px', cursor: 'pointer', fontSize: '13px', color: '#1e293b',
+                                    background: selectedProvince.code === p.code ? '#dbeafe' : 'transparent',
+                                    fontWeight: selectedProvince.code === p.code ? '600' : '400',
+                                    borderBottom: '1px solid #f8fafc'
+                                  }}
+                                  onMouseEnter={(e) => { if (selectedProvince.code !== p.code) e.currentTarget.style.background = '#f1f5f9'; }}
+                                  onMouseLeave={(e) => { if (selectedProvince.code !== p.code) e.currentTarget.style.background = 'transparent'; }}
+                                >
+                                  {p.name}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
-                      {/* Ô CHỌN XÃ/PHƯỜNG */}
-                      <div style={{ flex: 1 }}>
-                        <input 
-                          type="text" 
-                          list="wards-list" 
-                          required={!editingRoomId && selectedProvince.code !== ''} 
-                          disabled={!selectedProvince.code} 
-                          value={selectedWard.name} 
-                          onChange={handleWardChange} 
-                          placeholder="-- Phường / Xã --" 
-                          style={{ width: '100%', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px', boxSizing: 'border-box' }} 
-                        />
-                        <datalist id="wards-list">
-                          {wards.map(w => <option key={w.code} value={w.name} />)}
-                        </datalist>
+                      {/* Ô CHỌN XÃ/PHƯỜNG (Custom Searchable Dropdown) */}
+                      <div className="ward-dropdown-container" style={{ flex: 1, position: 'relative' }}>
+                        <label style={{ display: 'block', marginBottom: '4px', fontSize: '13px', fontWeight: '600', color: '#334155' }}>Phường/Xã (*)</label>
+                        <div 
+                          onClick={() => { if (selectedProvince.code) { setWardDropdownOpen(!wardDropdownOpen); setProvinceDropdownOpen(false); setWardSearch(''); } }}
+                          style={{ 
+                            width: '100%', padding: '10px 35px 10px 12px', border: `1px solid ${wardDropdownOpen ? '#3b82f6' : '#e2e8f0'}`, 
+                            borderRadius: '6px', boxSizing: 'border-box', cursor: selectedProvince.code ? 'pointer' : 'not-allowed', 
+                            background: selectedProvince.code ? '#ffffff' : '#f8fafc',
+                            color: selectedWard.name ? '#0f172a' : '#94a3b8', fontSize: '14px',
+                            opacity: selectedProvince.code ? 1 : 0.6,
+                            boxShadow: wardDropdownOpen ? '0 0 0 3px rgba(59,130,246,0.15)' : 'none', transition: 'all 0.2s'
+                          }}
+                        >
+                          {selectedWard.name || '-- Chọn Phường/Xã --'}
+                          <span style={{ position: 'absolute', right: '12px', top: '38px', fontSize: '12px', color: '#64748b', transition: 'transform 0.2s', transform: wardDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+                        </div>
+                        {wardDropdownOpen && selectedProvince.code && (
+                          <div style={{ 
+                            position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 1000,
+                            background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0 0 8px 8px', 
+                            boxShadow: '0 10px 25px rgba(0,0,0,0.15)', maxHeight: '260px', overflow: 'hidden',
+                            animation: 'fadeIn 0.15s ease-out'
+                          }}>
+                            <div style={{ padding: '8px', borderBottom: '1px solid #f1f5f9', position: 'sticky', top: 0, background: '#ffffff', zIndex: 1 }}>
+                              <input 
+                                type="text" autoFocus
+                                placeholder="Nhập từ khóa để tìm kiếm" 
+                                value={wardSearch} 
+                                onChange={(e) => setWardSearch(e.target.value)}
+                                onClick={(e) => e.stopPropagation()}
+                                style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: '4px', boxSizing: 'border-box', fontSize: '13px', outline: 'none' }}
+                              />
+                            </div>
+                            <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                              <div 
+                                onClick={() => { setSelectedWard({ code: '', name: '' }); setWardDropdownOpen(false); }}
+                                style={{ padding: '10px 14px', cursor: 'pointer', color: '#94a3b8', fontSize: '13px', borderBottom: '1px solid #f8fafc' }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                              >
+                                -- Chọn Phường/Xã --
+                              </div>
+                              {wards.filter(w => w.name.toLowerCase().includes(wardSearch.toLowerCase())).map(w => (
+                                <div 
+                                  key={w.code}
+                                  onClick={() => {
+                                    setSelectedWard({ code: w.code, name: w.name });
+                                    setWardDropdownOpen(false); setWardSearch('');
+                                  }}
+                                  style={{ 
+                                    padding: '10px 14px', cursor: 'pointer', fontSize: '13px', color: '#1e293b',
+                                    background: selectedWard.code === w.code ? '#dbeafe' : 'transparent',
+                                    fontWeight: selectedWard.code === w.code ? '600' : '400',
+                                    borderBottom: '1px solid #f8fafc'
+                                  }}
+                                  onMouseEnter={(e) => { if (selectedWard.code !== w.code) e.currentTarget.style.background = '#f1f5f9'; }}
+                                  onMouseLeave={(e) => { if (selectedWard.code !== w.code) e.currentTarget.style.background = 'transparent'; }}
+                                >
+                                  {w.name}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                     </div>
@@ -1731,58 +1861,160 @@ const handleCreateRoom = async (e) => {
 
           {/* TAB 3: DANH SÁCH NGƯỜI THUÊ (Dành cho Chủ nhà) */}
           {activeTab === 'TENANTS' && (
-            <div>
-              <h2 style={{ marginTop: 0, color: '#0f172a' }}>Danh sách Người Thuê (Hợp đồng)</h2>
-              <div style={{ overflowX: 'auto', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', background: '#ffffff', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ background: '#1e293b', color: '#ffffff' }}>
-                      <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600' }}>Phòng</th>
-                      <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600' }}>Khách thuê</th>
-                      <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600' }}>Thời hạn hợp đồng</th>
-                      <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600' }}>Kết thúc thực tế</th>
-                      <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Trạng thái</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {/* BỔ SUNG: NẾU CHƯA CÓ HỢP ĐỒNG THÌ HIỆN DÒNG CHỮ NÀY */}
-                    {contracts.length > 0 ? contracts.map(c => (
-                      <tr key={c.id} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background-color 0.2s' }}>
-                        <td style={{ padding: '16px', color: '#0f172a', fontWeight: '500' }}>P.{c.room?.roomNumber}</td>
-                        <td style={{ padding: '16px', color: '#475569' }}>
-                          <span style={{ fontWeight: '600', color: '#0f172a' }}>{c.tenantName || c.tenant?.fullName}</span> <br/>
-                          {c.tenantEmail} <br/>
-                          SĐT: {c.tenantPhone}
-                        </td>
-                        <td style={{ padding: '16px', color: '#475569' }}>{c.startDate} - {c.endDate}</td>
-                        <td style={{ padding: '16px', color: '#475569' }}>{c.status === 'ACTIVE' ? '-' : new Date(c.updatedAt).toISOString().split('T')[0]}</td>
-                        <td style={{ padding: '16px', textAlign: 'center', fontWeight: 'bold' }}>
-                          {(() => {
-                            let text = c.status;
-                            let color = '#475569';
-                            if (c.status === 'ACTIVE') { text = 'ĐANG THUÊ'; color = '#10b981'; }
-                            else if (c.status === 'TERMINATED') { text = 'HỦY HỢP ĐỒNG TRƯỚC HẠN'; color = '#ef4444'; }
-                            else if (c.status === 'EXPIRED') {
-                              const updated = new Date(c.updatedAt);
-                              updated.setHours(0,0,0,0);
-                              const end = new Date(c.endDate);
-                              end.setHours(0,0,0,0);
-                              text = updated < end ? 'HỦY HỢP ĐỒNG TRƯỚC HẠN' : 'ĐÃ KẾT THÚC';
-                              color = updated < end ? '#ef4444' : '#f59e0b';
-                            }
-                            return <span style={{ color }}>{text}</span>;
-                          })()}
-                        </td>
-                      </tr>
-                    )) : (
-                      <tr>
-                        <td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: '#64748b' }}>
-                          Chưa có người thuê (Chưa có hợp đồng nào). Vui lòng tạo Hợp đồng ở mục Danh sách phòng!
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+            <div className="p-0">
+              {/* Page Header */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 mt-4 gap-4">
+                <div>
+                  <h2 className="font-display-xl text-3xl font-bold text-on-surface">Danh sách Người Thuê</h2>
+                  <p className="font-body-md text-on-surface-variant mt-1">Quản lý thông tin khách thuê và lịch sử hợp đồng của bạn.</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-6">
+
+                {(() => {
+                  // 1. Nhóm hợp đồng theo Tenant (Dùng email hoặc ID người thuê làm khóa)
+                  const grouped = contracts.reduce((acc, c) => {
+                    const tKey = c.tenantId || c.tenantEmail || 'DELETED';
+                    if (!acc[tKey]) {
+                      acc[tKey] = {
+                        tenantName: c.tenantName || c.tenant?.fullName || 'Người thuê đã xóa',
+                        tenantEmail: c.tenantEmail || c.tenant?.email || 'N/A',
+                        tenantPhone: c.tenantPhone || c.tenant?.phone || 'N/A',
+                        contracts: []
+                      };
+                    }
+                    acc[tKey].contracts.push(c);
+                    return acc;
+                  }, {});
+
+                  const tenantKeys = Object.keys(grouped);
+
+                  if (tenantKeys.length === 0) {
+                    return (
+                      <div className="text-center py-20 bg-surface-container-lowest rounded-3xl border border-dashed border-outline-variant">
+                        <span className="material-symbols-outlined text-5xl text-outline mb-4 opacity-30">person_off</span>
+                        <p className="text-on-surface-variant italic font-medium">Chưa có người thuê (Chưa có hợp đồng nào). Vui lòng tạo Hợp đồng ở mục Danh sách phòng!</p>
+                      </div>
+                    );
+                  }
+
+
+                  return tenantKeys.map((tKey, idx) => {
+                    const group = grouped[tKey];
+                    const isExpanded = expandedTenantRooms[tKey];
+                    // Tìm xem khách này có hợp đồng nào đang ACTIVE không
+                    const activeContract = group.contracts.find(c => c.status === 'ACTIVE');
+
+                    return (
+                      <div key={tKey} className="bg-surface-container-lowest rounded-3xl overflow-hidden shadow-[0px_4px_20px_rgba(0,0,0,0.05)] border border-outline-variant/30 transition-all">
+                        {/* Header của Nhóm Người Thuê */}
+                        <div 
+                          onClick={() => setExpandedTenantRooms(prev => ({ ...prev, [tKey]: !prev[tKey] }))}
+                          className={`px-8 py-6 flex justify-between items-center cursor-pointer transition-all ${isExpanded ? 'bg-surface-container-low/50' : 'hover:bg-surface-container-low/30'}`}
+                        >
+                          <div className="flex items-center gap-6">
+                            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                <span className="material-symbols-outlined text-[24px] fill-1">person</span>
+                            </div>
+                            <div className="min-w-0">
+                                <h3 className="font-headline-md text-xl font-black text-on-surface">{group.tenantName}</h3>
+                                <div className="flex items-center gap-4 mt-1">
+                                    <p className="text-xs font-bold text-on-surface-variant opacity-60 flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-[16px]">mail</span> {group.tenantEmail}
+                                    </p>
+                                    <p className="text-xs font-bold text-on-surface-variant opacity-60 flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-[16px]">call</span> {group.tenantPhone}
+                                    </p>
+                                </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="bg-secondary-container text-on-secondary-container font-label-md text-[11px] px-3 py-1 rounded-full uppercase tracking-wider">
+                                {group.contracts.length} hợp đồng
+                            </span>
+                            <span className={`material-symbols-outlined transition-transform duration-300 ${isExpanded ? 'rotate-180 text-primary' : 'text-on-surface-variant'}`}>
+                              keyboard_arrow_down
+                            </span>
+                          </div>
+                        </div>
+
+
+                        {/* Danh sách các lần thuê / phòng thuê của người này */}
+                        {isExpanded && (
+                          <div className="overflow-x-auto border-t border-outline-variant/30">
+                            <table className="w-full text-left border-collapse">
+                              <thead>
+                                <tr className="border-b border-outline-variant bg-surface-container-low/50">
+                                  <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold">Phòng / Căn hộ</th>
+                                  <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold">Thời hạn</th>
+                                  <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold">Kết thúc thực tế</th>
+                                  <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold text-center">Trạng thái</th>
+                                </tr>
+                              </thead>
+
+                              <tbody>
+                                {(() => {
+                                  const statusOrder = { 'ACTIVE': 0, 'EXPIRED': 1, 'TERMINATED': 2 };
+                                  return [...group.contracts].sort((a, b) => {
+                                    // 1. Sắp xếp theo thứ tự trạng thái ưu tiên
+                                    if (statusOrder[a.status] !== statusOrder[b.status]) {
+                                      return statusOrder[a.status] - statusOrder[b.status];
+                                    }
+                                    // 2. Nếu cùng trạng thái, cái nào mới hơn xếp trên
+                                    return new Date(b.createdAt) - new Date(a.createdAt);
+                                  }).map(c => (
+                                    <tr key={c.id} className="hover:bg-surface-container-low/30 transition-colors group border-b border-outline-variant/30 last:border-0">
+                                      <td className="py-4 px-8">
+                                        <div className="font-bold text-primary group-hover:text-surface-tint">
+                                          {(c.room?.roomType === 'WHOLE_HOUSE' || /nhà|căn/i.test(c.room?.roomNumber)) ? 'Nhà nguyên căn ' : 'Phòng trọ '}{c.room?.roomNumber || 'Đã xóa'}
+                                        </div>
+                                        <div className="text-[11px] font-bold text-on-surface-variant opacity-50 uppercase tracking-wider">Mã: {c.room?.roomCode || 'N/A'}</div>
+                                      </td>
+                                      <td className="py-4 px-8">
+                                        <div className="font-medium text-on-surface">{c.startDate} <span className="material-symbols-outlined text-[14px] opacity-30 px-1">arrow_forward</span> {c.endDate}</div>
+                                      </td>
+                                      <td className="py-4 px-8">
+                                        {c.status === 'ACTIVE' ? <span className="text-on-surface-variant opacity-30">—</span> : <span className="font-medium text-on-surface">{new Date(c.updatedAt).toLocaleDateString('vi-VN')}</span>}
+                                      </td>
+                                      <td className="py-4 px-8 text-center">
+
+                                      {(() => {
+                                        if (c.status === 'ACTIVE') return (
+                                          <span className="inline-flex items-center px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-md text-[11px] font-bold uppercase tracking-wider">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-secondary mr-2"></span>
+                                            Đang thuê
+                                          </span>
+                                        );
+                                        const updated = new Date(c.updatedAt);
+                                        const end = new Date(c.endDate);
+                                        const isPre = updated < end;
+                                        if (c.status === 'TERMINATED' || (c.status === 'EXPIRED' && isPre)) return (
+                                          <span className="inline-flex items-center px-3 py-1 rounded-full bg-error-container text-on-error-container font-label-md text-[11px] font-bold uppercase tracking-wider">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-error mr-2"></span>
+                                            Hủy trước hạn
+                                          </span>
+                                        );
+                                        return (
+                                          <span className="inline-flex items-center px-3 py-1 rounded-full bg-surface-container text-on-surface-variant font-label-md text-[11px] font-bold uppercase tracking-wider border border-outline-variant/30">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-on-surface-variant/30 mr-2"></span>
+                                            Đã kết thúc
+                                          </span>
+                                        );
+                                      })()}
+                                    </td>
+
+                                    </tr>
+                                  ));
+                                })()}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             </div>
           )}
@@ -1793,204 +2025,306 @@ const handleCreateRoom = async (e) => {
             const sortedTenantContracts = [...tenantContracts].sort((a, b) => {
               if (a.status === 'ACTIVE' && b.status !== 'ACTIVE') return -1;
               if (a.status !== 'ACTIVE' && b.status === 'ACTIVE') return 1;
-              
-              if (a.status !== 'ACTIVE' && b.status !== 'ACTIVE') {
-                const aReviewed = myReviews.some(r => r.contractId === a.id);
-                const bReviewed = myReviews.some(r => r.contractId === b.id);
-                if (!aReviewed && bReviewed) return -1;
-                if (aReviewed && !bReviewed) return 1;
-              }
               return 0;
             });
+
             return (
-            <div>
-              <h2 style={{ marginTop: 0, color: '#0f172a' }}>Phòng bạn đang thuê</h2>
-              <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-                {sortedTenantContracts.length === 0 ? (
-                  <p style={{ color: '#64748b' }}>Bạn chưa có hợp đồng thuê phòng nào đang hoạt động.</p>
-                ) : (
-                  sortedTenantContracts.map(c => (
-                    <div 
-                      key={c.id} 
-                      style={{ 
-                        border: '1px solid #e2e8f0', 
-                        padding: '0', 
-                        borderRadius: '16px', 
-                        background: 'rgba(255, 255, 255, 0.9)', 
-                        backdropFilter: 'blur(10px)',
-                        width: '400px', 
-                        overflow: 'hidden', 
-                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
-                        transition: 'all 0.3s ease'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-5px)';
-                        e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)';
-                      }}
-                    >
-                      
-                      {/* HEADER PHÒNG */}
-                      <div style={{ background: '#1e293b', color: '#ffffff', padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left'  }}>
-                        <h3 style={{ margin: 0 }}>Phòng {c.room?.roomNumber} <br /> {c.room?.roomCode && <span style={{ fontSize: '14px', color: '#e6f0fa', fontWeight: 'normal'}}>Mã phòng: {c.room.roomCode}</span>}</h3>
-                        <span style={{ fontSize: '12px', background: c.status === 'ACTIVE' ? '#198754' : '#dc3545', padding: '4px 10px', borderRadius: '20px' }}>
-                          {c.status === 'ACTIVE' ? 'Đang hiệu lực' : 'Đã kết thúc'}
-                        </span>
-                      </div>
+              <div className="max-w-[1200px] mx-auto py-8 px-4 lg:px-8">
+                {/* Page Header */}
+                <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+                  <div>
+                    <h1 className="text-display-xl font-display-xl text-3xl font-bold text-on-surface">Phòng đang thuê</h1>
+                    <p className="text-body-lg text-on-surface-variant mt-2 max-w-2xl">Quản lý các hợp đồng thuê nhà hiện tại, truy cập tài liệu pháp lý và thực hiện các yêu cầu liên quan.</p>
+                  </div>
+                  <div className="bg-secondary-container/20 border border-secondary-container/50 text-on-secondary-container px-5 py-2.5 rounded-full flex items-center gap-2.5 self-start md:self-auto shadow-sm">
+                    <div className="w-2 h-2 rounded-full bg-secondary animate-pulse"></div>
+                    <span className="text-label-md font-bold text-secondary">Hợp đồng hợp lệ</span>
+                  </div>
+                </div>
 
-                      {/* THÔNG TIN CƠ BẢN */}
-                      <div style={{ padding: '20px', textAlign: 'left' }}>
-                        <p style={{ margin: '0 0 10px 0', color: '#475569' }}>📍 <strong>Địa chỉ:</strong> {c.room?.houseNumber ? `${c.room.houseNumber}, ` : ''}{c.room?.address}</p>
-                        <p style={{ margin: '0 0 10px 0', color: '#475569' }}>⏳ <strong>Thời hạn:</strong> Từ {c.startDate} đến {c.endDate}</p>
-                        <p style={{ margin: '0 0 15px 0', color: '#475569' }}>💰 <strong>Giá thuê:</strong> <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{Number(c.price || 0).toLocaleString('vi-VN')} đ/tháng</span></p>
-
-                        <button 
-                          onClick={() => setViewContract(c)} 
-                          style={{ width: '100%', padding: '10px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', marginBottom: '20px' }}
-                        >
-                          📄 Xem Chi Tiết Hợp Đồng Điện Tử
-                        </button>
-                        {/* NÚT ĐÁNH GIÁ (Chỉ hiện khi hợp đồng đã KẾT THÚC) */}
-                        {/* NÚT ĐÁNH GIÁ (Kiểm tra xem đã đánh giá chưa) */}
-                        {c.status !== 'ACTIVE' && (() => {
-                          const existingReview = myReviews.find(r => r.contractId === c.id);
-                          
-                          if (existingReview) {
-                            return (
-                              <button 
-                                onClick={() => { 
-                                  setReviewData({ contractId: c.id, rating: existingReview.rating, comment: existingReview.comment, isAnonymous: existingReview.isAnonymous, landlordReply: existingReview.landlordReply }); 
-                                  setShowReviewModal(true); 
-                                }}
-                                style={{ width: '100%', padding: '10px', background: '#f1f5f9', color: '#0f172a', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', marginBottom: '20px' }}
-                              >
-                                👁️ Xem & Sửa đánh giá {existingReview.landlordReply && ' (Có phản hồi)'}
-                              </button>
-                            );
-                          } else {
-                            return (
-                              <button 
-                                onClick={() => { setReviewData({ contractId: c.id, rating: 5, comment: '', isAnonymous: false, landlordReply: null }); setShowReviewModal(true); }}
-                                style={{ width: '100%', padding: '10px', background: '#f59e0b', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', marginBottom: '20px' }}
-                              >
-                                ⭐ Đánh giá phòng & Chủ nhà
-                              </button>
-                            );
-                          }
-                        })()}
-                        {/* NÚT BÁO TRẢ PHÒNG CỦA KHÁCH */}
-                    {c.status === 'ACTIVE' && !c.intendedMoveOutDate && (
-                      <button 
-                        onClick={() => setTerminateData({ contractId: c.id, moveOutDate: '', reason: '' }) || setShowTerminateModal(true)}
-                        style={{ width: '100%', padding: '10px', background: '#f97316', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', marginBottom: '20px' }}
-                      >
-                        🚪 Báo trước dọn đi (Trả phòng)
-                      </button>
-                    )}
-
-                    {c.status === 'ACTIVE' && c.intendedMoveOutDate && (
-                        <div style={{ background: '#fef3c7', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #fde68a' }}>
-                          <p style={{ margin: '0 0 5px 0', color: '#92400e', fontWeight: 'bold' }}>⏳ Đang đếm ngược trả phòng!</p>
-                          <p style={{ margin: '0', fontSize: '13px', color: '#475569' }}>Ngày chuyển đi dự kiến: <strong>{c.intendedMoveOutDate}</strong></p>
-                          <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#64748b' }}>* Đến ngày này, Chủ nhà sẽ tới chốt điện nước và xuất hóa đơn cuối cùng cho bạn.</p>
-                          <button 
-                            onClick={() => handleCancelTermination(c.id)}
-                            style={{ width: '100%', padding: '8px', marginTop: '15px', background: '#64748b', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-                          >
-                            ✖ Đổi ý, hủy yêu cầu trả phòng
-                          </button>
-                        </div>
-                    )}
-
-{/* KHU VỰC KHAI BÁO TẠM TRÚ (CHỈ HIỆN KHI HỢP ĐỒNG ACTIVE) */}
-                        {c.status === 'ACTIVE' && (
-                          <div style={{ background: c.residenceStatus === 'REGISTERED' && editingResidenceId !== c.id ? '#dcfce7' : '#fef3c7', padding: '15px', borderRadius: '8px', border: `1px solid ${c.residenceStatus === 'REGISTERED' && editingResidenceId !== c.id ? '#bbf7d0' : '#fde68a'}`, transition: '0.3s' }}>
-                            <h4 style={{ marginTop: 0, marginBottom: '10px', color: '#0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span>📋 Khai báo Tạm trú</span>
-                              {/* Hiện nút Hủy nếu đang mở form sửa */}
-                              {editingResidenceId === c.id && (
-                                <button onClick={() => { setEditingResidenceId(null); setResidenceFiles(prev => ({ ...prev, [c.id]: [] })); }} style={{ background: 'transparent', border: 'none', color: '#92400e', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>✖ Hủy cập nhật</button>
-                              )}
-                            </h4>
-                            
-                            {/* NẾU ĐÃ ĐĂNG KÝ VÀ KHÔNG BẤM SỬA -> HIỆN THÔNG TIN */}
-                            {c.residenceStatus === 'REGISTERED' && editingResidenceId !== c.id ? (
-                              <div>
-                                <p style={{ color: '#166534', fontWeight: 'bold', fontSize: '13px', margin: '0 0 10px 0' }}>✅ Bạn đã nộp minh chứng tạm trú!</p>
-                                <p style={{ fontSize: '13px', margin: '5px 0', color: '#475569' }}><strong>Ngày ĐK:</strong> {c.residenceDate || '...'}</p>
-                                <p style={{ fontSize: '13px', margin: '5px 0 10px 0', color: '#475569' }}><strong>Nơi ĐK:</strong> {c.residencePlace || '...'}</p>
-                                
-                                {/* Hiển thị mảng ảnh tạm trú */}
-                                {(() => {
-                                  let resImages = [];
-                                  try {
-                                    resImages = Array.isArray(c.residenceImage) ? c.residenceImage : JSON.parse(c.residenceImage || '[]');
-                                  } catch (e) { resImages = []; }
-
-                                  return resImages.length > 0 && (
-                                    <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '5px' }}>
-                                      {resImages.map((img, idx) => {
-                                        const cleanImg = img.replace('uploads/', '').replace('uploads\\', '');
-                                        return (
-                                          <img 
-                                            key={idx}
-                                            src={`http://localhost:5000/uploads/${cleanImg}`} 
-                                            alt={`Minh chứng ${idx + 1}`} 
-                                            style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #e2e8f0', cursor: 'pointer', flexShrink: 0 }}
-                                            onClick={() => window.open(`http://localhost:5000/uploads/${cleanImg}`)}
-                                          />
-                                        )
-                                      })}
-                                    </div>
-                                  );
-                                })()}
-
-                                {/* NÚT MỞ FORM CẬP NHẬT LẠI */}
-                                <button 
-                                  onClick={() => {
-                                    setEditingResidenceId(c.id);
-                                    setResidenceData(prev => ({ ...prev, [c.id]: { date: c.residenceDate || '', place: c.residencePlace || '' } }));
-                                  }}
-                                  style={{ width: '100%', padding: '8px', background: '#17a2b8', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', marginTop: '15px' }}
-                                >
-                                  ✏️ Cập nhật lại thông tin/ảnh
-                                </button>
-                              </div>
-                            ) : (
-                              /* NẾU CHƯA ĐĂNG KÝ HOẶC ĐANG BẤM SỬA -> HIỆN FORM ĐIỀN */
-                              <div>
-                                <p style={{ color: '#856404', fontSize: '13px', margin: '0 0 15px 0' }}>
-                                  {editingResidenceId === c.id ? 'Tải lên thông tin và ảnh minh chứng mới để ghi đè dữ liệu cũ.' : '⚠️ Vui lòng hoàn thành thủ tục tại công an phường và tải thông tin lên đây.'}
-                                </p>
-                                <form onSubmit={(e) => handleUploadResidence(e, c.id)} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                  
-                                  <input type="date" value={residenceData[c.id]?.date || ''} onChange={e => setResidenceData(prev => ({...prev, [c.id]: {...(prev[c.id] || {}), date: e.target.value}}))} style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '13px' }} title="Ngày đăng ký" />
-                                  <input type="text" placeholder="Nơi đăng ký (VD: Công an phường X)" value={residenceData[c.id]?.place || ''} onChange={e => setResidenceData(prev => ({...prev, [c.id]: {...(prev[c.id] || {}), place: e.target.value}}))} style={{ padding: '8px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '13px' }} />
-                                  
-                                  <input 
-                                    type="file" 
-                                    multiple // Cho phép chọn nhiều ảnh
-                                    accept="image/*"
-                                    onChange={(e) => setResidenceFiles(prev => ({ ...prev, [c.id]: Array.from(e.target.files) }))}
-                                    style={{ padding: '8px', background: '#fff', border: '1px solid #ccc', borderRadius: '4px', fontSize: '13px' }}
-                                  />
-                                  <button type="submit" style={{ padding: '10px', background: editingResidenceId === c.id ? '#17a2b8' : '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-                                    {editingResidenceId === c.id ? 'Lưu cập nhật' : 'Nộp hồ sơ minh chứng'}
-                                  </button>
-                                </form>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                <div className="space-y-12">
+                  {sortedTenantContracts.length === 0 ? (
+                    <div className="text-center py-20 bg-surface-container-lowest rounded-3xl border border-dashed border-outline-variant">
+                      <span className="material-symbols-outlined text-5xl text-outline mb-4 opacity-30">meeting_room</span>
+                      <p className="text-on-surface-variant italic">Bạn chưa có hợp đồng thuê phòng nào.</p>
                     </div>
-                  ))
-                )}
+                  ) : (
+                    sortedTenantContracts.map(c => (
+                      <div key={c.id} className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-16">
+                        {/* Room Details Card (Left - 2 Cols) */}
+                        <div className="xl:col-span-2 flex flex-col gap-6">
+                          <div className="bg-surface-container-lowest rounded-3xl shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-outline-variant/30 overflow-hidden flex flex-col relative group">
+                            {/* Hero Image Section */}
+                            <div className="h-80 w-full relative overflow-hidden bg-surface-container">
+                              <img 
+                                alt={`Phòng ${c.room?.roomNumber}`} 
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" 
+                                src={c.room?.images?.[0] ? `http://localhost:5000/uploads/${c.room.images[0]}` : "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=1000"} 
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
+                              
+                              {/* Overlay Content */}
+                              <div className="absolute bottom-0 left-0 w-full p-8 flex justify-between items-end">
+                                <div className="text-white">
+                                  <div className="flex items-center gap-3 mb-3">
+                                    <h2 className="text-3xl font-black text-white tracking-tight">Phòng {c.room?.roomNumber}</h2>
+                                    <span className={`text-[10px] uppercase font-bold tracking-widest px-3 py-1 rounded-full border ${
+                                      c.status === 'ACTIVE' ? 'bg-secondary/20 border-secondary/50 text-secondary-fixed' : 'bg-error/20 border-error/50 text-error-container'
+                                    }`}>
+                                      {c.status === 'ACTIVE' ? 'Đang hiệu lực' : 'Đã kết thúc'}
+                                    </span>
+                                  </div>
+                                  <p className="text-base flex items-center gap-2 opacity-90 font-medium">
+                                    <span className="material-symbols-outlined text-[20px] text-primary-fixed-dim">location_on</span>
+                                    {c.room?.houseNumber ? `${c.room.houseNumber}, ` : ''}{c.room?.address}
+                                  </p>
+                                </div>
+                                <div className="bg-white/10 backdrop-blur-md text-white px-6 py-4 rounded-2xl border border-white/20 text-center min-w-[140px] shadow-2xl">
+                                  <p className="text-[10px] font-bold text-white/60 mb-1 uppercase tracking-widest">Giá thuê hàng tháng</p>
+                                  <p className="text-2xl font-black text-white leading-none">{Number(c.price || 0).toLocaleString('vi-VN')} <span className="text-sm font-normal">đ</span></p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Data & Actions Section */}
+                            <div className="p-8 bg-surface-container-lowest flex-1 flex flex-col justify-between">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2 text-on-surface-variant/60"><span className="material-symbols-outlined text-[18px]">calendar_month</span><p className="text-[11px] font-bold uppercase tracking-wider">Bắt đầu</p></div>
+                                  <p className="text-base text-on-surface font-bold pl-6">{c.startDate}</p>
+                                </div>
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2 text-on-surface-variant/60"><span className="material-symbols-outlined text-[18px]">event_available</span><p className="text-[11px] font-bold uppercase tracking-wider">Kết thúc</p></div>
+                                  <p className="text-base text-on-surface font-bold pl-6">{c.endDate}</p>
+                                </div>
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2 text-on-surface-variant/60"><span className="material-symbols-outlined text-[18px]">bed</span><p className="text-[11px] font-bold uppercase tracking-wider">Loại phòng</p></div>
+                                  <p className="text-base text-on-surface font-bold pl-6">{c.room?.roomType === 'WHOLE_HOUSE' ? 'Nhà nguyên căn' : 'Phòng trọ'}</p>
+                                </div>
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2 text-on-surface-variant/60"><span className="material-symbols-outlined text-[18px]">fingerprint</span><p className="text-[11px] font-bold uppercase tracking-wider">Mã phòng</p></div>
+                                  <p className="text-base text-on-surface font-bold pl-6">{c.room?.roomCode || 'N/A'}</p>
+                                </div>
+                              </div>
+
+                              {/* Action Buttons */}
+                              <div className="flex flex-col sm:flex-row items-center gap-4 pt-8 border-t border-outline-variant/30">
+                                <button 
+                                  onClick={() => setViewContract(c)}
+                                  className="w-full sm:w-auto bg-primary text-on-primary hover:bg-surface-tint transition-all px-8 py-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
+                                >
+                                  <span className="material-symbols-outlined text-[20px]">visibility</span>
+                                  Xem Hợp đồng điện tử
+                                </button>
+                                
+                                {c.status === 'ACTIVE' && !c.intendedMoveOutDate && (
+                                  <button 
+                                    onClick={() => setTerminateData({ contractId: c.id, moveOutDate: '', reason: '' }) || setShowTerminateModal(true)}
+                                    className="w-full sm:w-auto bg-surface-container-high hover:bg-error/10 hover:text-error hover:border-error transition-all border border-outline-variant text-on-surface-variant px-8 py-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 sm:ml-auto"
+                                  >
+                                    <span className="material-symbols-outlined text-[20px]">exit_to_app</span>
+                                    Báo trước dọn đi
+                                  </button>
+                                )}
+
+                                {c.status !== 'ACTIVE' && (
+                                  <button 
+                                    onClick={() => {
+                                      const existingReview = myReviews.find(r => r.contractId === c.id);
+                                      if (existingReview) {
+                                        setReviewData({ contractId: c.id, rating: existingReview.rating, comment: existingReview.comment, isAnonymous: existingReview.isAnonymous, landlordReply: existingReview.landlordReply });
+                                      } else {
+                                        setReviewData({ contractId: c.id, rating: 5, comment: '', isAnonymous: false, landlordReply: null });
+                                      }
+                                      setShowReviewModal(true);
+                                    }}
+                                    className="w-full sm:w-auto bg-tertiary text-on-tertiary hover:bg-tertiary/90 transition-all px-8 py-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 sm:ml-auto shadow-lg shadow-tertiary/20"
+                                  >
+                                    <span className="material-symbols-outlined text-[20px]">star</span>
+                                    {myReviews.some(r => r.contractId === c.id) ? 'Xem & Sửa đánh giá' : 'Đánh giá phòng'}
+                                  </button>
+                                )}
+                              </div>
+                              
+                              {/* Count-down to vacate */}
+                              {c.status === 'ACTIVE' && c.intendedMoveOutDate && (
+                                <div className="mt-6 bg-error-container/30 border border-error-container/50 p-6 rounded-2xl flex items-center justify-between gap-4 animate-pulse">
+                                  <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-full bg-error/20 flex items-center justify-center text-error">
+                                      <span className="material-symbols-outlined text-[28px]">pending_actions</span>
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-black text-error">Yêu cầu trả phòng đang xử lý</p>
+                                      <p className="text-xs text-on-error-container">Dự kiến dọn đi: <span className="font-bold">{c.intendedMoveOutDate}</span></p>
+                                    </div>
+                                  </div>
+                                  <button 
+                                    onClick={() => handleCancelTermination(c.id)}
+                                    className="bg-error text-on-error px-4 py-2 rounded-lg text-xs font-bold hover:scale-105 transition-all"
+                                  >
+                                    Hủy yêu cầu
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Amenities Bar */}
+                          <div className="bg-surface-container-low/50 rounded-2xl border border-outline-variant/30 p-6 flex flex-wrap justify-center md:justify-between items-center gap-8 shadow-inner">
+                            <div className="flex items-center gap-3 text-on-surface-variant">
+                              <div className="w-10 h-10 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-sm"><span className="material-symbols-outlined text-primary text-[20px]">wifi</span></div>
+                              <span className="text-sm font-bold opacity-80">Wifi tốc độ cao</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-on-surface-variant">
+                              <div className="w-10 h-10 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-sm"><span className="material-symbols-outlined text-primary text-[20px]">local_laundry_service</span></div>
+                              <span className="text-sm font-bold opacity-80">Máy giặt chung</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-on-surface-variant">
+                              <div className="w-10 h-10 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-sm"><span className="material-symbols-outlined text-primary text-[20px]">ac_unit</span></div>
+                              <span className="text-sm font-bold opacity-80">Điều hòa nhiệt độ</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-on-surface-variant">
+                              <div className="w-10 h-10 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-sm"><span className="material-symbols-outlined text-primary text-[20px]">security</span></div>
+                              <span className="text-sm font-bold opacity-80">An ninh 24/7</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Documents & Residence Side Panel (Right) */}
+                        <div className="flex flex-col gap-6">
+                          <div className="bg-surface-container-lowest rounded-3xl shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-outline-variant/30 p-8 flex flex-col h-full">
+                            <div className="flex items-center gap-4 mb-8 pb-6 border-b border-outline-variant/30">
+                              <div className="w-12 h-12 rounded-2xl bg-primary-fixed text-on-primary-fixed flex items-center justify-center shadow-sm">
+                                <span className="material-symbols-outlined text-[28px]" style={{ fontVariationSettings: "'FILL' 1" }}>folder_shared</span>
+                              </div>
+                              <div>
+                                <h3 className="text-xl font-bold text-on-surface leading-tight">Hồ sơ & Tài liệu</h3>
+                                <p className="text-xs text-on-surface-variant mt-1 font-medium">Bản ghi điện tử chính thức</p>
+                              </div>
+                            </div>
+
+                            <div className="space-y-4 flex-1">
+                              {/* Lease Agreement */}
+                              <div 
+                                onClick={() => setViewContract(c)}
+                                className="group relative flex items-center justify-between p-4 rounded-2xl border border-outline-variant/30 hover:border-primary hover:bg-primary/5 transition-all duration-300 cursor-pointer"
+                              >
+                                <div className="flex items-center gap-4">
+                                  <div className="w-10 h-10 rounded-full bg-surface-container-low flex items-center justify-center group-hover:bg-white transition-colors">
+                                    <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">contract</span>
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-bold text-on-surface group-hover:text-primary transition-colors">Hợp đồng thuê nhà</p>
+                                    <p className="text-[11px] text-on-surface-variant font-medium mt-0.5">E-PDF • Hiệu lực {c.startDate}</p>
+                                  </div>
+                                </div>
+                                <span className="material-symbols-outlined text-primary opacity-0 group-hover:opacity-100 transition-all text-[20px]">download</span>
+                              </div>
+
+                              {/* Residence Status Card */}
+                              <div className={`p-6 rounded-3xl border-2 transition-all duration-300 ${
+                                c.residenceStatus === 'REGISTERED' && editingResidenceId !== c.id 
+                                ? 'border-secondary/20 bg-secondary/5' 
+                                : 'border-tertiary-fixed/40 bg-tertiary-fixed/10'
+                              }`}>
+                                <div className="flex items-center justify-between mb-4">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`material-symbols-outlined text-[20px] ${c.residenceStatus === 'REGISTERED' ? 'text-secondary' : 'text-tertiary'}`}>
+                                      {c.residenceStatus === 'REGISTERED' ? 'verified_user' : 'report_problem'}
+                                    </span>
+                                    <h4 className="text-sm font-bold text-on-surface">Khai báo Tạm trú</h4>
+                                  </div>
+                                  {editingResidenceId === c.id && (
+                                    <button 
+                                      onClick={() => { setEditingResidenceId(null); setResidenceFiles(prev => ({ ...prev, [c.id]: [] })); }} 
+                                      className="text-[11px] font-bold text-error hover:underline"
+                                    >
+                                      Hủy bỏ
+                                    </button>
+                                  )}
+                                </div>
+
+                                {c.residenceStatus === 'REGISTERED' && editingResidenceId !== c.id ? (
+                                  <div className="space-y-4">
+                                    <div className="space-y-1">
+                                      <p className="text-[11px] font-bold text-on-surface-variant uppercase opacity-60">Nơi đăng ký</p>
+                                      <p className="text-sm font-bold text-on-surface">{c.residencePlace || 'Đã đăng ký'}</p>
+                                    </div>
+                                    <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                                      {(() => {
+                                        let resImages = [];
+                                        try { resImages = Array.isArray(c.residenceImage) ? c.residenceImage : JSON.parse(c.residenceImage || '[]'); } catch (e) { resImages = []; }
+                                        return resImages.map((img, idx) => (
+                                          <img 
+                                            key={idx} 
+                                            src={`http://localhost:5000/uploads/${img.replace(/uploads[\\\/]/, '')}`} 
+                                            alt="MC" 
+                                            className="w-14 h-14 rounded-lg object-cover border border-outline-variant/30 hover:scale-105 transition-transform cursor-pointer shadow-sm"
+                                            onClick={() => window.open(`http://localhost:5000/uploads/${img.replace(/uploads[\\\/]/, '')}`)}
+                                          />
+                                        ));
+                                      })()}
+                                    </div>
+                                    <button 
+                                      onClick={() => {
+                                        setEditingResidenceId(c.id);
+                                        setResidenceData(prev => ({ ...prev, [c.id]: { date: c.residenceDate || '', place: c.residencePlace || '' } }));
+                                      }}
+                                      className="w-full py-2.5 bg-secondary text-on-secondary text-xs font-bold rounded-xl shadow-md shadow-secondary/10 hover:bg-secondary/90 transition-all"
+                                    >
+                                      Cập nhật minh chứng
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <form onSubmit={(e) => handleUploadResidence(e, c.id)} className="space-y-3">
+                                    <input 
+                                      type="date" 
+                                      required
+                                      value={residenceData[c.id]?.date || ''} 
+                                      onChange={e => setResidenceData(prev => ({...prev, [c.id]: {...(prev[c.id] || {}), date: e.target.value}}))} 
+                                      className="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                                    />
+                                    <input 
+                                      type="text" 
+                                      required
+                                      placeholder="Cơ quan CA tiếp nhận..." 
+                                      value={residenceData[c.id]?.place || ''} 
+                                      onChange={e => setResidenceData(prev => ({...prev, [c.id]: {...(prev[c.id] || {}), place: e.target.value}}))} 
+                                      className="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-xs outline-none focus:ring-2 focus:ring-primary/20"
+                                    />
+                                    <div className="relative group">
+                                      <input 
+                                        type="file" multiple accept="image/*" 
+                                        onChange={(e) => setResidenceFiles(prev => ({ ...prev, [c.id]: Array.from(e.target.files) }))} 
+                                        className="w-full p-3 bg-white rounded-xl border border-dashed border-outline-variant group-hover:border-primary transition-all cursor-pointer text-[10px]"
+                                      />
+                                    </div>
+                                    <button 
+                                      type="submit" 
+                                      className="w-full py-3 bg-primary text-on-primary text-xs font-bold rounded-xl shadow-lg shadow-primary/20 hover:bg-surface-tint transition-all"
+                                    >
+                                      Gửi minh chứng
+                                    </button>
+                                  </form>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="mt-8 pt-6 border-t border-outline-variant/30">
+                              <div className="bg-surface-container-low p-4 rounded-2xl flex items-start gap-3">
+                                <span className="material-symbols-outlined text-primary text-[20px] mt-0.5">info</span>
+                                <p className="text-[11px] text-on-surface-variant leading-relaxed">
+                                  Nếu bạn cần thư giới thiệu hoặc xác nhận cư trú cho mục đích khác, vui lòng gửi yêu cầu hỗ trợ.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
-            </div>
             );
           })()}
 
@@ -1998,84 +2332,211 @@ const handleCreateRoom = async (e) => {
           
 {/* TAB 5: THANH TOÁN HÓA ĐƠN (GIAO DIỆN FULL CHIỀU RỘNG) */}
         {activeTab === 'TENANT_BILLS' && (() => {
-          
           const activeRoomId = selectedRoomId || 'ALL';
-
-          // Lọc hóa đơn theo phòng được chọn từ menu bên trái
-          const billsToDisplay = activeRoomId === 'ALL' 
-            ? tenantBills.sort((a, b) => b.id - a.id)
-            : tenantBills.filter(b => (b.roomNumberSnapshot || b.contract?.room?.roomNumber || 'Phòng đã xóa') === activeRoomId).sort((a, b) => b.id - a.id);
+          const filteredBills = activeRoomId === 'ALL' 
+            ? tenantBills 
+            : tenantBills.filter(b => (b.roomNumberSnapshot || b.contract?.room?.roomNumber || 'Phòng đã xóa') === activeRoomId);
+          
+          const sortedBills = [...filteredBills].sort((a, b) => b.id - a.id);
+          
+          // Calculate Summary Stats
+          const unpaidBills = sortedBills.filter(b => b.status === 'UNPAID');
+          const outstandingBalance = unpaidBills.reduce((sum, b) => sum + b.totalAmount, 0);
+          
+          const lastPaidBill = sortedBills.find(b => b.status === 'PAID');
+          const nextDueBill = unpaidBills[0]; // Assume first unpaid is next due
 
           return (
-            <div style={{ padding: '10px 30px' }}>
-              <h2 style={{ color: '#2563eb', textAlign: 'center', marginBottom: '20px', fontWeight: 'bold' }}>
-                Chi tiết hóa đơn - {activeRoomId === 'ALL' ? 'Tất cả phòng' : `Phòng ${tenantRoomsList.find(r => r.id === activeRoomId)?.roomNumber}`}
-              </h2>
-              <div style={{ borderBottom: '2px solid #2563eb', marginBottom: '40px', width: '100%' }}></div>
-              
-              {tenantRoomsList.length === 0 ? (
-                <p style={{ color: '#64748b', fontStyle: 'italic', textAlign: 'center', marginTop: '50px' }}>Bạn chưa có lịch sử hóa đơn nào trên hệ thống.</p>
-              ) : (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px', justifyContent: 'center' }}>
-                  {billsToDisplay.length === 0 ? (
-                    <p style={{ color: '#64748b', fontStyle: 'italic' }}>Không có dữ liệu hóa đơn.</p>
+            <div className="max-w-[1200px] mx-auto py-8 px-4 lg:px-8">
+              {/* Page Header */}
+              <div className="mb-10">
+                <h1 className="font-display-xl text-3xl font-bold text-on-surface mb-2">Thanh toán hóa đơn</h1>
+                <p className="font-body-lg text-on-surface-variant">Quản lý tiền thuê nhà và các hóa đơn dịch vụ của bạn.</p>
+              </div>
+
+              {/* Summary Cards (Bento Layout) */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                {/* Outstanding Balance */}
+                <div className="bg-surface-container-lowest rounded-3xl p-8 border border-outline-variant/30 shadow-[0px_4px_20px_rgba(0,0,0,0.03)] flex flex-col justify-between relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-error-container/20 rounded-bl-full -mr-8 -mt-8 transition-transform group-hover:scale-110"></div>
+                  <div>
+                    <div className="flex items-center gap-3 text-on-surface-variant mb-6">
+                      <span className="material-symbols-outlined text-error p-2 bg-error-container/30 rounded-xl">account_balance_wallet</span>
+                      <h2 className="font-headline-md text-lg font-bold">Số dư nợ</h2>
+                    </div>
+                    <p className="font-display-xl text-3xl font-black text-error mb-1 tracking-tight">
+                      {outstandingBalance.toLocaleString('vi-VN')} <span className="text-sm font-normal">đ</span>
+                    </p>
+                    <p className="font-body-sm text-sm text-on-surface-variant flex items-center gap-1">
+                      {unpaidBills.length > 0 ? (
+                        <>
+                          <span className="material-symbols-outlined text-[16px] text-error fill-1">warning</span>
+                          Có {unpaidBills.length} hóa đơn chưa đóng
+                        </>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined text-[16px] text-secondary fill-1">check_circle</span>
+                          Tất cả đã thanh toán
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  <div className="mt-8">
+                    <button 
+                      onClick={() => nextDueBill && setViewBillDetails(nextDueBill)}
+                      disabled={!nextDueBill}
+                      className="w-full bg-error text-on-error hover:bg-error/90 font-label-md text-sm py-4 rounded-xl transition-all shadow-lg shadow-error/20 disabled:opacity-30 disabled:shadow-none"
+                    >
+                      Thanh toán ngay
+                    </button>
+                  </div>
+                </div>
+
+                {/* Next Rent Due */}
+                <div className="bg-surface-container-lowest rounded-3xl p-8 border border-outline-variant/30 shadow-[0px_4px_20px_rgba(0,0,0,0.03)] flex flex-col justify-between group">
+                  <div>
+                    <div className="flex items-center gap-3 text-on-surface-variant mb-6">
+                      <span className="material-symbols-outlined text-primary p-2 bg-primary-fixed/30 rounded-xl">calendar_month</span>
+                      <h2 className="font-headline-md text-lg font-bold">Kỳ hạn tiếp theo</h2>
+                    </div>
+                    {nextDueBill ? (
+                      <>
+                        <p className="font-display-xl text-3xl font-black text-on-surface mb-1 tracking-tight">
+                          {nextDueBill.totalAmount.toLocaleString('vi-VN')} <span className="text-sm font-normal">đ</span>
+                        </p>
+                        <p className="font-body-sm text-sm text-on-surface-variant">Tháng {nextDueBill.month}/{nextDueBill.year}</p>
+                      </>
+                    ) : (
+                      <p className="text-on-surface-variant italic py-2">Chưa có kỳ hạn mới</p>
+                    )}
+                  </div>
+                  <div className="mt-8">
+                    <button 
+                      onClick={() => nextDueBill && setViewBillDetails(nextDueBill)}
+                      disabled={!nextDueBill}
+                      className="w-full bg-surface-container text-primary hover:bg-surface-container-high font-label-md text-sm py-4 rounded-xl transition-all border border-primary/10 disabled:opacity-30"
+                    >
+                      Xem chi tiết
+                    </button>
+                  </div>
+                </div>
+
+                {/* Last Payment */}
+                <div className="bg-surface-container-lowest rounded-3xl p-8 border border-outline-variant/30 shadow-[0px_4px_20px_rgba(0,0,0,0.03)] flex flex-col justify-between group">
+                  <div>
+                    <div className="flex items-center gap-3 text-on-surface-variant mb-6">
+                      <span className="material-symbols-outlined text-secondary p-2 bg-secondary-container/30 rounded-xl">check_circle</span>
+                      <h2 className="font-headline-md text-lg font-bold">Thanh toán gần nhất</h2>
+                    </div>
+                    {lastPaidBill ? (
+                      <>
+                        <p className="font-display-xl text-3xl font-black text-on-surface mb-1 tracking-tight">
+                          {lastPaidBill.totalAmount.toLocaleString('vi-VN')} <span className="text-sm font-normal">đ</span>
+                        </p>
+                        <p className="font-body-sm text-sm text-on-surface-variant">Đã thanh toán kỳ {lastPaidBill.month}/{lastPaidBill.year}</p>
+                      </>
+                    ) : (
+                      <p className="text-on-surface-variant italic py-2">Chưa có dữ liệu</p>
+                    )}
+                  </div>
+                  <div className="mt-8">
+                    <button 
+                      onClick={() => lastPaidBill && setViewBillDetails(lastPaidBill)}
+                      disabled={!lastPaidBill}
+                      className="w-full text-primary hover:text-surface-tint font-label-md text-sm py-4 rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-30"
+                    >
+                      Xem biên lai
+                      <span className="material-symbols-outlined text-[18px]">receipt_long</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Payment History List */}
+              <div>
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="font-display-xl text-2xl font-bold text-on-surface">Lịch sử thanh toán</h2>
+                  <div className="flex items-center gap-2 text-sm text-on-surface-variant">
+                    <span className="w-3 h-3 rounded-full bg-secondary"></span> Đã đóng
+                    <span className="w-3 h-3 rounded-full bg-error ml-2"></span> Nợ
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-6">
+                  {sortedBills.length === 0 ? (
+                    <div className="text-center py-20 bg-surface-container-lowest rounded-3xl border border-dashed border-outline-variant">
+                      <span className="material-symbols-outlined text-5xl text-outline mb-4 opacity-30">payments</span>
+                      <p className="text-on-surface-variant italic">Bạn chưa có dữ liệu hóa đơn nào.</p>
+                    </div>
                   ) : (
-                    billsToDisplay.map((bill) => (
-                      <div key={bill.id} style={{ border: '1px solid #e2e8f0', padding: '30px', borderRadius: '12px', width: '320px', background: '#ffffff', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        
-                        {/* NHÃN PHÂN LOẠI */}
-                        <div style={{ marginBottom: '20px' }}>
-                          {bill.billType === 'ROOM' ? (
-                            <span style={{ background: '#e0e7ff', color: '#3730a3', padding: '6px 16px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold' }}>🏠 HÓA ĐƠN TIỀN NHÀ</span>
-                          ) : bill.billType === 'UTILITY' ? (
-                            <span style={{ background: '#dcfce7', color: '#166534', padding: '6px 16px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold' }}>⚡ HÓA ĐƠN ĐIỆN NƯỚC</span>
-                          ) : (
-                            <span style={{ background: '#f1f5f9', color: '#475569', padding: '6px 16px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold' }}>🧾 HÓA ĐƠN TỔNG HỢP</span>
-                          )}
-                        </div>
-
-                        {/* THỜI GIAN VÀ THÔNG SỐ */}
-                        <h4 style={{ margin: '0 0 10px 0', color: '#0f172a', fontSize: '20px', fontWeight: 'bold' }}>Tháng {bill.month}/{bill.year}</h4>
-                        <div style={{ fontSize: '13px', color: '#475569', textAlign: 'center' }}>
-                          {bill.billType === 'ROOM' ? (
-                            <span style={{ fontStyle: 'italic' }}>Bao gồm tiền phòng & dịch vụ</span>
-                          ) : (
-                            <span>⚡ Điện: <strong>{bill.electricityUsage}</strong> ký <span style={{ margin: '0 8px', color: '#cbd5e1' }}>|</span> 💧 Nước: <strong>{bill.waterUsage}</strong> khối</span>
-                          )}
-                        </div>
-
-                        {/* ĐƯỜNG KẺ NÉT ĐỨT */}
-                        <div style={{ width: '100%', borderTop: '1px dashed #cbd5e1', margin: '25px 0' }}></div>
-
-                        {/* TỔNG TIỀN VÀ TRẠNG THÁI */}
-                        <div style={{ textAlign: 'center', marginBottom: '30px', width: '100%' }}>
-                          <div style={{ fontSize: '26px', fontWeight: 'bold', color: '#ef4444', marginBottom: '12px' }}>
-                            Tổng: {bill.totalAmount.toLocaleString('vi-VN')} đ
+                    sortedBills.map((bill) => (
+                      <div 
+                        key={bill.id} 
+                        className={`bg-surface-container-lowest rounded-3xl p-8 border-l-[6px] border-y border-r border-outline-variant/30 shadow-[0px_4px_20px_rgba(0,0,0,0.02)] flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 hover:border-primary/20 transition-all group ${
+                          bill.status === 'PAID' ? 'border-l-secondary' : 'border-l-error'
+                        }`}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-4 mb-4">
+                            <h3 className="font-headline-md text-xl font-bold text-on-surface">Tháng {bill.month}/{bill.year}</h3>
+                            {bill.status === 'PAID' ? (
+                              <span className="bg-secondary-container text-on-secondary-container font-label-md text-[11px] px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[14px] fill-1">check</span>
+                                Đã thanh toán
+                              </span>
+                            ) : bill.status === 'PENDING_CONFIRM' ? (
+                              <span className="bg-primary-fixed text-on-primary-fixed font-label-md text-[11px] px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[14px]">visibility</span>
+                                Chờ duyệt
+                              </span>
+                            ) : (
+                              <span className="bg-error-container text-on-error-container font-label-md text-[11px] px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[14px]">priority_high</span>
+                                Chưa thanh toán
+                              </span>
+                            )}
                           </div>
-                          <div style={{ fontSize: '14px', color: '#475569' }}>
-                            Trạng thái: {bill.status === 'PAID' 
-                              ? <span style={{ color: '#10b981', fontWeight: 'bold' }}>✅ Đã thanh toán</span> 
-                              : bill.status === 'PENDING_CONFIRM'
-                              ? <span style={{ color: '#2563eb', fontWeight: 'bold' }}>⏳ Đang chờ duyệt</span>
-                              : <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>⏳ Chưa thanh toán</span>}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 font-body-sm text-sm text-on-surface-variant">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[11px] font-bold uppercase tracking-wide opacity-60">Loại</span>
+                              <span className="text-on-surface font-bold text-base">
+                                {bill.billType === 'ROOM' ? '🏠 Tiền nhà' : bill.billType === 'UTILITY' ? '⚡ Điện nước' : '🧾 Tổng hợp'}
+                              </span>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[11px] font-bold uppercase tracking-wide opacity-60">Chỉ số Điện</span>
+                              <span className="text-on-surface font-medium">{bill.electricityUsage || '---'} ký</span>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[11px] font-bold uppercase tracking-wide opacity-60">Chỉ số Nước</span>
+                              <span className="text-on-surface font-medium">{bill.waterUsage || '---'} khối</span>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[11px] font-bold uppercase tracking-wide opacity-60">Ngày tạo</span>
+                              <span className="text-on-surface font-medium">{new Date(bill.createdAt).toLocaleDateString('vi-VN')}</span>
+                            </div>
                           </div>
                         </div>
-
-                        {/* CÁC NÚT BẤM */}
-                        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '12px', marginTop: 'auto' }}>
+                        <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between w-full lg:w-auto gap-6 border-t lg:border-t-0 border-outline-variant/30 pt-6 lg:pt-0">
+                          <div className="text-left lg:text-right">
+                            <span className="block text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-1 opacity-60">Tổng cộng</span>
+                            <span className={`font-display-xl text-2xl font-black ${bill.status === 'PAID' ? 'text-on-surface' : 'text-error'}`}>
+                              {bill.totalAmount.toLocaleString('vi-VN')} <span className="text-sm font-normal">đ</span>
+                            </span>
+                          </div>
                           <button 
-                            onClick={() => setViewBillDetails(bill)} 
-                            style={{ width: '100%', padding: '12px', background: '#3b82f6', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}
+                            onClick={() => setViewBillDetails(bill)}
+                            className="bg-primary text-on-primary hover:bg-surface-tint font-label-md text-sm px-6 py-3 rounded-xl transition-all shadow-lg shadow-primary/10 flex items-center gap-2 whitespace-nowrap"
                           >
-                            📄 Xem chi tiết hóa đơn
+                            Xem chi tiết
+                            <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                           </button>
                         </div>
-
                       </div>
                     ))
                   )}
                 </div>
-              )}
+              </div>
             </div>
           );
         })()}
@@ -2083,91 +2544,112 @@ const handleCreateRoom = async (e) => {
 
           {/* TAB: QUẢN LÝ HÓA ĐƠN (Dành cho Chủ nhà) */}
           {activeTab === 'LANDLORD_BILLS' && (
-            <div>
-              <h2 style={{ marginTop: 0, color: '#0f172a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                Quản lý Hóa Đơn & Thu Tiền
-                <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#475569' }}>
-                  Tổng số: <strong>{bills.length}</strong> hóa đơn
-                </span>
-              </h2>
+            <div className="p-0">
+              {/* Page Header */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 mt-4 gap-4">
+                <div>
+                  <h2 className="font-display-xl text-3xl font-bold text-on-surface">Quản lý Hóa Đơn & Thu Tiền</h2>
+                  <p className="font-body-md text-on-surface-variant mt-1">Quản lý toàn bộ hóa đơn tiền phòng, dịch vụ và theo dõi trạng thái thanh toán.</p>
+                </div>
+                <div className="bg-surface-container-lowest border border-outline-variant/30 px-5 py-2.5 rounded-full flex items-center gap-2.5 self-start md:self-auto shadow-sm">
+                  <span className="text-label-md font-bold text-on-surface-variant">Tổng số:</span>
+                  <span className="text-label-md font-black text-primary bg-primary/10 px-2.5 py-0.5 rounded-md">{bills.length}</span>
+                </div>
+              </div>
               
-              <div style={{ overflowX: 'auto', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+              <div className="bg-surface-container-lowest rounded-3xl overflow-hidden shadow-[0px_4px_20px_rgba(0,0,0,0.05)] border border-outline-variant/30 transition-all">
                 {bills.length === 0 ? (
-                  <div style={{ background: '#ffffff', padding: '20px' }}>
-                    <p style={{ color: '#64748b', fontStyle: 'italic', textAlign: 'center', margin: '20px 0' }}>
-                      Chưa có hóa đơn nào được tạo trên hệ thống.
-                    </p>
+                  <div className="text-center py-20 bg-surface-container-lowest rounded-3xl border border-dashed border-outline-variant m-8">
+                    <span className="material-symbols-outlined text-5xl text-outline mb-4 opacity-30">receipt_long</span>
+                    <p className="text-on-surface-variant italic font-medium">Chưa có hóa đơn nào được tạo trên hệ thống.</p>
                   </div>
                 ) : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', background: '#ffffff' }}>
+                  <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
                     <thead>
-                      <tr style={{ background: '#1e293b', color: '#ffffff' }}>
-                        <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600' }}>Phòng</th>
-                        <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600' }}>Kỳ Hóa Đơn</th>
-                        <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600' }}>Khách Thuê</th>
-                        <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Loại Hóa Đơn</th>
-                        <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Trạng Thái</th>
-                        <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Hành động</th>
+                      <tr className="border-b border-outline-variant bg-surface-container-low/50">
+                        <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold w-2/5">Phòng / Căn</th>
+                        <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold w-[15%]">Kỳ Hóa Đơn</th>
+                        <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold w-[15%]">Khách Thuê</th>
+                        <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold text-center w-[15%]">Loại Hóa Đơn</th>
+                        <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold text-center w-[15%]">Trạng Thái</th>
+                        <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold text-center w-[10%]">Hành động</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {/* Sắp xếp hóa đơn mới nhất lên đầu */}
                       {[...bills].reverse().map(bill => (
-                        <tr key={bill.id} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background-color 0.2s' }}>
+                        <tr key={bill.id} className="hover:bg-surface-container-low/30 transition-colors group border-b border-outline-variant/30 last:border-0">
                           
-                          {/* 1. Cột Phòng (Ưu tiên dùng Snapshot) */}
-                          <td style={{ padding: '16px', fontWeight: '600', color: '#2563eb' }}>
-                            {bill.roomNumberSnapshot || (bill.contract?.room ? `P.${bill.contract.room.roomNumber}` : 'Phòng đã xóa')}
+                          <td className="py-4 px-8">
+                            <div className="font-bold text-primary group-hover:text-surface-tint text-base">
+                                {(() => {
+                                    const base = bill.roomNumberSnapshot || bill.contract?.room?.roomNumber || 'Phòng đã xóa';
+                                    const isWhole = (bill.contract?.room?.roomType === 'WHOLE_HOUSE' || /nhà|căn/i.test(base));
+                                    const typeLabel = isWhole ? 'Nhà nguyên căn' : 'Phòng trọ';
+                                    if (/phòng|nhà|căn/i.test(base)) return base;
+                                    return `${typeLabel} ${base}`;
+                                })()}
+                            </div>
+                            <div className="text-[11px] font-bold text-on-surface-variant opacity-50 uppercase tracking-wider mt-1">
+                              Mã: {bill.roomCodeSnapshot || bill.contract?.room?.roomCode || 'N/A'}
+                            </div>
                           </td>
                           
-                          {/* 2. Cột Kỳ Hóa Đơn (Giữ nguyên) */}
-                          <td style={{ padding: '16px', fontWeight: '600', color: '#0f172a' }}>
-                            Tháng {bill.month}/{bill.year}
+                          <td className="py-4 px-8">
+                            <div className="font-bold text-on-surface text-base">Tháng {bill.month}/{bill.year}</div>
                           </td>
                           
-                          
-                          {/* 3. Cột Khách Thuê (Ưu tiên dùng Snapshot) */}
-                          <td style={{ padding: '16px', color: '#475569', fontWeight: '500' }}>
-                            <span style={{ fontWeight: '600', color: '#0f172a' }}>{bill.tenantNameSnapshot || bill.contract?.tenantName || bill.contract?.tenant?.fullName || 'Khách cũ'}</span> <br/>
-                            {bill.contract?.tenantEmail || '...'} <br/>
-                            SĐT: {bill.contract?.tenantPhone || bill.contract?.tenant?.phone || '...'}
+                          <td className="py-4 px-8">
+                            <div className="font-bold text-on-surface text-sm">{bill.tenantNameSnapshot || bill.contract?.tenantName || bill.contract?.tenant?.fullName || 'Khách cũ'}</div>
+                            <div className="text-xs text-on-surface-variant font-medium mt-0.5">{bill.contract?.tenantEmail || '...'}</div>
+                            <div className="text-[11px] text-on-surface-variant font-medium opacity-70">SĐT: {bill.contract?.tenantPhone || bill.contract?.tenant?.phone || '...'}</div>
                           </td>
                           
-                          {/* 4. Cột Loại Hóa Đơn */}
-                          <td style={{ padding: '16px', textAlign: 'center' }}>
+                          <td className="py-4 px-8 text-center">
                             {bill.billType === 'ROOM' ? (
-                               <span style={{ background: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', display: 'inline-block' }}>
-                              🏠 Tiền phòng
-                              </span>
+                               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary-container text-on-secondary-container font-label-md text-[11px] font-bold uppercase tracking-wider border border-secondary/20">
+                               <span className="material-symbols-outlined text-[14px]">home</span>
+                               Tiền phòng
+                               </span>
                             ) : bill.billType === 'UTILITY' ? (
-                              <span style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', display: 'inline-block' }}>
-                              ⚡ Tiền điện nước
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tertiary-container text-on-tertiary-container font-label-md text-[11px] font-bold uppercase tracking-wider border border-tertiary/20">
+                              <span className="material-symbols-outlined text-[14px]">bolt</span>
+                              Tiền điện nước
                               </span>
                             ) : (
-                              <span style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 'bold', display: 'inline-block' }}>
-                              🧾 Tổng hợp
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-container text-on-surface font-label-md text-[11px] font-bold uppercase tracking-wider border border-outline-variant/30">
+                              <span className="material-symbols-outlined text-[14px]">receipt_long</span>
+                              Tổng hợp
                               </span>
                             )}
                           </td>
                           
-                          {/* 5. Cột Trạng Thái */}
-                          <td style={{ padding: '16px', textAlign: 'center' }}>
+                          <td className="py-4 px-8 text-center">
                             {bill.status === 'PAID' ? (
-                              <div style={{ background: '#dcfce7', color: '#166534', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', display: 'inline-block' }}>✅ Đã thu tiền</div>
+                              <span className="inline-flex items-center px-3 py-1 rounded-full bg-secondary-container/50 text-secondary font-label-md text-[11px] font-bold uppercase tracking-wider border border-secondary/30 gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                                Đã thu tiền
+                              </span>
                             ) : bill.status === 'PENDING_CONFIRM' ? (
-                              <div style={{ background: '#dbeafe', color: '#1e40af', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', display: 'inline-block', border: '1px solid #bfdbfe' }}>👀 Chờ kiểm duyệt</div>
+                              <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary-container/50 text-primary font-label-md text-[11px] font-bold uppercase tracking-wider border border-primary/30 gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                                Chờ duyệt
+                              </span>
                             ) : (
-                              <div style={{ background: '#fef3c7', color: '#92400e', padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', display: 'inline-block' }}>⏳ Chờ thanh toán</div>
+                              <span className="inline-flex items-center px-3 py-1 rounded-full bg-error-container/50 text-error font-label-md text-[11px] font-bold uppercase tracking-wider border border-error/30 gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-error"></span>
+                                Chờ thanh toán
+                              </span>
                             )}
                           </td>
 
-                          {/* 6. Cột Hành Động */}
-                          <td style={{ padding: '16px', textAlign: 'center' }}>
+                          <td className="py-4 px-8 text-center">
                             <button 
                               onClick={() => setViewBillDetails(bill)} 
-                              style={{ padding: '6px 15px', background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px', margin: '0 auto' }}
+                              className="bg-primary/10 text-primary hover:bg-primary hover:text-white font-label-md text-[12px] px-4 py-2 rounded-xl transition-all font-bold flex items-center justify-center gap-2 mx-auto"
                             >
-                              📄 Xem Hóa Đơn
+                              <span className="material-symbols-outlined text-[16px]">visibility</span>
+                              Xem
                             </button>
                           </td>
 
@@ -2175,6 +2657,7 @@ const handleCreateRoom = async (e) => {
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 )}
               </div>
             </div>
@@ -2230,6 +2713,8 @@ const handleCreateRoom = async (e) => {
                 id: rName,
                 roomNumber: rName, 
                 address: bill.contract?.room?.address || '', 
+                roomType: bill.contract?.room?.roomType || 'SINGLE',
+                roomCode: bill.roomCodeSnapshot || bill.contract?.room?.roomCode || '',
                 bills: [], 
                 incidentCosts: [],
                 roomTotalRevenue: 0 
@@ -2255,6 +2740,8 @@ const handleCreateRoom = async (e) => {
                 id: targetKey,
                 roomNumber: targetKey,
                 address: inc.room?.address || '',
+                roomType: inc.room?.roomType || 'SINGLE',
+                roomCode: inc.room?.roomCode || '',
                 bills: [],
                 incidentCosts: [],
                 roomTotalRevenue: 0
@@ -2277,135 +2764,222 @@ const handleCreateRoom = async (e) => {
           }
 
           return (
-            <div>
+            <div className="p-0">
+              {/* Page Header */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 mt-4 gap-4">
+                <div>
+                  <h2 className="font-display-xl text-3xl font-bold text-on-surface">Báo cáo Doanh Thu</h2>
+                  <p className="font-body-md text-on-surface-variant mt-1">Theo dõi dòng tiền, phân tích thu chi và hiệu quả kinh doanh.</p>
+                </div>
+              </div>
+
               {/* THANH TÌM KIẾM & BỘ LỌC */}
-              <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', alignItems: 'center', background: '#ffffff', padding: '15px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                <div style={{ flex: '1 1 300px', position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: '15px', top: '10px' }}>📍</span>
+              <div className="bg-surface-container-lowest p-6 rounded-[2rem] shadow-[0px_4px_20px_rgba(0,0,0,0.05)] border border-outline-variant/30 flex flex-col lg:flex-row gap-6 items-center mb-8">
+                <div className="relative w-full lg:flex-1 group">
+                  <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors text-[22px]">search</span>
                   <input 
                     type="text" 
                     placeholder="Tìm theo số phòng, số nhà, ngõ, phường..." 
                     value={reportSearch}
                     onChange={(e) => setReportSearch(e.target.value)}
-                    style={{ width: '100%', padding: '10px 10px 10px 40px', borderRadius: '6px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#0f172a', boxSizing: 'border-box' }} 
+                    className="w-full pl-14 pr-4 py-4 bg-surface-container-low border border-outline-variant/50 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all outline-none placeholder:opacity-50"
                   />
                 </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <select value={reportMonth} onChange={(e) => setReportMonth(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', color: '#0f172a', cursor: 'pointer' }}>
-                    <option value="ALL">Cả năm</option>
-                    {[...Array(12)].map((_, i) => <option key={i+1} value={i+1}>Tháng {i+1}</option>)}
-                  </select>
-                  <select value={reportYear} onChange={(e) => setReportYear(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff', color: '#0f172a', cursor: 'pointer' }}>
-                    <option value="ALL">Tất cả các năm</option>
-                    <option value="2026">Năm 2026</option>
-                    <option value="2025">Năm 2025</option>
-                    <option value="2024">Năm 2024</option>
-                  </select>
+                <div className="flex flex-wrap w-full lg:w-auto gap-4">
+                  <div className="relative flex-1 lg:flex-none">
+                    <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[20px]">calendar_month</span>
+                    <select 
+                      value={reportMonth} 
+                      onChange={(e) => setReportMonth(e.target.value)} 
+                      className="w-full appearance-none pl-12 pr-10 py-4 bg-surface-container-low border border-outline-variant/50 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all outline-none cursor-pointer"
+                    >
+                      <option value="ALL">Cả năm</option>
+                      {[...Array(12)].map((_, i) => <option key={i+1} value={i+1}>Tháng {i+1}</option>)}
+                    </select>
+                    <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
+                  </div>
+                  <div className="relative flex-1 lg:flex-none">
+                    <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-[20px]">calendar_today</span>
+                    <select 
+                      value={reportYear} 
+                      onChange={(e) => setReportYear(e.target.value)} 
+                      className="w-full appearance-none pl-12 pr-10 py-4 bg-surface-container-low border border-outline-variant/50 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all outline-none cursor-pointer"
+                    >
+                      <option value="ALL">Tất cả các năm</option>
+                      <option value="2026">Năm 2026</option>
+                      <option value="2025">Năm 2025</option>
+                      <option value="2024">Năm 2024</option>
+                    </select>
+                    <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
+                  </div>
                 </div>
               </div>
 
-              <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#0f172a', marginBottom: '20px', textAlign: 'center' }}>
-                📊 Báo cáo Doanh thu Chi tiết
-              </h2>
+              {/* 5 THẺ TỔNG QUAN (Metrics Bento Grid) */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6 mb-10">
+                <div className="bg-surface-container-lowest rounded-3xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-outline-variant/30 flex flex-col justify-between group hover:border-primary/30 transition-all col-span-2 md:col-span-1 lg:col-span-1 relative overflow-hidden">
+                  <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+                  <div className="relative z-10">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                      <span className="material-symbols-outlined text-[20px]">account_balance</span>
+                    </div>
+                    <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-60">Tổng Doanh Thu</p>
+                    <h3 className="text-2xl lg:text-xl xl:text-2xl font-black text-primary mt-1 tracking-tight">{grandTotalRevenue.toLocaleString('vi-VN')} đ</h3>
+                    <p className="text-[10px] text-on-surface-variant mt-2 font-medium opacity-60">= Phòng + Điện nước - Chi phí</p>
+                  </div>
+                </div>
 
-              {/* 5 THẺ TỔNG QUAN */}
-              <div style={{ display: 'flex', gap: '12px', marginBottom: '30px', flexWrap: 'wrap' }}>
-                <div style={{ flex: 1, minWidth: '140px', background: '#ffffff', padding: '15px', borderRadius: '12px', borderLeft: '4px solid #2563eb', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                  <div style={{ color: '#475569', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>Tổng Doanh Thu</div>
-                  <div style={{ color: '#2563eb', fontSize: '20px', fontWeight: 'bold', marginTop: '5px' }}>{grandTotalRevenue.toLocaleString('vi-VN')} đ</div>
-                  <div style={{ color: '#64748b', fontSize: '10px', marginTop: '3px' }}>= Phòng + Điện nước - Chi phí</div>
+                <div className="bg-surface-container-lowest rounded-3xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-outline-variant/30 flex flex-col justify-between group hover:border-secondary/30 transition-all relative overflow-hidden">
+                   <div className="absolute -right-4 -top-4 w-24 h-24 bg-secondary/5 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+                   <div className="relative z-10">
+                    <div className="w-10 h-10 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                      <span className="material-symbols-outlined text-[20px]">real_estate_agent</span>
+                    </div>
+                    <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-60">Từ Tiền Phòng</p>
+                    <h3 className="text-2xl lg:text-xl xl:text-2xl font-black text-secondary mt-1 tracking-tight">{totalRoomRevenue.toLocaleString('vi-VN')} đ</h3>
+                   </div>
                 </div>
-                <div style={{ flex: 1, minWidth: '140px', background: '#ffffff', padding: '15px', borderRadius: '12px', borderLeft: '4px solid #10b981', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                  <div style={{ color: '#475569', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>Từ Tiền Phòng</div>
-                  <div style={{ color: '#10b981', fontSize: '20px', fontWeight: 'bold', marginTop: '5px' }}>{totalRoomRevenue.toLocaleString('vi-VN')} đ</div>
+
+                <div className="bg-surface-container-lowest rounded-3xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-outline-variant/30 flex flex-col justify-between group hover:border-tertiary/30 transition-all relative overflow-hidden">
+                   <div className="absolute -right-4 -top-4 w-24 h-24 bg-tertiary/5 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+                   <div className="relative z-10">
+                    <div className="w-10 h-10 rounded-xl bg-tertiary/10 text-tertiary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                      <span className="material-symbols-outlined text-[20px]">bolt</span>
+                    </div>
+                    <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-60">Từ Điện Nước</p>
+                    <h3 className="text-2xl lg:text-xl xl:text-2xl font-black text-tertiary mt-1 tracking-tight">{totalUtilityRevenue.toLocaleString('vi-VN')} đ</h3>
+                   </div>
                 </div>
-                <div style={{ flex: 1, minWidth: '140px', background: '#ffffff', padding: '15px', borderRadius: '12px', borderLeft: '4px solid #0ea5e9', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                  <div style={{ color: '#475569', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>Từ Điện Nước</div>
-                  <div style={{ color: '#0ea5e9', fontSize: '20px', fontWeight: 'bold', marginTop: '5px' }}>{totalUtilityRevenue.toLocaleString('vi-VN')} đ</div>
+
+                <div className="bg-surface-container-lowest rounded-3xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-outline-variant/30 flex flex-col justify-between group hover:border-error/30 transition-all relative overflow-hidden">
+                   <div className="absolute -right-4 -top-4 w-24 h-24 bg-error/5 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+                   <div className="relative z-10">
+                    <div className="w-10 h-10 rounded-xl bg-error/10 text-error flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                      <span className="material-symbols-outlined text-[20px]">warning</span>
+                    </div>
+                    <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-60">Khách Đang Nợ</p>
+                    <h3 className="text-2xl lg:text-xl xl:text-2xl font-black text-error mt-1 tracking-tight">{grandTotalDebt.toLocaleString('vi-VN')} đ</h3>
+                   </div>
                 </div>
-                <div style={{ flex: 1, minWidth: '140px', background: '#ffffff', padding: '15px', borderRadius: '12px', borderLeft: '4px solid #ef4444', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                  <div style={{ color: '#475569', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>Khách Đang Nợ</div>
-                  <div style={{ color: '#ef4444', fontSize: '20px', fontWeight: 'bold', marginTop: '5px' }}>{grandTotalDebt.toLocaleString('vi-VN')} đ</div>
-                </div>
-                <div style={{ flex: 1, minWidth: '140px', background: '#ffffff', padding: '15px', borderRadius: '12px', borderLeft: '4px solid #f97316', textAlign: 'center', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-                  <div style={{ color: '#475569', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>Chi Phí Phát Sinh</div>
-                  <div style={{ color: '#f97316', fontSize: '20px', fontWeight: 'bold', marginTop: '5px' }}>{totalRepairCost.toLocaleString('vi-VN')} đ</div>
-                  <div style={{ color: '#64748b', fontSize: '10px', marginTop: '3px' }}>{filteredIncidents.length} sự cố</div>
+
+                <div className="bg-surface-container-lowest rounded-3xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-outline-variant/30 flex flex-col justify-between group hover:border-[#f97316]/30 transition-all relative overflow-hidden">
+                   <div className="absolute -right-4 -top-4 w-24 h-24 bg-[#f97316]/5 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+                   <div className="relative z-10">
+                    <div className="w-10 h-10 rounded-xl bg-[#f97316]/10 text-[#f97316] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                      <span className="material-symbols-outlined text-[20px]">handyman</span>
+                    </div>
+                    <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-60">Chi Phí Phát Sinh</p>
+                    <h3 className="text-2xl lg:text-xl xl:text-2xl font-black text-[#f97316] mt-1 tracking-tight">{totalRepairCost.toLocaleString('vi-VN')} đ</h3>
+                    <p className="text-[10px] text-on-surface-variant mt-2 font-medium opacity-60">{filteredIncidents.length} sự cố</p>
+                   </div>
                 </div>
               </div>
 
               {/* DANH SÁCH TỪNG PHÒNG (ACCORDION VIEW) */}
-              <div>
+              <div className="flex flex-col gap-6">
                 {reportData.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '40px', background: '#ffffff', borderRadius: '12px', color: '#64748b' }}>Không tìm thấy phòng nào phù hợp!</div>
+                  <div className="text-center py-20 bg-surface-container-lowest rounded-3xl border border-dashed border-outline-variant">
+                    <span className="material-symbols-outlined text-5xl text-outline mb-4 opacity-30">analytics</span>
+                    <p className="text-on-surface-variant italic font-medium">Không tìm thấy dữ liệu phòng nào phù hợp.</p>
+                  </div>
                 ) : (
                   reportData.map((room, index) => (
-                    <div key={room.id} style={{ marginBottom: '20px' }}>
+                    <div key={room.id} className="bg-surface-container-lowest rounded-3xl overflow-hidden shadow-[0px_4px_20px_rgba(0,0,0,0.05)] border border-outline-variant/30 transition-all">
                       
                       <div 
                         onClick={() => toggleRoomAccordion(room.id)}
-                        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px 20px', cursor: 'pointer', background: '#f8fafc', borderRadius: expandedRooms[room.id] ? '8px 8px 0 0' : '8px', border: '1px solid #e2e8f0', transition: '0.3s' }}
+                        className={`px-8 py-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 cursor-pointer transition-all ${expandedRooms[room.id] ? 'bg-surface-container-low/50' : 'hover:bg-surface-container-low/30'}`}
                       >
-                        <h3 style={{ fontSize: '18px', margin: 0, color: '#0f172a' }}>
-                          {index + 1}. {room.roomNumber} - {room.houseNumber ? `${room.houseNumber}, ` : ''}{room.address}
-                          <span style={{ fontSize: '14px', marginLeft: '10px', color: '#475569' }}>
-                            {expandedRooms[room.id] ? '▲' : '▼'}
-                          </span>
-                        </h3>
-                        <div style={{ fontWeight: 'bold', color: room.roomTotalRevenue > 0 ? '#10b981' : '#64748b' }}>
-                          {room.roomTotalRevenue > 0 ? `Đã thu: ${room.roomTotalRevenue.toLocaleString('vi-VN')} đ` : 'Chưa có doanh thu'}
+                        <div className="flex items-center gap-6">
+                          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                              <span className="material-symbols-outlined text-[24px] font-bold">room_preferences</span>
+                          </div>
+                          <div className="min-w-0">
+                              <h3 className="font-headline-md text-xl font-black text-on-surface flex items-center gap-2">
+                                {index + 1}. {(() => {
+                                  const isWhole = room.roomType === 'WHOLE_HOUSE' || /nhà|căn/i.test(room.roomNumber);
+                                  const typeLabel = isWhole ? 'Nhà nguyên căn' : 'Phòng trọ';
+                                  const rNum = room.roomNumber;
+                                  const displayName = /phòng|nhà|căn/i.test(rNum) ? rNum : `${typeLabel} ${rNum}`;
+                                  return room.roomCode ? `${displayName} [${room.roomCode}]` : displayName;
+                                })()}
+                              </h3>
+                              <p className="text-xs font-bold text-on-surface-variant opacity-60 flex items-center gap-1 mt-1">
+                                  <span className="material-symbols-outlined text-[16px]">location_on</span> {room.address || 'Không có địa chỉ'}
+                              </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-6 self-end sm:self-auto w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 border-outline-variant/30 pt-4 sm:pt-0 mt-2 sm:mt-0">
+                          <div className="text-left sm:text-right">
+                            <span className="block text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-1 opacity-60">Đã thu kỳ này</span>
+                            <span className={`text-xl font-black ${room.roomTotalRevenue > 0 ? 'text-secondary' : 'text-on-surface-variant opacity-50'}`}>
+                              {room.roomTotalRevenue > 0 ? `${room.roomTotalRevenue.toLocaleString('vi-VN')} đ` : '0 đ'}
+                            </span>
+                          </div>
+                          <div className={`w-8 h-8 flex items-center justify-center rounded-full bg-surface-container transition-all ${expandedRooms[room.id] ? 'rotate-180 bg-primary/10 text-primary' : 'text-on-surface-variant'}`}>
+                            <span className="material-symbols-outlined text-[20px]">keyboard_arrow_down</span>
+                          </div>
                         </div>
                       </div>
 
                       {expandedRooms[room.id] && (
-                        <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderTop: 'none', borderRadius: '0 0 8px 8px', overflow: 'hidden' }}>
-                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-                            <thead style={{ background: '#1e293b', color: '#ffffff' }}>
+                        <div className="overflow-x-auto border-t border-outline-variant/30">
+                          <table className="w-full text-left border-collapse">
+                            <thead className="border-b border-outline-variant bg-surface-container-low/50">
                               <tr>
-                                <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600' }}>Kỳ Hóa Đơn</th>
-                                <th style={{ padding: '16px', textAlign: 'left', fontWeight: '600' }}>Khách Thuê</th>
-                                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Loại Hóa Đơn</th>
-                                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Trạng Thái</th>
-                                <th style={{ padding: '16px', textAlign: 'center', fontWeight: '600' }}>Hành động</th>
+                                <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold">Kỳ Hóa Đơn</th>
+                                <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold">Khách Thuê</th>
+                                <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold text-center">Loại / Hạng Mục</th>
+                                <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold text-center">Trạng Thái</th>
+                                <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold text-center w-[15%]">Hành động</th>
                               </tr>
                             </thead>
                             <tbody>
                               {/* HÀNG HÓA ĐƠN THÔNG THƯỜNG */}
                               {room.bills.map((bill, bIdx) => (
-                                <tr key={bill.id} style={{ borderBottom: '1px solid #e2e8f0', background: '#ffffff', transition: 'background-color 0.2s' }}>
-                                  <td style={{ padding: '16px', color: '#0f172a', fontWeight: '600' }}>
-                                    Tháng {bill.month}/{bill.year}
+                                <tr key={bill.id} className="hover:bg-surface-container-low/30 transition-colors group border-b border-outline-variant/30 last:border-0">
+                                  <td className="py-4 px-8">
+                                    <div className="font-bold text-on-surface text-base">Tháng {bill.month}/{bill.year}</div>
                                   </td>
-                                  <td style={{ padding: '16px' }}>
-                                    <span style={{ fontWeight: '600', color: '#0f172a' }}>{bill.contract?.tenantName || bill.contract?.tenant?.fullName || 'Không rõ'}</span> <br/>
-                                    <span style={{ color: '#475569', fontSize: '12px' }}>{bill.contract?.tenantEmail}</span> <br/>
-                                    <span style={{ color: '#64748b', fontSize: '12px' }}>SĐT: {bill.contract?.tenantPhone || bill.contract?.tenant?.phone || '...'}</span>
+                                  <td className="py-4 px-8">
+                                    <div className="font-bold text-on-surface text-sm">{bill.contract?.tenantName || bill.contract?.tenant?.fullName || 'Không rõ'}</div>
+                                    <div className="text-xs text-on-surface-variant font-medium mt-0.5">{bill.contract?.tenantEmail || '...'}</div>
+                                    <div className="text-[11px] text-on-surface-variant font-medium opacity-70">SĐT: {bill.contract?.tenantPhone || bill.contract?.tenant?.phone || '...'}</div>
                                   </td>
-                                  <td style={{ padding: '16px', textAlign: 'center' }}>
-                                    <span style={{ 
-                                      background: bill.billType === 'UTILITY' ? '#dcfce7' : '#e0e7ff', 
-                                      color: bill.billType === 'UTILITY' ? '#166534' : '#3730a3',
-                                      border: `1px solid ${bill.billType === 'UTILITY' ? '#bbf7d0' : '#c7d2fe'}`,
-                                      padding: '4px 10px', borderRadius: '15px', fontSize: '12px', fontWeight: 'bold' 
-                                    }}>
-                                      {bill.billType === 'UTILITY' ? '⚡ Tiền điện nước' : '🏠 Tiền phòng'}
-                                    </span>
+                                  <td className="py-4 px-8 text-center">
+                                    {bill.billType === 'UTILITY' ? (
+                                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-tertiary-container text-on-tertiary-container font-label-md text-[11px] font-bold uppercase tracking-wider border border-tertiary/20">
+                                      <span className="material-symbols-outlined text-[14px]">bolt</span>
+                                      Tiền điện nước
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary-container text-on-secondary-container font-label-md text-[11px] font-bold uppercase tracking-wider border border-secondary/20">
+                                      <span className="material-symbols-outlined text-[14px]">home</span>
+                                      Tiền phòng
+                                      </span>
+                                    )}
                                   </td>
-                                  <td style={{ padding: '16px', textAlign: 'center' }}>
-                                    <span style={{ 
-                                      background: bill.status === 'PAID' ? '#dcfce7' : '#fef3c7', 
-                                      color: bill.status === 'PAID' ? '#166534' : '#92400e', 
-                                      padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', border: `1px solid ${bill.status === 'PAID' ? '#bbf7d0' : '#fde68a'}`
-                                    }}>
-                                      {bill.status === 'PAID' ? '✅ Đã thu tiền' : '⏳ Chờ thanh toán'}
-                                    </span>
+                                  <td className="py-4 px-8 text-center">
+                                    {bill.status === 'PAID' ? (
+                                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-secondary-container/50 text-secondary font-label-md text-[11px] font-bold uppercase tracking-wider border border-secondary/30 gap-1.5">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                                        Đã thu tiền
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-error-container/50 text-error font-label-md text-[11px] font-bold uppercase tracking-wider border border-error/30 gap-1.5">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-error"></span>
+                                        Chờ thanh toán
+                                      </span>
+                                    )}
                                   </td>
-                                  <td style={{ padding: '16px', textAlign: 'center' }}>
+                                  <td className="py-4 px-8 text-center">
                                     <button 
                                       onClick={() => setViewBillDetails(bill)} 
-                                      style={{ background: '#0ea5e9', color: '#ffffff', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                                      className="bg-primary/10 text-primary hover:bg-primary hover:text-white font-label-md text-[12px] px-4 py-2 rounded-xl transition-all font-bold flex items-center justify-center gap-2 mx-auto"
                                     >
-                                      📄 Xem Hóa Đơn
+                                      <span className="material-symbols-outlined text-[16px]">visibility</span>
+                                      Xem Hóa Đơn
                                     </button>
                                   </td>
                                 </tr>
@@ -2417,31 +2991,34 @@ const handleCreateRoom = async (e) => {
                                 const incMonth = incDate.getMonth() + 1;
                                 const incYear = incDate.getFullYear();
                                 return (
-                                  <tr key={`inc-${inc.id}`} style={{ borderBottom: '1px solid #e2e8f0', background: '#fff7ed' }}>
-                                    <td style={{ padding: '16px', color: '#c2410c', fontWeight: '600' }}>
-                                      Tháng {incMonth}/{incYear}
+                                  <tr key={`inc-${inc.id}`} className="bg-[#fff7ed]/50 hover:bg-[#fff7ed] transition-colors group border-b border-outline-variant/30 last:border-0">
+                                    <td className="py-4 px-8">
+                                      <div className="font-bold text-[#c2410c] text-base">Tháng {incMonth}/{incYear}</div>
                                     </td>
-                                    <td style={{ padding: '16px' }}>
-                                      <span style={{ fontWeight: '600', color: '#0f172a' }}>{inc.tenant?.fullName || 'Không rõ'}</span><br/>
-                                      <span style={{ color: '#475569', fontSize: '12px' }}>{inc.tenant?.email || 'Không có email'}</span><br/>
-                                      <span style={{ color: '#64748b', fontSize: '12px' }}>SĐT: {inc.tenant?.phone || '...'}</span>
+                                    <td className="py-4 px-8">
+                                      <div className="font-bold text-on-surface text-sm">{inc.tenant?.fullName || 'Không rõ'}</div>
+                                      <div className="text-xs text-on-surface-variant font-medium mt-0.5">{inc.tenant?.email || 'Không có email'}</div>
+                                      <div className="text-[11px] text-on-surface-variant font-medium opacity-70">SĐT: {inc.tenant?.phone || '...'}</div>
                                     </td>
-                                    <td style={{ padding: '16px', textAlign: 'center' }}>
-                                      <span style={{ background: '#ffedd5', color: '#c2410c', border: '1px solid #fed7aa', padding: '4px 10px', borderRadius: '15px', fontSize: '12px', fontWeight: 'bold' }}>
-                                        🔧 Chi phí phát sinh
+                                    <td className="py-4 px-8 text-center">
+                                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#ffedd5] text-[#c2410c] font-label-md text-[11px] font-bold uppercase tracking-wider border border-[#fed7aa]">
+                                        <span className="material-symbols-outlined text-[14px]">build</span>
+                                        Chi phí phát sinh
                                       </span>
                                     </td>
-                                    <td style={{ padding: '16px', textAlign: 'center' }}>
-                                      <span style={{ background: '#dcfce7', color: '#166534', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', border: '1px solid #bbf7d0' }}>
-                                        ✅ Hoàn thành
+                                    <td className="py-4 px-8 text-center">
+                                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-secondary-container/50 text-secondary font-label-md text-[11px] font-bold uppercase tracking-wider border border-secondary/30 gap-1.5">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                                        Hoàn thành
                                       </span>
                                     </td>
-                                    <td style={{ padding: '16px', textAlign: 'center' }}>
+                                    <td className="py-4 px-8 text-center">
                                       <button
                                         onClick={() => setViewIncidentCostDetails(inc)}
-                                        style={{ background: '#0ea5e9', color: '#ffffff', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                                        className="bg-primary/10 text-primary hover:bg-primary hover:text-white font-label-md text-[12px] px-4 py-2 rounded-xl transition-all font-bold flex items-center justify-center gap-2 mx-auto"
                                       >
-                                        📄 Xem chi tiết
+                                        <span className="material-symbols-outlined text-[16px]">visibility</span>
+                                        Xem chi tiết
                                       </button>
                                     </td>
                                   </tr>
@@ -2451,8 +3028,8 @@ const handleCreateRoom = async (e) => {
                               {/* Thông báo nếu không có hóa đơn lẫn chi phí */}
                               {room.bills.length === 0 && (room.incidentCosts || []).length === 0 && (
                                 <tr>
-                                  <td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
-                                    Phòng này chưa có phát sinh hóa đơn nào trong kỳ này.
+                                  <td colSpan="5" className="py-12 px-8 text-center">
+                                    <p className="text-on-surface-variant italic font-medium">Phòng này chưa có phát sinh hóa đơn nào trong kỳ này.</p>
                                   </td>
                                 </tr>
                               )}
@@ -2464,7 +3041,6 @@ const handleCreateRoom = async (e) => {
                   ))
                 )}
               </div>
-
             </div>
           );
         })()}
@@ -2505,7 +3081,7 @@ const handleCreateRoom = async (e) => {
             </button>
             
             <h2 style={{ margin: '0 0 20px 0', color: '#0f172a', borderBottom: '2px solid #e2e8f0', paddingBottom: '10px', textAlign: 'left' }}>
-              Thông tin Phòng {viewRoomDetails.roomNumber}
+              Thông tin {viewRoomDetails.roomType === 'WHOLE_HOUSE' ? 'Căn ' : 'Phòng '}{viewRoomDetails.roomNumber}
             </h2>
 
 {/* THIẾT KẾ MỚI: 1 ẢNH LỚN TRÁI + LƯỚI 4 ẢNH NHỎ PHẢI (CÓ CHỨC NĂNG) */}
@@ -2571,14 +3147,22 @@ const handleCreateRoom = async (e) => {
             {/* THÔNG TIN CHI TIẾT (Chia 2 cột) */}
             <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', lineHeight: '1.8', textAlign: 'left' }}>
               <div style={{ flex: 1 }}>
+                <p style={{ margin: 0, color: '#475569' }}><strong>Loại hình:</strong> <span style={{ color: '#2563eb', fontWeight: 'bold' }}>{viewRoomDetails.roomType === 'WHOLE_HOUSE' ? '🏠 Nhà nguyên căn' : '🚪 Phòng trọ'}</span></p>
                 <p style={{ margin: 0, color: '#475569' }}><strong>Giá thuê:</strong> <span style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '18px' }}>{viewRoomDetails.price?.toLocaleString()} đ/tháng</span></p>
                 <p style={{ margin: 0, color: '#475569' }}><strong>Diện tích:</strong> {viewRoomDetails.area || 0} m²</p>
                 <p style={{ margin: 0, color: '#475569' }}><strong>Số người ở tối đa:</strong> {viewRoomDetails.maxOccupants} người</p>
+                {viewRoomDetails.roomType === 'WHOLE_HOUSE' && (
+                  <>
+                    <p style={{ margin: 0, color: '#475569' }}><strong>Số tầng:</strong> {viewRoomDetails.numFloors || '?'}</p>
+                    <p style={{ margin: 0, color: '#475569' }}><strong>Số phòng ngủ:</strong> {viewRoomDetails.numBedrooms || '?'}</p>
+                    <p style={{ margin: 0, color: '#475569' }}><strong>Số nhà vệ sinh:</strong> {viewRoomDetails.numBathrooms || '?'}</p>
+                  </>
+                )}
                 <p style={{ margin: 0, color: '#475569' }}><strong>Trạng thái:</strong> <span style={{ color: viewRoomDetails.status === 'AVAILABLE' ? '#10b981' : viewRoomDetails.status === 'RENTED' ? '#ef4444' : '#f59e0b', fontWeight: 'bold' }}>{viewRoomDetails.status === 'AVAILABLE' ? 'Đang trống' : viewRoomDetails.status === 'RENTED' ? 'Đã cho thuê' : 'Đang sửa chữa'}</span></p>
                 <p style={{ margin: 0, color: '#475569' }}><strong>Địa chỉ:</strong> {viewRoomDetails.houseNumber ? `${viewRoomDetails.houseNumber}, ` : ''}{viewRoomDetails.address}</p>
               </div>
               <div style={{ flex: 1, borderLeft: '1px solid #e2e8f0', paddingLeft: '20px', textAlign: 'left' }}>
-                <p style={{ margin: 0, color: '#475569' }}><strong>Điện:</strong> {viewRoomDetails.electricityPrice ? `${viewRoomDetails.electricityPrice.toLocaleString()} đ/ký` : 'Theo giá nhà nước'}</p>
+                <p style={{ margin: 0, color: '#475569' }}><strong>Điện:</strong> {viewRoomDetails.roomType === 'WHOLE_HOUSE' ? <span style={{ color: '#0369a1', fontWeight: 'bold' }}>Tự trả điện lực</span> : (viewRoomDetails.electricityPrice ? `${viewRoomDetails.electricityPrice.toLocaleString()} đ/ký` : 'Theo giá nhà nước')}</p>
                 <p style={{ margin: 0, color: '#475569' }}><strong>Nước:</strong> {viewRoomDetails.waterPrice ? `${viewRoomDetails.waterPrice.toLocaleString()} đ/khối` : 'Theo giá nhà nước'}</p>
                 <p style={{ margin: 0, color: '#475569' }}><strong>Mạng internet:</strong> {viewRoomDetails.internetPrice ? `${viewRoomDetails.internetPrice.toLocaleString()} đ/tháng` : 'Tự túc'}</p>
                 <p style={{ margin: 0, color: '#475569' }}><strong>Gửi xe:</strong> {viewRoomDetails.parkingPrice ? `${viewRoomDetails.parkingPrice.toLocaleString()} đ/tháng` : 'Miễn phí'}</p>
@@ -2731,46 +3315,59 @@ const handleCreateRoom = async (e) => {
       {/* MODAL BÁO TRƯỚC KẾT THÚC THUÊ (TRẢ PHÒNG/LẤY LẠI PHÒNG)   */}
       {/* ========================================================= */}
       {showTerminateModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
-          <div style={{ background: '#ffffff', width: '500px', borderRadius: '8px', padding: '25px', boxShadow: '0 5px 15px rgba(0,0,0,0.3)', position: 'relative' }}>
-            <button onClick={() => setShowTerminateModal(false)} style={{ position: 'absolute', top: '15px', right: '15px', background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: '#64748b' }}>✖</button>
+        <div className="fixed inset-0 bg-on-surface/80 backdrop-blur-sm flex justify-center items-center z-[99999] p-4">
+          <div className="bg-surface-container-lowest w-full max-w-[500px] rounded-3xl p-8 shadow-2xl relative flex flex-col border border-outline-variant/30">
+            <button 
+              onClick={() => setShowTerminateModal(false)} 
+              className="absolute top-6 right-6 w-10 h-10 rounded-full bg-surface-container-low text-on-surface-variant flex items-center justify-center border-none cursor-pointer hover:bg-error/10 hover:text-error transition-colors" title="Đóng">
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
             
-            <h3 style={{ color: '#ef4444', marginTop: 0, borderBottom: '1px solid #e2e8f0', paddingBottom: '10px' }}>
-              ⚠️ Thông báo {user.role === 'LANDLORD' ? 'Lấy lại phòng' : 'Trả phòng'}
+            <h3 className="m-0 text-error text-xl font-black border-b border-outline-variant/30 pb-4 mb-6 flex items-center gap-2 pr-12">
+              <span className="material-symbols-outlined text-[24px]">warning</span> Thông báo {user.role === 'LANDLORD' ? 'Lấy lại phòng' : 'Trả phòng'}
             </h3>
             
-            <p style={{ fontSize: '14px', color: '#475569', lineHeight: '1.6' }}>
-              Theo quy định, bạn phải báo trước cho {user.role === 'LANDLORD' ? 'khách thuê' : 'chủ nhà'} ít nhất <strong>30 ngày</strong>. 
+            <p className="text-[14px] text-on-surface leading-relaxed mb-6 bg-error/5 p-4 rounded-xl border border-error/20">
+              Theo quy định, bạn phải báo trước cho {user.role === 'LANDLORD' ? 'khách thuê' : 'chủ nhà'} ít nhất <strong className="text-error">30 ngày</strong>. 
               Hệ thống sẽ gửi thông báo và đánh dấu phòng vào trạng thái chuẩn bị kết thúc.
             </p>
 
-            <form onSubmit={handleRequestTermination}>
-              <div style={{ marginBottom: '15px' }}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px', color: '#0f172a' }}>Ngày dự kiến dọn đi (Bắt buộc):</label>
+            <form onSubmit={handleRequestTermination} className="flex flex-col gap-5">
+              <div>
+                <label className="block mb-2 font-bold text-[14px] text-on-surface-variant">Ngày dự kiến dọn đi (Bắt buộc):</label>
                 <input 
                   type="date" 
                   required 
                   min={getMinMoveOutDate()} // Ép buộc chỉ được chọn từ 30 ngày sau trở đi
                   value={terminateData.moveOutDate} 
                   onChange={e => setTerminateData({...terminateData, moveOutDate: e.target.value})} 
-                  style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: '#f8fafc', color: '#0f172a' }}
+                  className="w-full p-3.5 border border-outline-variant/50 rounded-xl outline-none bg-surface-container-lowest text-on-surface font-medium focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer"
                 />
               </div>
 
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px', color: '#0f172a' }}>Lý do (Tùy chọn):</label>
+              <div>
+                <label className="block mb-2 font-bold text-[14px] text-on-surface-variant">Lý do (Tùy chọn):</label>
                 <textarea 
                   rows="3" 
                   placeholder={user.role === 'LANDLORD' ? "VD: Cần lấy lại phòng để sửa chữa..." : "VD: Chuyển chỗ làm..."}
                   value={terminateData.reason} 
                   onChange={e => setTerminateData({...terminateData, reason: e.target.value})} 
-                  style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', background: '#f8fafc', color: '#0f172a' }}
+                  className="w-full p-4 border border-outline-variant/50 rounded-xl outline-none bg-surface-container-lowest text-on-surface font-medium focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-y"
                 />
               </div>
 
-              <div style={{ textAlign: 'right' }}>
-                <button type="button" onClick={() => setShowTerminateModal(false)} style={{ padding: '10px 20px', marginRight: '10px', background: '#e2e8f0', color: '#0f172a', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Hủy</button>
-                <button type="submit" style={{ padding: '10px 20px', background: '#ef4444', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Xác nhận gửi thông báo</button>
+              <div className="flex justify-end gap-3 mt-2">
+                <button 
+                  type="button" 
+                  onClick={() => setShowTerminateModal(false)} 
+                  className="px-6 py-3 bg-surface-container-high text-on-surface-variant border-none rounded-xl cursor-pointer font-bold transition-all hover:bg-surface-container-highest">
+                  Hủy
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-6 py-3 bg-error text-white border-none rounded-xl cursor-pointer font-bold shadow-md shadow-error/20 transition-all hover:-translate-y-0.5 hover:shadow-lg flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">send</span> Xác nhận gửi thông báo
+                </button>
               </div>
             </form>
           </div>
@@ -2989,11 +3586,27 @@ const handleCreateRoom = async (e) => {
 
             {/* CHI PHÍ ĐÀM PHÁN */}
             <h4 style={{ color: '#0f172a', marginBottom: '10px' }}>5. Chi phí đàm phán (Gốc tính hóa đơn)</h4>
+            
+            {viewContract.isDirectUtilityPayment && (
+              <div style={{ background: '#ecfdf5', color: '#065f46', padding: '10px 15px', borderRadius: '8px', border: '1px solid #6ee7b7', marginBottom: '15px', fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                ✅ Khách thuê tự thanh toán trực tiếp cho bên điện lực.
+              </div>
+            )}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', background: '#fef3c7', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #fde68a' }}>
               <div style={{ fontSize: '14px', color: '#475569' }}><strong>Giá phòng:</strong> <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{Number(viewContract.price || 0).toLocaleString('vi-VN')} đ/tháng</span></div>
-              <div style={{ fontSize: '14px', color: '#475569' }}><strong>Điện:</strong> {Number(viewContract.electricityPrice || 0).toLocaleString('vi-VN')} đ/ký</div>
-              <div style={{ fontSize: '14px', color: '#475569' }}><strong>Nước:</strong> {Number(viewContract.waterPrice || 0).toLocaleString('vi-VN')} đ/khối</div>
+              {!viewContract.isDirectUtilityPayment ? (
+                <>
+                  <div style={{ fontSize: '14px', color: '#475569' }}><strong>Điện:</strong> {Number(viewContract.electricityPrice || 0).toLocaleString('vi-VN')} đ/ký</div>
+                  <div style={{ fontSize: '14px', color: '#475569' }}><strong>Nước:</strong> {Number(viewContract.waterPrice || 0).toLocaleString('vi-VN')} đ/khối</div>
+                </>
+              ) : (
+                <div style={{ gridColumn: 'span 2', fontSize: '14px', color: '#64748b', fontStyle: 'italic' }}>
+                  (Điện/Nước thanh toán trực tiếp cho nhà cung cấp)
+                </div>
+              )}
               <div style={{ fontSize: '14px', color: '#475569' }}><strong>Internet:</strong> {Number(viewContract.internetPrice || 0).toLocaleString('vi-VN')} đ/tháng</div>
+              <div style={{ fontSize: '14px', color: '#475569' }}><strong>Số điện đầu:</strong> <span style={{ color: '#0f172a', fontWeight: 'bold' }}>{viewContract.startElectricity || 0} ký</span></div>
+              <div style={{ fontSize: '14px', color: '#475569' }}><strong>Số nước đầu:</strong> <span style={{ color: '#0f172a', fontWeight: 'bold' }}>{viewContract.startWater || 0} khối</span></div>
               <div style={{ fontSize: '14px', gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '10px', color: '#475569' }}>
                 <strong>Số lượng xe:</strong> 
                 <span style={{ color: '#2563eb', fontWeight: 'bold', fontSize: '16px' }}>{viewContract.vehicleCount} chiếc</span>
@@ -3541,6 +4154,69 @@ const handleCreateRoom = async (e) => {
               </div>
             );
           })()}
+
+      {/* MODAL GHI CHÚ NHẬT CỌC / GIỮ CHỖ (Redesigned) */}
+      {depositModal.show && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-on-surface/50 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="w-full max-w-[600px] bg-surface-container-lowest rounded-[2.5rem] p-10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] border border-outline-variant/30 animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 space-y-8">
+            <div className="flex items-center gap-5">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-4xl">lock_person</span>
+              </div>
+              <div>
+                <h3 className="text-2xl font-black text-on-surface tracking-tight">Ghi chú Nhận cọc / Giữ chỗ</h3>
+                <p className="text-sm text-on-surface-variant font-bold opacity-60">Phòng sẽ tự động ẩn khỏi danh sách hiển thị</p>
+              </div>
+            </div>
+
+            <div className="p-5 bg-surface-container-low rounded-2xl border-l-4 border-primary/50 text-xs font-bold text-on-surface-variant leading-relaxed opacity-80">
+              <span className="material-symbols-outlined text-[16px] inline-block align-middle mr-1 text-primary">info</span>
+              Lưu ý: Khách cũ vẫn có thể sinh hoạt bình thường. Phòng chỉ bị ẩn đối với khách mới tìm kiếm trên trang chủ.
+            </div>
+
+            <form onSubmit={handleSaveDeposit} className="space-y-8">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1 opacity-50">Nội dung ghi chú *</label>
+                <textarea 
+                  rows="5" 
+                  autoFocus
+                  placeholder="Ví dụ: Anh Hưng số 098... cọc 2 triệu, hẹn mùng 5/6 chuyển vào..."
+                  value={depositModal.note}
+                  onChange={e => setDepositModal({...depositModal, note: e.target.value})}
+                  className="w-full p-6 bg-white border-2 border-outline-variant rounded-3xl text-sm font-bold text-on-surface focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all outline-none resize-none"
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                <button 
+                  type="button" 
+                  onClick={handleDeleteDeposit} 
+                  className="w-full sm:w-auto px-6 py-3.5 bg-error/10 text-error rounded-full text-[11px] font-black uppercase tracking-widest hover:bg-error hover:text-white transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-[18px]">no_accounts</span>
+                  Xóa cọc (Mở lại phòng)
+                </button>
+                
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <button 
+                    type="button" 
+                    onClick={() => setDepositModal({ show: false, roomId: null, note: '' })} 
+                    className="flex-1 sm:flex-none px-8 py-3.5 bg-surface-container-high text-on-surface-variant rounded-full text-[11px] font-black uppercase tracking-widest hover:bg-surface-container-highest transition-all active:scale-95"
+                  >
+                    Hủy
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="flex-1 sm:flex-none px-10 py-3.5 bg-primary text-white rounded-full text-[11px] font-black uppercase tracking-widest shadow-lg shadow-primary/30 hover:scale-105 transition-all active:scale-95"
+                  >
+                    Lưu ghi chú 💾
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 {/* ========================================================= */}
       {/* MODAL PHÓNG TO ẢNH (LIGHTBOX) - ĐÃ CÓ CHỨC NĂNG CHUYỂN ẢNH */}
       {/* ========================================================= */}
@@ -3602,39 +4278,7 @@ const handleCreateRoom = async (e) => {
         </div>
 
       )}
-      {/* MODAL GHI CHÚ NHẬN CỌC / GIỮ CHỖ */}
-      {depositModal.show && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.75)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
-          <div style={{ background: '#ffffff', width: '450px', borderRadius: '12px', padding: '25px', position: 'relative', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ color: '#2563eb', marginTop: 0 }}>🔒 Ghi chú Nhận cọc / Giữ chỗ</h3>
-            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '15px' }}>
-              Khi bạn lưu ghi chú này, phòng sẽ lập tức bị <strong style={{ color: '#0f172a' }}>ẩn khỏi Trang chủ</strong> (người lạ không thấy nữa). Khách cũ vẫn sinh hoạt bình thường cho đến khi dọn đi.
-            </p>
-            <form onSubmit={handleSaveDeposit}>
-              <textarea 
-                rows="4" 
-                placeholder="Ví dụ: Anh Hưng số 098... cọc 2 triệu, hẹn mùng 5/6 chuyển vào..."
-                value={depositModal.note}
-                onChange={e => setDepositModal({...depositModal, note: e.target.value})}
-                style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', boxSizing: 'border-box', marginBottom: '15px', color: '#0f172a' }}
-              />
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <button 
-                  type="button" 
-                  onClick={handleDeleteDeposit} 
-                  style={{ padding: '10px 15px', background: '#ef4444', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
-                >
-                  🗑️ Xóa cọc (Mở lại phòng)
-                </button>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button type="button" onClick={() => setDepositModal({ show: false, roomId: null, note: '' })} style={{ padding: '10px 15px', background: '#e2e8f0', color: '#0f172a', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Hủy</button>
-                  <button type="submit" style={{ padding: '10px 15px', background: '#10b981', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>💾 Lưu Ghi Chú</button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+
 
       {/* ========================================================= */}
       {/* MODAL KHÁCH THUÊ ĐÁNH GIÁ PHÒNG (SHOPEE STYLE)              */}

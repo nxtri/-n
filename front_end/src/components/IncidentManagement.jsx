@@ -6,7 +6,7 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState(null);
-  const [viewCostModal, setViewCostModal] = useState(null); // Modal for viewing cost detail
+  const [viewCostModal, setViewCostModal] = useState(null);
 
   // Form Data (Tenant)
   const [formData, setFormData] = useState({ roomCode: '', title: '', description: '' });
@@ -17,6 +17,7 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
   
   // Filter
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Chat
   const [messages, setMessages] = useState([]);
@@ -164,10 +165,34 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
 
   const getStatusBadge = (status) => {
     switch(status) {
-      case 'Pending': return <span style={{ background: '#fef2f2', color: '#ef4444', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold', border: '1px solid #fee2e2' }}>Chờ xử lý</span>;
-      case 'In Progress': return <span style={{ background: '#fffbeb', color: '#f59e0b', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold', border: '1px solid #fef3c7' }}>Đang xử lý</span>;
-      case 'Resolved': return <span style={{ background: '#ecfdf5', color: '#10b981', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold', border: '1px solid #d1fae5' }}>Đã giải quyết</span>;
-      case 'Rejected': return <span style={{ background: '#f8fafc', color: '#64748b', padding: '6px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold', border: '1px solid #e2e8f0' }}>Từ chối</span>;
+      case 'Pending': 
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full bg-primary-fixed text-on-primary-fixed font-label-md text-[12px]">
+            <span className="w-2 h-2 rounded-full bg-primary mr-2"></span>
+            Chờ xử lý
+          </span>
+        );
+      case 'In Progress': 
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-md text-[12px]">
+            <span className="w-2 h-2 rounded-full bg-tertiary mr-2"></span>
+            Đang xử lý
+          </span>
+        );
+      case 'Resolved': 
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-md text-[12px]">
+            <span className="w-2 h-2 rounded-full bg-secondary mr-2"></span>
+            Đã giải quyết
+          </span>
+        );
+      case 'Rejected': 
+        return (
+          <span className="inline-flex items-center px-2 py-1 rounded-full bg-surface-container text-on-surface-variant font-label-md text-[12px]">
+            <span className="w-2 h-2 rounded-full bg-outline mr-2"></span>
+            Từ chối
+          </span>
+        );
       default: return null;
     }
   };
@@ -176,118 +201,180 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
   if (statusFilter !== 'ALL') {
     displayedIncidents = displayedIncidents.filter(i => i.status === statusFilter);
   }
+  if (searchTerm.trim()) {
+    const s = searchTerm.toLowerCase();
+    displayedIncidents = displayedIncidents.filter(i => 
+      i.title.toLowerCase().includes(s) || 
+      i.description.toLowerCase().includes(s) ||
+      i.room?.roomNumber?.toString().includes(s)
+    );
+  }
 
   return (
-    <div style={{ background: '#ffffff', padding: '30px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', borderBottom: '1px solid #f1f5f9', paddingBottom: '15px' }}>
-        <h2 style={{ margin: 0, color: '#0f172a', fontSize: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ fontSize: '28px' }}>🛠️</span> Quản lý Sự cố & Hỗ trợ
-        </h2>
-        {user.role === 'TENANT' && (
-          <button 
-            onClick={() => setShowCreateModal(true)} 
-            style={{ padding: '10px 20px', background: '#2563eb', color: '#ffffff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.2s', boxShadow: '0 4px 6px -1px rgba(37,99,235,0.2)' }}
-            onMouseEnter={(e) => e.target.style.background = '#1d4ed8'}
-            onMouseLeave={(e) => e.target.style.background = '#2563eb'}
+    <div className="p-0">
+      {/* Page Header & Actions */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 mt-4 gap-4">
+        <div>
+          <h2 className="font-display-xl text-3xl font-bold text-on-surface">Sự cố & Hỗ trợ</h2>
+          <p className="font-body-md text-on-surface-variant mt-1">Quản lý và theo dõi các yêu cầu sửa chữa và hỗ trợ của bạn.</p>
+        </div>
+        <div className="flex items-center space-x-4">
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-on-surface-variant text-[20px]">filter_list</span>
+            <input 
+              className="pl-10 pr-4 py-2.5 rounded-full border border-outline-variant bg-surface-container-lowest focus:border-primary focus:ring-1 focus:ring-primary font-body-sm text-body-sm w-full md:w-64 transition-all shadow-sm" 
+              placeholder="Lọc sự cố..." 
+              type="text"
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+            />
+          </div>
+          {user.role === 'TENANT' && (
+            <button 
+              onClick={() => setShowCreateModal(true)}
+              className="bg-primary text-on-primary rounded-xl px-6 py-2.5 font-label-md text-label-md hover:bg-surface-tint transition-colors shadow-lg shadow-primary/20 whitespace-nowrap flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[20px]">add</span>
+              Báo cáo sự cố mới
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Tabs Filter */}
+      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar">
+        {['ALL', 'Pending', 'In Progress', 'Resolved', 'Rejected'].map((status) => (
+          <button
+            key={status}
+            onClick={() => setStatusFilter(status)}
+            className={`px-4 py-2 rounded-full font-label-md text-sm whitespace-nowrap transition-all ${
+              statusFilter === status 
+                ? 'bg-primary text-on-primary shadow-md' 
+                : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'
+            }`}
           >
-            + Báo cáo sự cố mới
+            {status === 'ALL' ? 'Tất cả' : 
+             status === 'Pending' ? 'Chờ xử lý' : 
+             status === 'In Progress' ? 'Đang xử lý' : 
+             status === 'Resolved' ? 'Đã giải quyết' : 'Từ chối'}
           </button>
-        )}
+        ))}
       </div>
 
-      {/* Lọc */}
-      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>Bộ lọc:</span>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: '10px 15px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f8fafc', color: '#0f172a', fontSize: '14px', outline: 'none' }}>
-          <option value="ALL">Tất cả trạng thái</option>
-          <option value="Pending">Chờ xử lý</option>
-          <option value="In Progress">Đang xử lý</option>
-          <option value="Resolved">Đã giải quyết</option>
-          <option value="Rejected">Từ chối</option>
-        </select>
-      </div>
-
-      <div style={{ overflowX: 'auto', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', background: '#ffffff' }}>
-          <thead>
-            <tr style={{ background: '#1e293b', color: '#ffffff', borderBottom: '1px solid #e2e8f0' }}>
-              <th style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>Phòng</th>
-              {user.role === 'LANDLORD' && <th style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>Người gửi</th>}
-              <th style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>Tiêu đề</th>
-              <th style={{ padding: '16px', fontSize: '14px', fontWeight: '600' }}>Ngày gửi</th>
-              <th style={{ padding: '16px', fontSize: '14px', fontWeight: '600', textAlign: 'center' }}>Trạng thái</th>
-              {user.role === 'LANDLORD' && <th style={{ padding: '16px', fontSize: '14px', fontWeight: '600', textAlign: 'center' }}>Chi phí</th>}
-              <th style={{ padding: '16px', fontSize: '14px', fontWeight: '600', textAlign: 'center' }}>Hành động</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayedIncidents.length === 0 ? (
-              <tr><td colSpan={user.role === 'LANDLORD' ? 7 : 5} style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>Không có báo cáo nào.</td></tr>
-            ) : displayedIncidents.map(inc => (
-              <tr key={inc.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background-color 0.2s' }}>
-                <td style={{ padding: '16px', color: '#0f172a', fontWeight: 'bold' }}>{inc.room?.roomNumber} {inc.room?.roomCode ? `(${inc.room.roomCode})` : ''}</td>
-                {user.role === 'LANDLORD' && (
-                  <td style={{ padding: '16px' }}>
-                    <div style={{ color: '#0f172a', fontWeight: 'bold' }}>{inc.tenant?.fullName}</div>
-                    <div style={{ color: '#64748b', fontSize: '13px' }}>{inc.tenant?.email}</div>
-                    <div style={{ color: '#64748b', fontSize: '13px' }}>SĐT: {inc.tenant?.phone}</div>
-                  </td>
-                )}
-                <td style={{ padding: '16px', color: '#0f172a' }}>{inc.title}</td>
-                <td style={{ padding: '16px', color: '#64748b' }}>{new Date(inc.createdAt).toLocaleDateString('vi-VN')}</td>
-                <td style={{ padding: '16px', textAlign: 'center' }}>{getStatusBadge(inc.status)}</td>
-                
-                {/* CỘT CHI PHÍ - CHỈ LANDLORD */}
-                {user.role === 'LANDLORD' && (
-                  <td style={{ padding: '16px', textAlign: 'center' }}>
-                    {inc.repairCost > 0 ? (
-                      <button
-                        onClick={() => setViewCostModal(inc)}
-                        style={{ padding: '6px 12px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                      >
-                        📄 Xem chi tiết
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => openRepairModal(inc)}
-                        style={{ padding: '6px 12px', background: '#fff7ed', color: '#ea580c', border: '1px solid #ffedd5', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
-                      >
-                      🔧 Ghi chi phí
-                      </button>
-                    )}
-                  </td>
-                )}
-
-                <td style={{ padding: '16px', textAlign: 'center' }}>
-                  <button 
-                    onClick={() => openDetailModal(inc)}
-                    style={{ padding: '8px 18px', background: '#f1f5f9', color: '#0f172a', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px', transition: '0.2s' }}
-                    onMouseEnter={(e) => e.target.style.background = '#e2e8f0'}
-                    onMouseLeave={(e) => e.target.style.background = '#f1f5f9'}
-                  >
-                  Xem chi tiết
-                  </button>
-                </td>
+      {/* Data Table Card */}
+      <div className="bg-surface-container-lowest rounded-3xl shadow-[0px_4px_20px_rgba(0,0,0,0.05)] overflow-hidden border border-outline-variant/30">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-outline-variant bg-surface-container-low/50">
+                <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold">Phòng</th>
+                {user.role === 'LANDLORD' && <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold">Người gửi</th>}
+                <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold">Tiêu đề</th>
+                <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold">Ngày gửi</th>
+                <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold">Trạng thái</th>
+                {user.role === 'LANDLORD' && <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold text-center">Chi phí</th>}
+                <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold text-right">Hành động</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="font-body-sm text-on-surface divide-y divide-outline-variant/30">
+              {displayedIncidents.length === 0 ? (
+                <tr>
+                  <td colSpan={user.role === 'LANDLORD' ? 7 : 5} className="text-center py-12 text-on-surface-variant font-body-md italic">
+                    Không có báo cáo nào được tìm thấy.
+                  </td>
+                </tr>
+              ) : displayedIncidents.map(inc => (
+                <tr key={inc.id} className="hover:bg-surface-container-lowest/50 transition-colors group">
+                  <td className="py-4 px-8">
+                    <div className="font-bold text-on-surface">
+                      {inc.room?.roomType === 'WHOLE_HOUSE' ? 'Nhà ' : 'Phòng '}{inc.room?.roomNumber}
+                    </div>
+                    <div className="text-[11px] text-on-surface-variant opacity-70">
+                      {inc.room?.roomCode}
+                    </div>
+                  </td>
+                  {user.role === 'LANDLORD' && (
+                    <td className="py-4 px-8">
+                      <div className="font-bold text-on-surface">{inc.tenant?.fullName}</div>
+                      <div className="text-[12px] text-on-surface-variant">{inc.tenant?.phone}</div>
+                    </td>
+                  )}
+                  <td className="py-4 px-8 font-medium max-w-xs truncate">{inc.title}</td>
+                  <td className="py-4 px-8 text-on-surface-variant">{new Date(inc.createdAt).toLocaleDateString('vi-VN')}</td>
+                  <td className="py-4 px-8">
+                    {getStatusBadge(inc.status)}
+                  </td>
+                  {user.role === 'LANDLORD' && (
+                    <td className="py-4 px-8 text-center">
+                      {inc.repairCost > 0 ? (
+                        <button
+                          onClick={() => setViewCostModal(inc)}
+                          className="px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-lg text-[12px] font-bold hover:bg-primary/20 transition-all"
+                        >
+                          Chi tiết phí
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => openRepairModal(inc)}
+                          className="px-3 py-1 bg-tertiary/10 text-tertiary border border-tertiary/20 rounded-lg text-[12px] font-bold hover:bg-tertiary/20 transition-all"
+                        >
+                          Ghi chi phí
+                        </button>
+                      )}
+                    </td>
+                  )}
+                  <td className="py-4 px-8 text-right">
+                    <button 
+                      onClick={() => openDetailModal(inc)}
+                      className="text-primary font-label-md text-sm hover:bg-primary/5 px-4 py-2 rounded-xl transition-all border border-transparent hover:border-primary/10"
+                    >
+                      Xem chi tiết
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        
+        {/* Pagination placeholder */}
+        <div className="px-6 py-4 border-t border-outline-variant bg-surface-container-low/30 flex justify-between items-center">
+          <span className="font-body-sm text-on-surface-variant">Hiển thị {displayedIncidents.length} kết quả</span>
+          <div className="flex space-x-1">
+            <button className="p-2 rounded-xl border border-outline-variant text-on-surface-variant hover:bg-surface disabled:opacity-30" disabled>
+              <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+            </button>
+            <button className="p-2 rounded-xl border border-outline-variant text-on-surface-variant hover:bg-surface disabled:opacity-30" disabled>
+              <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* MODAL TẠO SỰ CỐ (TENANT) */}
       {showCreateModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
-          <div style={{ background: '#ffffff', width: '550px', borderRadius: '16px', padding: '30px', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
-            <button onClick={() => setShowCreateModal(false)} style={{ position: 'absolute', top: 20, right: 20, border: 'none', background: '#f8fafc', width: '32px', height: '32px', borderRadius: '50%', fontSize: '18px', cursor: 'pointer', color: '#64748b', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>✖</button>
-            <h3 style={{ marginTop: 0, color: '#0f172a', borderBottom: '1px solid #f1f5f9', paddingBottom: 15, fontSize: '20px', fontWeight: '700' }}>🚀 Báo cáo Sự cố mới</h3>
-            <form onSubmit={handleCreateSubmit}>
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8, color: '#475569', fontSize: '14px' }}>Phòng gặp sự cố:</label>
+        <div className="fixed inset-0 bg-on-surface/40 backdrop-blur-sm flex justify-center items-center z-[100] animate-in fade-in duration-300 p-4">
+          <div className="bg-surface-container-lowest w-full max-w-lg rounded-3xl p-8 relative shadow-2xl animate-in zoom-in-95 duration-300">
+            <button 
+              onClick={() => setShowCreateModal(false)} 
+              className="absolute top-6 right-6 w-10 h-10 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center transition-all"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+            
+            <h3 className="text-2xl font-bold text-on-surface mb-6 flex items-center gap-3">
+              <span className="material-symbols-outlined text-primary text-3xl">add_alert</span>
+              Báo cáo sự cố mới
+            </h3>
+            
+            <form onSubmit={handleCreateSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <label className="block font-bold text-on-surface-variant text-sm">Phòng gặp sự cố:</label>
                 <select 
                   required 
                   value={formData.roomCode} 
                   onChange={e => setFormData({...formData, roomCode: e.target.value})} 
-                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', boxSizing: 'border-box', backgroundColor: '#f8fafc', color: '#0f172a', outline: 'none' }} 
+                  className="w-full p-3.5 rounded-xl border border-outline-variant bg-surface-container-low focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all"
                 >
                   <option value="">-- Chọn phòng bạn đang thuê --</option>
                   {contracts
@@ -296,88 +383,324 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
                     .filter(r => r)
                     .map(r => (
                       <option key={r.id} value={r.roomCode || r.roomNumber}>
-                        {/^ph[oò]ng/i.test(String(r.roomNumber).trim()) ? `${String(r.roomNumber).charAt(0).toUpperCase()}${String(r.roomNumber).slice(1)}` : `Phòng ${r.roomNumber}`} {r.roomCode ? `(${r.roomCode})` : ''}
+                        {r.roomType === 'WHOLE_HOUSE' ? 'Nhà nguyên căn ' : 'Phòng '}{r.roomNumber} ({r.roomCode})
                       </option>
                     ))}
                 </select>
               </div>
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8, color: '#475569', fontSize: '14px' }}>Tiêu đề tóm tắt:</label>
-                <input type="text" maxLength="100" placeholder="VD: Điều hòa kêu to, Rỉ nước bồn cầu..." required value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', boxSizing: 'border-box', backgroundColor: '#f8fafc', color: '#0f172a', outline: 'none' }} />
+              
+              <div className="space-y-2">
+                <label className="block font-bold text-on-surface-variant text-sm">Tiêu đề:</label>
+                <input 
+                  type="text" 
+                  maxLength="100" 
+                  placeholder="VD: Điều hòa kêu to, Rỉ nước bồn cầu..." 
+                  required 
+                  value={formData.title} 
+                  onChange={e => setFormData({...formData, title: e.target.value})} 
+                  className="w-full p-3.5 rounded-xl border border-outline-variant bg-surface-container-low focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all" 
+                />
               </div>
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8, color: '#475569', fontSize: '14px' }}>Mô tả chi tiết:</label>
-                <textarea rows="4" placeholder="Mô tả hoàn cảnh, tình trạng hiện tại..." required value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', boxSizing: 'border-box', backgroundColor: '#f8fafc', color: '#0f172a', outline: 'none', resize: 'vertical' }}></textarea>
+              
+              <div className="space-y-2">
+                <label className="block font-bold text-on-surface-variant text-sm">Mô tả chi tiết:</label>
+                <textarea 
+                  rows="4" 
+                  placeholder="Mô tả hoàn cảnh, tình trạng hiện tại..." 
+                  required 
+                  value={formData.description} 
+                  onChange={e => setFormData({...formData, description: e.target.value})} 
+                  className="w-full p-3.5 rounded-xl border border-outline-variant bg-surface-container-low focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all resize-none"
+                />
               </div>
-              <div style={{ marginBottom: 25 }}>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8, color: '#475569', fontSize: '14px' }}>Hình ảnh đính kèm (Tối đa 5 ảnh):</label>
-                <input type="file" multiple accept="image/*" onChange={(e) => setFiles(Array.from(e.target.files).slice(0, 5))} style={{ width: '100%', padding: '10px', background: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1', boxSizing: 'border-box', color: '#64748b' }} />
-                <p style={{ color: '#94a3b8', fontSize: '12px', marginTop: '6px' }}>Chủ nhà sẽ nhận diện nguyên nhân dễ hơn nếu có ảnh minh họa thực tế.</p>
+              
+              <div className="space-y-2">
+                <label className="block font-bold text-on-surface-variant text-sm">Hình ảnh (Tối đa 5 ảnh):</label>
+                <div className="relative group">
+                  <input 
+                    type="file" 
+                    multiple 
+                    accept="image/*" 
+                    onChange={(e) => setFiles(Array.from(e.target.files).slice(0, 5))} 
+                    className="w-full p-4 bg-surface-container-low rounded-xl border border-dashed border-outline-variant group-hover:border-primary transition-all cursor-pointer" 
+                  />
+                </div>
               </div>
-              <div style={{ textAlign: 'right', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => setShowCreateModal(false)} style={{ padding: '12px 24px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Hủy bỏ</button>
-                <button type="submit" style={{ padding: '12px 24px', background: '#ef4444', color: '#ffffff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 4px 6px -1px rgba(239,68,68,0.2)' }}>Gửi Sự cố</button>
+              
+              <div className="pt-4 flex gap-3">
+                <button 
+                  type="button" 
+                  onClick={() => setShowCreateModal(false)} 
+                  className="flex-1 py-3.5 bg-surface-container text-on-surface-variant font-bold rounded-xl hover:bg-surface-container-high transition-all"
+                >
+                  Hủy bỏ
+                </button>
+                <button 
+                  type="submit" 
+                  className="flex-[2] py-3.5 bg-primary text-on-primary font-bold rounded-xl hover:shadow-lg shadow-primary/20 transition-all"
+                >
+                  Gửi yêu cầu
+                </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CHI TIẾT & TRAO ĐỔI (CHI TIẾT) */}
+      {showDetailModal && selectedIncident && (
+        <div className="fixed inset-0 bg-on-surface/40 backdrop-blur-sm flex justify-center items-center z-[100] animate-in fade-in duration-300 p-4">
+          <div className="bg-surface-container-lowest w-full max-w-4xl max-h-[95vh] overflow-y-auto rounded-3xl relative shadow-2xl animate-in zoom-in-95 duration-300 no-scrollbar">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-surface-container-lowest/80 backdrop-blur-md px-8 py-6 border-b border-outline-variant/30 flex justify-between items-center z-10">
+              <h3 className="text-xl font-bold text-on-surface flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">info</span>
+                Chi tiết báo cáo sự cố
+              </h3>
+              <button 
+                onClick={() => setShowDetailModal(false)} 
+                className="w-10 h-10 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center transition-all"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="p-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Left Side: Details */}
+                <div className="space-y-6">
+                  <div className="bg-surface-container-low/50 rounded-2xl p-6 border border-outline-variant/30">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <p className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Tiêu đề</p>
+                        <p className="font-bold text-on-surface">{selectedIncident.title}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Ngày gửi</p>
+                        <p className="font-medium text-on-surface">{new Date(selectedIncident.createdAt).toLocaleString('vi-VN')}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Phòng</p>
+                        <p className="font-bold text-on-surface">{selectedIncident.room?.roomNumber} ({selectedIncident.room?.roomCode})</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider">Trạng thái</p>
+                        <div>{getStatusBadge(selectedIncident.status)}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-6 pt-6 border-t border-outline-variant/30">
+                      <p className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-2">Mô tả từ người thuê</p>
+                      <div className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant/30 text-sm leading-relaxed text-on-surface">
+                        {selectedIncident.description}
+                      </div>
+                    </div>
+
+                    {selectedIncident.images && selectedIncident.images.length > 0 && (
+                      <div className="mt-6">
+                        <p className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider mb-3">Hình ảnh đính kèm</p>
+                        <div className="flex gap-3 flex-wrap">
+                          {selectedIncident.images.map((img, idx) => (
+                            <a 
+                              key={idx} 
+                              href={`http://localhost:5000/uploads/${img}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="w-20 h-20 rounded-xl overflow-hidden border border-outline-variant/30 hover:scale-105 transition-all shadow-sm"
+                            >
+                              <img src={`http://localhost:5000/uploads/${img}`} alt="evidence" className="w-full h-full object-cover" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Landlord Reply Section */}
+                  {user.role === 'TENANT' && (
+                    <div className="bg-primary-fixed/30 rounded-2xl p-6 border border-primary-fixed">
+                      <h4 className="font-bold text-on-primary-fixed flex items-center gap-2 mb-4">
+                        <span className="material-symbols-outlined text-[20px]">quick_reply</span>
+                        Phản hồi từ Chủ nhà
+                      </h4>
+                      <div className="bg-surface-container-lowest/80 p-4 rounded-xl text-sm italic text-on-surface-variant min-h-[60px]">
+                        {selectedIncident.landlordReply || 'Chủ nhà chưa có phản hồi cụ thể.'}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Landlord Action Form */}
+                  {user.role === 'LANDLORD' && (
+                    <form onSubmit={handleUpdateStatus} className="bg-surface-container-low rounded-2xl p-6 border border-outline-variant/30 space-y-4">
+                      <h4 className="font-bold text-on-surface flex items-center gap-2 mb-2 text-sm">
+                        <span className="material-symbols-outlined text-primary text-[20px]">edit_note</span>
+                        Cập nhật trạng thái & Phản hồi
+                      </h4>
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-on-surface-variant uppercase">Tiến độ:</label>
+                        <select 
+                          value={replyData.status} 
+                          onChange={e => setReplyData({...replyData, status: e.target.value})} 
+                          className="w-full p-2.5 rounded-xl border border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary outline-none text-sm"
+                        >
+                          <option value="Pending">Chờ xử lý</option>
+                          <option value="In Progress">Đang xử lý</option>
+                          <option value="Resolved">Đã giải quyết</option>
+                          <option value="Rejected">Từ chối</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[11px] font-bold text-on-surface-variant uppercase">Lời nhắn:</label>
+                        <textarea 
+                          rows="3" 
+                          placeholder="Chiều mai thợ sẽ qua..." 
+                          required 
+                          value={replyData.landlordReply} 
+                          onChange={e => setReplyData({...replyData, landlordReply: e.target.value})} 
+                          className="w-full p-3 rounded-xl border border-outline-variant bg-surface-container-lowest focus:ring-2 focus:ring-primary outline-none text-sm resize-none"
+                        />
+                      </div>
+                      <button type="submit" className="w-full py-3 bg-secondary text-on-secondary font-bold rounded-xl hover:shadow-md transition-all">
+                        Cập nhật Sự cố
+                      </button>
+                    </form>
+                  )}
+                </div>
+
+                {/* Right Side: Chat Exchange */}
+                <div className="flex flex-col h-[600px] border border-outline-variant/30 rounded-2xl overflow-hidden bg-surface-container-lowest shadow-inner">
+                  <div className="bg-surface-container-low px-6 py-4 border-b border-outline-variant/30 flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                      <span className="material-symbols-outlined text-[20px]">forum</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-on-surface">Trao đổi trực tiếp</p>
+                      <p className="text-[10px] text-on-surface-variant uppercase font-bold opacity-60">Tin nhắn nội bộ</p>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar bg-surface-container-lowest/30">
+                    {loadingMessages ? (
+                      <div className="flex justify-center pt-20">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                      </div>
+                    ) : messages.length === 0 ? (
+                      <div className="text-center pt-20 opacity-40">
+                        <span className="material-symbols-outlined text-4xl mb-2">chat_bubble_outline</span>
+                        <p className="text-xs">Chưa có trao đổi nào.</p>
+                      </div>
+                    ) : (
+                      messages.map((msg) => {
+                        const isMe = msg.senderId === user.id;
+                        return (
+                          <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[85%] ${isMe ? 'items-end' : 'items-start'} flex flex-col`}>
+                              <div className="flex items-center gap-2 mb-1 px-2">
+                                <span className="text-[10px] font-bold text-on-surface-variant">{isMe ? 'Bạn' : msg.sender?.fullName}</span>
+                                <span className="text-[10px] text-outline opacity-70">{new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                              </div>
+                              <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                                isMe ? 'bg-primary text-on-primary rounded-tr-none' : 'bg-surface-container-high text-on-surface rounded-tl-none'
+                              }`}>
+                                {msg.message}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                    <div ref={chatEndRef} />
+                  </div>
+
+                  <div className="p-4 bg-surface-container-low border-t border-outline-variant/30 flex items-end gap-2">
+                    <textarea 
+                      rows="2" 
+                      placeholder="Nhập tin nhắn..." 
+                      value={chatInput} 
+                      onChange={e => setChatInput(e.target.value)} 
+                      onKeyDown={handleChatKeyDown}
+                      className="flex-1 bg-surface-container-lowest border border-outline-variant/30 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-primary outline-none transition-all resize-none no-scrollbar"
+                    />
+                    <button 
+                      onClick={handleSendMessage}
+                      disabled={!chatInput.trim() || sendingMessage}
+                      className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${
+                        chatInput.trim() && !sendingMessage ? 'bg-primary text-on-primary shadow-lg' : 'bg-surface-container-high text-on-surface-variant opacity-50'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[20px]">send</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* MODAL GHI CHI PHÍ PHÁT SINH (CHỈ LANDLORD) */}
       {showRepairModal && repairIncident && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
-          <div style={{ background: '#ffffff', width: '500px', borderRadius: '16px', padding: '30px', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
-            <button onClick={() => setShowRepairModal(false)} style={{ position: 'absolute', top: 20, right: 20, border: 'none', background: '#f8fafc', width: '32px', height: '32px', borderRadius: '50%', fontSize: '18px', cursor: 'pointer', color: '#64748b', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>✖</button>
+        <div className="fixed inset-0 bg-on-surface/40 backdrop-blur-sm flex justify-center items-center z-[100] animate-in fade-in duration-300 p-4">
+          <div className="bg-surface-container-lowest w-full max-w-md rounded-3xl p-8 relative shadow-2xl animate-in zoom-in-95 duration-300">
+            <button 
+              onClick={() => setShowRepairModal(false)} 
+              className="absolute top-6 right-6 w-10 h-10 rounded-full bg-surface-container hover:bg-surface-container-high flex items-center justify-center transition-all"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
             
-            <h3 style={{ marginTop: 0, color: '#f97316', borderBottom: '1px solid #f1f5f9', paddingBottom: 15, fontSize: '20px', fontWeight: '700' }}>
-              🔧 Ghi Chi Phí Phát Sinh
+            <h3 className="text-xl font-bold text-tertiary flex items-center gap-2 mb-6">
+              <span className="material-symbols-outlined">payments</span>
+              Ghi Chi Phí Sửa Chữa
             </h3>
             
-            <div style={{ padding: '15px', background: '#fff7ed', borderRadius: '10px', marginBottom: '20px', fontSize: '14px', border: '1px solid #ffedd5' }}>
-              <p style={{ margin: '0 0 5px 0', color: '#9a3412' }}><strong>Sự cố:</strong> {repairIncident.title}</p>
-              <p style={{ margin: '0 0 5px 0', color: '#9a3412' }}><strong>Phòng:</strong> {repairIncident.room?.roomNumber} {repairIncident.room?.roomCode ? `(${repairIncident.room.roomCode})` : ''}</p>
-              <p style={{ margin: 0, color: '#9a3412' }}><strong>Ngày báo cáo:</strong> {new Date(repairIncident.createdAt).toLocaleDateString('vi-VN')}</p>
+            <div className="bg-tertiary-fixed/30 p-4 rounded-2xl mb-6 border border-tertiary-fixed/50">
+              <p className="text-xs font-bold text-on-tertiary-fixed uppercase mb-2">Thông tin sự cố</p>
+              <p className="text-sm font-bold text-on-surface">{repairIncident.title}</p>
+              <p className="text-xs text-on-surface-variant">{repairIncident.room?.roomNumber} ({repairIncident.room?.roomCode})</p>
             </div>
 
-            <form onSubmit={handleSaveRepairCost}>
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8, color: '#475569', fontSize: '14px' }}>
-                  Nội dung sửa chữa:
-                </label>
-                <textarea
-                  rows="4"
-                  placeholder="VD: Thay dàn lạnh điều hòa, gọi thợ điện vào kiểm tra và sửa chữa..."
-                  value={repairData.repairDescription}
-                  onChange={e => setRepairData({ ...repairData, repairDescription: e.target.value })}
-                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', boxSizing: 'border-box', fontSize: '14px', color: '#0f172a', backgroundColor: '#f8fafc', resize: 'vertical', outline: 'none' }}
+            <form onSubmit={handleSaveRepairCost} className="space-y-5">
+              <div className="space-y-2">
+                <label className="block font-bold text-on-surface-variant text-sm">Nội dung sửa chữa:</label>
+                <textarea 
+                  rows="3" 
+                  placeholder="VD: Thay vòi sen, gọi thợ..." 
+                  value={repairData.repairDescription} 
+                  onChange={e => setRepairData({ ...repairData, repairDescription: e.target.value })} 
+                  className="w-full p-3.5 rounded-xl border border-outline-variant bg-surface-container-low focus:ring-2 focus:ring-tertiary outline-none transition-all resize-none"
                 />
               </div>
-              <div style={{ marginBottom: 25 }}>
-                <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8, color: '#475569', fontSize: '14px' }}>
-                  Chi phí phát sinh (VNĐ): <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="1000"
-                  required
-                  placeholder="VD: 500000"
-                  value={repairData.repairCost}
-                  onChange={e => setRepairData({ ...repairData, repairCost: e.target.value })}
-                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #e2e8f0', boxSizing: 'border-box', fontSize: '18px', fontWeight: 'bold', color: '#f97316', backgroundColor: '#f8fafc', outline: 'none' }}
-                />
+              
+              <div className="space-y-2">
+                <label className="block font-bold text-on-surface-variant text-sm">Số tiền (VNĐ):</label>
+                <div className="relative">
+                  <input 
+                    type="number" 
+                    required 
+                    value={repairData.repairCost} 
+                    onChange={e => setRepairData({ ...repairData, repairCost: e.target.value })} 
+                    className="w-full p-3.5 pl-4 rounded-xl border border-outline-variant bg-surface-container-low focus:ring-2 focus:ring-tertiary outline-none text-lg font-bold text-tertiary" 
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-on-surface-variant/50">đ</span>
+                </div>
                 {repairData.repairCost && (
-                  <p style={{ color: '#64748b', fontSize: '13px', marginTop: '8px', fontWeight: '500' }}>
-                    = {Number(repairData.repairCost).toLocaleString('vi-VN')} đồng
+                  <p className="text-[11px] text-tertiary font-bold px-2">
+                    {Number(repairData.repairCost).toLocaleString('vi-VN')} đồng
                   </p>
                 )}
               </div>
-              <div style={{ textAlign: 'right', gap: '12px', display: 'flex', justifyContent: 'flex-end' }}>
-                <button type="button" onClick={() => setShowRepairModal(false)} style={{ padding: '12px 24px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+              
+              <div className="pt-4 flex gap-3">
+                <button type="button" onClick={() => setShowRepairModal(false)} className="flex-1 py-3.5 bg-surface-container text-on-surface-variant font-bold rounded-xl">
                   Hủy
                 </button>
-                <button type="submit" disabled={savingRepair} style={{ padding: '12px 24px', background: savingRepair ? '#cbd5e1' : '#f97316', color: '#ffffff', border: 'none', borderRadius: '8px', cursor: savingRepair ? 'not-allowed' : 'pointer', fontWeight: 'bold', boxShadow: '0 4px 6px -1px rgba(249,115,22,0.2)' }}>
-                  {savingRepair ? '⏳ Đang lưu...' : '💾 Lưu Chi Phí'}
+                <button 
+                  type="submit" 
+                  disabled={savingRepair}
+                  className="flex-[2] py-3.5 bg-tertiary text-on-tertiary font-bold rounded-xl shadow-lg shadow-tertiary/20"
+                >
+                  {savingRepair ? 'Đang lưu...' : 'Lưu chi phí'}
                 </button>
               </div>
             </form>
@@ -385,223 +708,33 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
         </div>
       )}
 
-      {/* MODAL VIEW COST DETAIL */}
+      {/* MODAL XEM CHI TIẾT CHI PHÍ (KHI ĐÃ GHI) */}
       {viewCostModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000 }}>
-          <div style={{ background: '#ffffff', width: '500px', borderRadius: '16px', padding: '30px', position: 'relative', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
-            <button onClick={() => setViewCostModal(null)} style={{ position: 'absolute', top: 20, right: 20, border: 'none', background: '#f8fafc', width: '32px', height: '32px', borderRadius: '50%', fontSize: '18px', cursor: 'pointer', color: '#64748b', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>✖</button>
-            <h3 style={{ marginTop: 0, color: '#f97316', borderBottom: '1px solid #f1f5f9', paddingBottom: 15, fontSize: '20px', fontWeight: '700' }}>🔧 Chi tiết chi phí sửa chữa</h3>
-            <div style={{ background: '#fff7ed', padding: '20px', borderRadius: '12px', border: '1px solid #ffedd5', marginBottom: '25px' }}>
-              <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#9a3412', fontWeight: '500' }}>Tổng chi phí:</p>
-              <p style={{ margin: '0 0 20px 0', color: '#f97316', fontSize: '28px', fontWeight: '800' }}>{Number(viewCostModal.repairCost).toLocaleString('vi-VN')} đ</p>
-              
-              {viewCostModal.repairDescription && (
-                <div>
-                  <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#9a3412', fontWeight: '500' }}>Nội dung sửa chữa:</p>
-                  <p style={{ margin: 0, background: '#ffffff', padding: '12px', borderRadius: '8px', border: '1px solid #ffedd5', color: '#475569', whiteSpace: 'pre-wrap', lineHeight: '1.6', fontSize: '14px' }}>{viewCostModal.repairDescription}</p>
-                </div>
-              )}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-              <button onClick={() => setViewCostModal(null)} style={{ padding: '12px 24px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Đóng</button>
-              <button 
-                onClick={() => { setViewCostModal(null); openRepairModal(viewCostModal); }} 
-                style={{ padding: '12px 24px', background: '#f97316', color: '#ffffff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 4px 6px -1px rgba(249,115,22,0.2)' }}
-              >
-                ✎ Sửa chi phí
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL CHI TIẾT & PHẢN HỒI (CẢ 2 ROLE DÙNG CHUNG) */}
-      {showDetailModal && selectedIncident && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
-          <div style={{ background: '#ffffff', width: '750px', maxHeight: '92vh', overflowY: 'auto', borderRadius: '16px', padding: '35px', position: 'relative', textAlign: 'left', color: '#0f172a', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)' }}>
-            <button onClick={() => setShowDetailModal(false)} style={{ position: 'absolute', top: 20, right: 20, border: 'none', background: '#f8fafc', width: '32px', height: '32px', borderRadius: '50%', fontSize: '18px', cursor: 'pointer', color: '#64748b', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>✖</button>
-            <h3 style={{ marginTop: 0, color: '#2563eb', borderBottom: '1px solid #f1f5f9', paddingBottom: 15, textAlign: 'center', fontSize: '22px', fontWeight: '700' }}>📄 Chi tiết báo cáo sự cố</h3>
-            
-            <div style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '25px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
-                <div>
-                  <p style={{ margin: '0 0 5px 0', fontSize: '13px', color: '#64748b' }}>Tiêu đề:</p>
-                  <p style={{ margin: 0, fontWeight: 'bold', color: '#0f172a' }}>{selectedIncident.title}</p>
-                </div>
-                <div>
-                  <p style={{ margin: '0 0 5px 0', fontSize: '13px', color: '#64748b' }}>Ngày gửi:</p>
-                  <p style={{ margin: 0, fontWeight: 'bold' }}>{new Date(selectedIncident.createdAt).toLocaleString('vi-VN')}</p>
-                </div>
-                <div>
-                  <p style={{ margin: '0 0 5px 0', fontSize: '13px', color: '#64748b' }}>Phòng:</p>
-                  <p style={{ margin: 0, fontWeight: 'bold' }}>{selectedIncident.room?.roomNumber} {selectedIncident.room?.roomCode ? `(${selectedIncident.room?.roomCode})` : ''}</p>
-                </div>
-                <div>
-                  <p style={{ margin: '0 0 5px 0', fontSize: '13px', color: '#64748b' }}>Trạng thái hiện tại:</p>
-                  {getStatusBadge(selectedIncident.status)}
+        <div className="fixed inset-0 bg-on-surface/40 backdrop-blur-sm flex justify-center items-center z-[110] p-4">
+          <div className="bg-surface-container-lowest w-full max-w-sm rounded-3xl p-8 relative shadow-2xl">
+            <h3 className="text-lg font-bold text-on-surface mb-6 flex items-center gap-2">
+              <span className="material-symbols-outlined text-tertiary">receipt_long</span>
+              Chi tiết chi phí
+            </h3>
+            <div className="space-y-6 text-center">
+              <div className="bg-tertiary-fixed/20 py-8 rounded-2xl border border-tertiary-fixed/30">
+                <p className="text-xs font-bold text-on-tertiary-fixed uppercase mb-1">Tổng cộng</p>
+                <p className="text-3xl font-black text-tertiary">
+                  {Number(viewCostModal.repairCost).toLocaleString('vi-VN')} <span className="text-sm font-normal">đ</span>
+                </p>
+              </div>
+              <div className="text-left space-y-1">
+                <p className="text-[10px] font-bold text-on-surface-variant uppercase px-2">Nội dung</p>
+                <div className="bg-surface-container-low p-4 rounded-xl text-sm italic text-on-surface min-h-[50px]">
+                  {viewCostModal.repairDescription || 'Không có ghi chú.'}
                 </div>
               </div>
-              
-              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '15px' }}>
-                <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#64748b' }}>Mô tả chi tiết từ người thuê:</p>
-                <div style={{ whiteSpace: 'pre-wrap', color: '#475569', background: '#ffffff', padding: '15px', border: '1px solid #e2e8f0', borderRadius: '8px', lineHeight: '1.6', fontSize: '14px' }}>
-                  {selectedIncident.description}
-                </div>
-              </div>
-              
-              {selectedIncident.images && selectedIncident.images.length > 0 && (
-                <div style={{ marginTop: 20 }}>
-                  <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#64748b', fontWeight: 'bold' }}>Hình ảnh minh chứng:</p>
-                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                    {selectedIncident.images.map((img, idx) => (
-                      <a key={idx} href={`http://localhost:5000/uploads/${img}`} target="_blank" rel="noopener noreferrer" style={{ transition: 'transform 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'} onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}>
-                        <img src={`http://localhost:5000/uploads/${img}`} alt="suco" style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px', border: '2px solid #ffffff', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Chi phí phát sinh (chỉ hiển thị cho Chủ nhà) */}
-            {user.role === 'LANDLORD' && selectedIncident.repairCost > 0 && (
-              <div style={{ padding: '20px', background: '#fff7ed', border: '1px solid #ffedd5', borderRadius: '12px', marginBottom: '25px' }}>
-                <h4 style={{ margin: '0 0 12px 0', color: '#9a3412', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  💰 Chi Phí Sửa Chữa Đã Ghi
-                </h4>
-                <p style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#9a3412' }}><strong>Số tiền:</strong> <span style={{ color: '#ea580c', fontWeight: 'bold', fontSize: '20px' }}>{Number(selectedIncident.repairCost).toLocaleString('vi-VN')} đ</span></p>
-                {selectedIncident.repairDescription && (
-                  <p style={{ margin: 0, fontSize: '14px', color: '#9a3412', opacity: 0.8 }}><strong>Ghi chú:</strong> {selectedIncident.repairDescription}</p>
+              <div className="flex gap-2">
+                <button onClick={() => setViewCostModal(null)} className="flex-1 py-3 bg-surface-container text-on-surface-variant font-bold rounded-xl">Đóng</button>
+                {user.role === 'LANDLORD' && (
+                  <button onClick={() => { setViewCostModal(null); openRepairModal(viewCostModal); }} className="flex-1 py-3 bg-tertiary text-on-tertiary font-bold rounded-xl">Sửa phí</button>
                 )}
               </div>
-            )}
-
-            {/* Phần chỉ dành cho Landlord: cập nhật trạng thái */}
-            {user.role === 'LANDLORD' && (
-              <form onSubmit={handleUpdateStatus} style={{ marginBottom: '25px', padding: '20px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                <h4 style={{ margin: '0 0 18px 0', color: '#0f172a', fontSize: '16px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  ✍️ Phản hồi & Cập nhật trạng thái
-                </h4>
-                <div style={{ marginBottom: 15 }}>
-                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8, color: '#475569', fontSize: '14px' }}>Trạng thái tiến độ:</label>
-                  <select value={replyData.status} onChange={e => setReplyData({...replyData, status: e.target.value})} style={{ width: '100%', padding: '10px 15px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#ffffff', color: '#0f172a', outline: 'none' }}>
-                    <option value="Pending">Chờ xử lý (Mới nhận báo cáo)</option>
-                    <option value="In Progress">Đang xử lý (Đã gọi thợ / Đang sửa)</option>
-                    <option value="Resolved">Đã giải quyết (Đã sửa xong)</option>
-                    <option value="Rejected">Từ chối (Lý do không hợp lý)</option>
-                  </select>
-                </div>
-                <div style={{ marginBottom: 15 }}>
-                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: 8, color: '#475569', fontSize: '14px' }}>Lời nhắn gửi khách thuê:</label>
-                  <textarea rows="3" placeholder="Ví dụ: Chiều mai thợ sẽ qua kiểm tra..." required value={replyData.landlordReply} onChange={e => setReplyData({...replyData, landlordReply: e.target.value})} style={{ width: '100%', padding: '12px 15px', borderRadius: '8px', border: '1px solid #e2e8f0', boxSizing: 'border-box', background: '#ffffff', outline: 'none', resize: 'vertical', fontSize: '14px' }}></textarea>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <button type="submit" style={{ padding: '10px 25px', background: '#10b981', color: '#ffffff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px', boxShadow: '0 4px 6px -1px rgba(16,185,129,0.2)' }}>Cập nhật Sự cố</button>
-                </div>
-              </form>
-            )}
-
-            {/* Phần chỉ dành cho Tenant: Xem phản hồi */}
-            {user.role === 'TENANT' && (
-              <div style={{ padding: '20px', background: '#eff6ff', borderRadius: '12px', border: '1px solid #bfdbfe', marginBottom: '25px' }}>
-                <h4 style={{ margin: '0 0 15px 0', color: '#2563eb', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  📩 Phản hồi từ Chủ nhà
-                </h4>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                  <span style={{ fontSize: '14px', color: '#1e40af', fontWeight: '600' }}>Trạng thái:</span>
-                  {getStatusBadge(selectedIncident.status)}
-                </div>
-                <p style={{ margin: '12px 0 8px 0', fontSize: '14px', color: '#1e40af', fontWeight: '600' }}>Lời nhắn của chủ nhà:</p>
-                <div style={{ whiteSpace: 'pre-wrap', color: '#1e3a8a', fontStyle: 'italic', background: 'rgba(255,255,255,0.6)', padding: '12px 15px', borderRadius: '8px', margin: 0, fontSize: '14px', lineHeight: '1.6' }}>
-                  {selectedIncident.landlordReply || 'Chủ nhà chưa có phản hồi cụ thể.'}
-                </div>
-              </div>
-            )}
-
-            {/* ===== KHUNG CHAT TRAO ĐỔI ===== */}
-            <div style={{ border: '1px solid #e2e8f0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-              <div style={{ background: '#f8fafc', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: '18px' }}>💬</span>
-                <span style={{ color: '#0f172a', fontWeight: 'bold', fontSize: '15px' }}>Trao đổi trực tiếp</span>
-                <span style={{ color: '#64748b', fontSize: '12px', marginLeft: 4 }}>
-                  {user.role === 'TENANT' ? 'với Chủ nhà' : 'với Khách thuê'}
-                </span>
-              </div>
-
-              <div style={{ height: '280px', overflowY: 'auto', padding: '20px', background: '#ffffff', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {loadingMessages ? (
-                  <div style={{ textAlign: 'center', color: '#94a3b8', paddingTop: '80px', fontSize: '14px' }}>Đang tải tin nhắn...</div>
-                ) : messages.length === 0 ? (
-                  <div style={{ textAlign: 'center', color: '#94a3b8', paddingTop: '80px', fontSize: '13px' }}>
-                    Chưa có tin nhắn nào. Đặt câu hỏi để trao đổi thêm chi tiết!
-                  </div>
-                ) : (
-                  messages.map((msg) => {
-                    const isMe = msg.senderId === user.id;
-                    return (
-                      <div key={msg.id} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
-                        <div style={{ maxWidth: '80%' }}>
-                          <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '4px', textAlign: isMe ? 'right' : 'left', display: 'flex', gap: '5px', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
-                            <span style={{ fontWeight: 'bold' }}>{isMe ? 'Bạn' : msg.sender?.fullName}</span>
-                            <span>·</span>
-                            <span>{new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
-                          </div>
-                          <div style={{
-                            padding: '10px 16px',
-                            borderRadius: isMe ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                            background: isMe ? '#2563eb' : '#f1f5f9',
-                            color: isMe ? '#ffffff' : '#0f172a',
-                            boxShadow: isMe ? '0 4px 12px rgba(37,99,235,0.2)' : '0 1px 2px rgba(0,0,0,0.05)',
-                            fontSize: '14px',
-                            lineHeight: '1.6',
-                            whiteSpace: 'pre-wrap',
-                            wordBreak: 'break-word',
-                            border: isMe ? 'none' : '1px solid #e2e8f0'
-                          }}>
-                            {msg.message}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                 )}
-                <div ref={chatEndRef} />
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', padding: '15px 20px', background: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
-                <textarea
-                  rows="2"
-                  placeholder="Nhập nội dung trao đổi... (Enter để gửi)"
-                  value={chatInput}
-                  onChange={e => setChatInput(e.target.value)}
-                  onKeyDown={handleChatKeyDown}
-                  style={{ flex: 1, padding: '12px 18px', border: '1px solid #e2e8f0', borderRadius: '12px', resize: 'none', outline: 'none', fontSize: '14px', lineHeight: '1.5', boxSizing: 'border-box', fontFamily: 'inherit', color: '#0f172a', backgroundColor: '#ffffff', transition: '0.2s' }}
-                  onFocus={e => e.target.style.borderColor = '#2563eb'}
-                  onBlur={e => e.target.style.borderColor = '#e2e8f0'}
-                />
-                <button
-                  onClick={handleSendMessage}
-                  disabled={!chatInput.trim() || sendingMessage}
-                  style={{ 
-                    padding: '12px 20px', 
-                    background: chatInput.trim() && !sendingMessage ? '#2563eb' : '#e2e8f0', 
-                    color: chatInput.trim() && !sendingMessage ? '#ffffff' : '#94a3b8', 
-                    border: 'none', 
-                    borderRadius: '12px', 
-                    cursor: chatInput.trim() && !sendingMessage ? 'pointer' : 'not-allowed', 
-                    fontWeight: 'bold', 
-                    fontSize: '14px', 
-                    transition: 'all 0.2s',
-                    boxShadow: chatInput.trim() && !sendingMessage ? '0 4px 6px -1px rgba(37,99,235,0.3)' : 'none'
-                  }}
-                >
-                  {sendingMessage ? '...' : 'Gửi 🚀'}
-                </button>
-              </div>
-            </div>
-
-            <div style={{ textAlign: 'right', marginTop: '25px' }}>
-              <button type="button" onClick={() => setShowDetailModal(false)} style={{ padding: '12px 30px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>Đóng cửa sổ</button>
             </div>
           </div>
         </div>

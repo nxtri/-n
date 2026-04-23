@@ -62,6 +62,8 @@ const RentalContract = sequelize.define('RentalContract', {
   parkingPrice: { type: DataTypes.FLOAT, defaultValue: 0 },
   servicePrice: { type: DataTypes.FLOAT, defaultValue: 0 },
 
+  // --- MỚI: Cờ đánh dấu khách tự thanh toán cho điện lực (Không chốt qua app) ---
+  isDirectUtilityPayment: { type: DataTypes.BOOLEAN, defaultValue: false },
 
   startElectricity: { type: DataTypes.INTEGER, defaultValue: 0 },
   currentElectricity: { type: DataTypes.INTEGER, defaultValue: 0 }, // Lưu số mới nhất

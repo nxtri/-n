@@ -309,10 +309,13 @@ const RoomDetail = () => {
           
           {/* Tên phòng & Giá */}
           <div style={{ textAlign: 'left', borderBottom: '1px solid #f1f5f9', paddingBottom: '20px' }}>
-            <h2 style={{ color: '#0f172a', margin: '0 0 10px 0', fontSize: '24px', fontWeight: '700' }}>Phòng {room.roomNumber}</h2>
+            <h2 style={{ color: '#0f172a', margin: '0 0 10px 0', fontSize: '24px', fontWeight: '700' }}>{room.roomType === 'WHOLE_HOUSE' ? '' : 'Phòng '}{room.roomNumber}</h2>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
               <span style={{ fontSize: '28px', color: '#ef4444', fontWeight: '800' }}>{room.price?.toLocaleString()}</span>
               <span style={{ fontSize: '16px', color: '#ef4444', fontWeight: '600' }}>đ/tháng</span>
+              <span style={{ marginLeft: '15px', padding: '4px 12px', background: '#eff6ff', color: '#2563eb', borderRadius: '20px', fontSize: '13px', fontWeight: 'bold' }}>
+                {room.roomType === 'WHOLE_HOUSE' ? '🏠 Nhà nguyên căn' : '🚪 Phòng trọ'}
+              </span>
             </div>
             
             {/* HIỂN THỊ SAO TRUNG BÌNH */}
@@ -333,15 +336,34 @@ const RoomDetail = () => {
           </div>
           
           {/* Thông số cơ bản (Diện tích & Số người) */}
-          <div style={{ display: 'flex', justifyContent: 'space-around', background: '#f8fafc', padding: '18px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: room.roomType === 'WHOLE_HOUSE' ? 'repeat(5, 1fr)' : 'repeat(2, 1fr)', gap: '15px', background: '#f8fafc', padding: '18px', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
             <div style={{ textAlign: 'center' }}>
               <span style={{ display: 'block', fontSize: '24px', marginBottom: '8px' }}>📐</span>
-              <span style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b' }}>{room.area || 0} m²</span>
+              <span style={{ fontSize: '14px', fontWeight: '700', color: '#1e293b' }}>{room.area || 0} m²</span>
             </div>
-            <div style={{ width: '1px', background: '#e2e8f0' }}></div>
+            {room.roomType === 'WHOLE_HOUSE' && (
+              <>
+                <div style={{ width: '1px', background: '#e2e8f0', margin: '0 auto' }}></div>
+                <div style={{ textAlign: 'center' }}>
+                  <span style={{ display: 'block', fontSize: '24px', marginBottom: '8px' }}>🪜</span>
+                  <span style={{ fontSize: '14px', fontWeight: '700', color: '#1e293b' }}>{room.numFloors || 1} tầng</span>
+                </div>
+                <div style={{ width: '1px', background: '#e2e8f0', margin: '0 auto' }}></div>
+                <div style={{ textAlign: 'center' }}>
+                  <span style={{ display: 'block', fontSize: '24px', marginBottom: '8px' }}>🛌</span>
+                  <span style={{ fontSize: '14px', fontWeight: '700', color: '#1e293b' }}>{room.numBedrooms || 1} PN</span>
+                </div>
+                <div style={{ width: '1px', background: '#e2e8f0', margin: '0 auto' }}></div>
+                <div style={{ textAlign: 'center' }}>
+                  <span style={{ display: 'block', fontSize: '24px', marginBottom: '8px' }}>🚽</span>
+                  <span style={{ fontSize: '14px', fontWeight: '700', color: '#1e293b' }}>{room.numBathrooms || 1} WC</span>
+                </div>
+              </>
+            )}
+            <div style={{ width: '1px', background: '#e2e8f0', margin: '0 auto' }}></div>
             <div style={{ textAlign: 'center' }}>
               <span style={{ display: 'block', fontSize: '24px', marginBottom: '8px' }}>👥</span>
-              <span style={{ fontSize: '15px', fontWeight: '700', color: '#1e293b' }}>Tối đa {room.maxOccupants} người</span>
+              <span style={{ fontSize: '14px', fontWeight: '700', color: '#1e293b' }}>Tối đa {room.maxOccupants} người</span>
             </div>
           </div>
 
@@ -349,7 +371,7 @@ const RoomDetail = () => {
           <div>
             <h4 style={{ color: '#444d62', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.05em', borderBottom: '1px solid #f1f5f9', paddingBottom: '8px', marginBottom: '12px', fontWeight: '700' }}>Thông tin dịch vụ:</h4>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '14px', color: '#475569', fontWeight: 'bold', textAlign: 'left' }}>
-              <p style={{ margin: 0 }}>⚡ Điện: <span style={{ fontWeight: '600', color: '#1e293b' }}>{room.electricityPrice ? `${room.electricityPrice.toLocaleString()}đ/ký` : 'Theo giá'}</span></p>
+              <p style={{ margin: 0 }}>⚡ Điện: <span style={{ fontWeight: '600', color: '#1e293b' }}>{room.roomType === 'WHOLE_HOUSE' ? 'Tự thanh toán điện lực' : (room.electricityPrice ? `${room.electricityPrice.toLocaleString()}đ/ký` : 'Theo giá')}</span></p>
               <p style={{ margin: 0 }}>💧 Nước: <span style={{ fontWeight: '600', color: '#1e293b' }}>{room.waterPrice ? `${room.waterPrice.toLocaleString()}đ/khối` : 'Theo giá'}</span></p>
               <p style={{ margin: 0 }}>🛵 Gửi xe: <span style={{ fontWeight: '600', color: '#1e293b' }}>{room.parkingPrice ? `${room.parkingPrice.toLocaleString()}đ/tháng` : 'Miễn phí'}</span></p>
               <p style={{ margin: 0 }}>🌐 Mạng: <span style={{ fontWeight: '600', color: '#1e293b' }}>{room.internetPrice ? `${room.internetPrice.toLocaleString()}đ/tháng` : 'Tự túc'}</span></p>

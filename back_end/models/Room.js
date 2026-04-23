@@ -8,7 +8,11 @@ const Room = sequelize.define('Room', {
   roomNumber: { type: DataTypes.STRING, allowNull: false },
   roomCode: { type: DataTypes.STRING, allowNull: true, unique: true },
   houseNumber: { type: DataTypes.STRING, allowNull: true },
-  address: { type: DataTypes.STRING, allowNull: true }, // Xã, Quận, Thành phố
+  address: { type: DataTypes.STRING, allowNull: true }, // Xã, Thành phố
+  roomType: { 
+    type: DataTypes.ENUM('SINGLE', 'WHOLE_HOUSE'), 
+    defaultValue: 'SINGLE' 
+  },
   
   // Thông tin giá cả
   price: { type: DataTypes.FLOAT, allowNull: false },
@@ -26,6 +30,9 @@ const Room = sequelize.define('Room', {
   hasKitchen: { type: DataTypes.BOOLEAN, defaultValue: false },
   hasHeater: { type: DataTypes.BOOLEAN, defaultValue: false }, // Nóng lạnh
   area: { type: DataTypes.FLOAT, allowNull: true },
+  numFloors: { type: DataTypes.INTEGER, allowNull: true },
+  numBedrooms: { type: DataTypes.INTEGER, allowNull: true },
+  numBathrooms: { type: DataTypes.INTEGER, allowNull: true },
   images: { type: DataTypes.TEXT, allowNull: true },
   description: {type: DataTypes.TEXT, allowNull: true },
   depositNote: { 
