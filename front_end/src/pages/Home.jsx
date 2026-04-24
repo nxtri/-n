@@ -72,8 +72,10 @@ const Home = () => {
     const fetchRooms = async () => {
       try {
         const response = await roomApi.getPublicRooms();
-        setRooms(response.rooms);
-        setFilteredRooms(response.rooms);
+        // 🚨 CHỈ HIỂN THỊ PHÒNG CHƯA CÓ CỌC (depositNote trống)
+        const activeRooms = (response.rooms || []).filter(r => !r.depositNote || r.depositNote.trim() === '');
+        setRooms(activeRooms);
+        setFilteredRooms(activeRooms);
       } catch (error) {
         console.error('Lỗi tải phòng', error);
       }

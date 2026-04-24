@@ -1670,8 +1670,54 @@ const handleCreateRoom = async (e) => {
                           </div>
 
                           <div className="space-y-4 flex-1 flex flex-col justify-end">
+                            {room.status === 'RENTED' && activeContract && isReturningSoon && (
+                              <div className={`${activeContract.noticeGivenBy === 'LANDLORD' ? 'bg-primary/10 border-primary' : 'bg-tertiary/10 border-tertiary'} border-l-4 p-4 rounded-2xl mb-4 animate-in fade-in slide-in-from-top-2 duration-500 shadow-sm`}>
+                                <div className="flex items-center gap-3">
+                                  <div className={`w-10 h-10 rounded-xl ${activeContract.noticeGivenBy === 'LANDLORD' ? 'bg-primary/20 text-primary' : 'bg-tertiary/20 text-tertiary'} flex items-center justify-center shrink-0 shadow-sm`}>
+                                    <span className="material-symbols-outlined text-[20px] font-black animate-pulse">
+                                      {activeContract.noticeGivenBy === 'LANDLORD' ? 'outbound' : 'hail'}
+                                    </span>
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className={`text-[10px] font-black ${activeContract.noticeGivenBy === 'LANDLORD' ? 'text-primary' : 'text-tertiary'} uppercase tracking-widest leading-tight`}>
+                                      {activeContract.noticeGivenBy === 'LANDLORD' ? 'Bạn yêu cầu lấy lại' : 'Khách yêu cầu trả phòng'}
+                                    </p>
+                                    <p className="text-sm font-black text-on-surface truncate">
+                                      Ngày đi: <span className="text-error font-black border-b border-error/20">{new Date(activeContract.intendedMoveOutDate).toLocaleDateString('vi-VN')}</span>
+                                    </p>
+                                  </div>
+                                </div>
+                                {activeContract.terminationReason && (
+                                  <div className="mt-3 pt-3 border-t border-outline-variant/10">
+                                    <p className="text-[10px] font-bold text-on-surface-variant italic leading-relaxed line-clamp-2">
+                                      " {activeContract.terminationReason} "
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
                             {room.status === 'RENTED' && activeContract ? (
-                              <div className="bg-surface-container-low p-4 rounded-2xl border border-outline-variant/30 flex items-center justify-between">
+                              <div className="space-y-3">
+                                {/* Banner Ghi chú Cọc (Nếu có) */}
+                                {room.depositNote && (
+                                  <div className="bg-emerald-500 border-2 border-emerald-400/20 p-4 rounded-2xl animate-in zoom-in duration-500 shadow-lg shadow-emerald-500/10 relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-125"></div>
+                                    <div className="flex items-center gap-3 relative z-10">
+                                      <div className="w-10 h-10 rounded-xl bg-white/20 text-white flex items-center justify-center shrink-0 shadow-inner">
+                                        <span className="material-symbols-outlined text-[22px] font-black">lock_person</span>
+                                      </div>
+                                      <div className="min-w-0">
+                                        <p className="text-[10px] font-black text-white/80 uppercase tracking-widest leading-tight">Đã nhận cọc giữ chỗ mới</p>
+                                        <p className="text-sm font-black text-white truncate italic">
+                                          "{room.depositNote}"
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                <div className="bg-surface-container-low p-4 rounded-2xl border border-outline-variant/30 flex items-center justify-between">
                                 <div className="flex items-center gap-3 min-w-0">
                                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                                     <span className="material-symbols-outlined text-primary text-[20px] fill-1">person</span>
@@ -1686,12 +1732,24 @@ const handleCreateRoom = async (e) => {
                                     <span className="material-symbols-outlined text-[20px]">description</span>
                                   </button>
                                 </div>
+                                </div>
                               </div>
                             ) : (
                               <div className="py-2">
                                 <p className="text-xs text-on-surface-variant font-bold opacity-40 italic">
                                   {room.status === 'AVAILABLE' ? '— Sẵn sàng đón khách mới' : room.status === 'DEPOSITED' ? '— Đã nhận đặt cọc giữ chỗ' : '— Đang trong quá trình bảo trì'}
                                 </p>
+                                {room.depositNote && (
+                                  <div className="mt-3 bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl animate-in fade-in duration-500">
+                                    <div className="flex items-center gap-3">
+                                      <span className="material-symbols-outlined text-emerald-600 text-[20px]">payments</span>
+                                      <div className="min-w-0">
+                                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Thông tin cọc:</p>
+                                        <p className="text-sm font-bold text-emerald-700 truncate italic">"{room.depositNote}"</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             )}
 
@@ -1723,8 +1781,15 @@ const handleCreateRoom = async (e) => {
                                   )}
                                   <button onClick={() => handleEditContractClick(activeContract)} className="py-3 bg-secondary/10 text-secondary border border-secondary/20 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-secondary hover:text-white transition-all">Sửa HĐ</button>
                                   <button onClick={() => handleEndLease(room.id)} className="py-3 bg-error/10 text-error border border-error/20 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-error hover:text-white transition-all">Trả phòng</button>
+                                  
                                   {isReturningSoon ? (
-                                    <button onClick={() => handleCancelTermination(activeContract.id)} className="col-span-2 py-3 bg-outline-variant text-on-surface-variant rounded-2xl text-[10px] font-black uppercase tracking-widest">Hủy lịch trả</button>
+                                    <>
+                                      <button onClick={() => setDepositModal({ show: true, roomId: room.id, note: room.depositNote || '' })} className="col-span-2 py-3 bg-tertiary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-tertiary/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-2">
+                                        <span className="material-symbols-outlined text-[18px]">payments</span>
+                                        {room.depositNote ? 'Cập nhật cọc giữ chỗ' : 'Nhận cọc giữ chỗ mới'}
+                                      </button>
+                                      <button onClick={() => handleCancelTermination(activeContract.id)} className="col-span-2 py-3 bg-outline-variant text-on-surface-variant rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-surface-container transition-all">Hủy lịch trả</button>
+                                    </>
                                   ) : (
                                     <button onClick={() => { setTerminateData({ contractId: activeContract.id, moveOutDate: '', reason: '' }); setShowTerminateModal(true); }} className="col-span-2 py-3 bg-tertiary/10 text-tertiary rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-tertiary hover:text-white transition-all">⚠️ Thông báo lấy lại</button>
                                   )}
@@ -2301,24 +2366,43 @@ const handleCreateRoom = async (e) => {
                                 )}
                               </div>
                               
-                              {/* Count-down to vacate */}
+                              {/* Count-down to vacate / Landlord recovery notice */}
                               {c.status === 'ACTIVE' && c.intendedMoveOutDate && (
-                                <div className="mt-6 bg-error-container/30 border border-error-container/50 p-6 rounded-2xl flex items-center justify-between gap-4 animate-pulse">
-                                  <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-full bg-error/20 flex items-center justify-center text-error">
-                                      <span className="material-symbols-outlined text-[28px]">pending_actions</span>
+                                <div className={`mt-6 ${c.noticeGivenBy === 'LANDLORD' ? 'bg-error/5 border-error/30' : 'bg-error-container/20 border-error-container/40'} border-l-8 p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6 animate-in fade-in slide-in-from-top-2 duration-500 shadow-sm`}>
+                                  <div className="flex items-center gap-5 flex-1">
+                                    <div className={`w-14 h-14 rounded-full ${c.noticeGivenBy === 'LANDLORD' ? 'bg-error/10 text-error' : 'bg-error/10 text-error'} flex items-center justify-center shrink-0`}>
+                                      <span className="material-symbols-outlined text-[32px] animate-pulse">
+                                        {c.noticeGivenBy === 'LANDLORD' ? 'priority_high' : 'pending_actions'}
+                                      </span>
                                     </div>
-                                    <div>
-                                      <p className="text-sm font-black text-error">Yêu cầu trả phòng đang xử lý</p>
-                                      <p className="text-xs text-on-error-container">Dự kiến dọn đi: <span className="font-bold">{c.intendedMoveOutDate}</span></p>
+                                    <div className="space-y-1">
+                                      <p className="text-base font-black text-error leading-tight uppercase tracking-tight">
+                                        {c.noticeGivenBy === 'LANDLORD' ? '⚠️ CHỦ NHÀ YÊU CẦU LẤY LẠI PHÒNG' : 'BẠN ĐÃ GỬI YÊU CẦU TRẢ PHÒNG'}
+                                      </p>
+                                      <p className="text-sm text-on-surface-variant font-bold">
+                                        Dự kiến bàn giao lại phòng vào: <span className="text-error font-black border-b-2 border-error/20">{new Date(c.intendedMoveOutDate).toLocaleDateString('vi-VN')}</span>
+                                      </p>
+                                      {c.terminationReason && (
+                                        <div className="mt-2 bg-white/50 p-3 rounded-xl border border-outline-variant/20 italic">
+                                          <p className="text-[11px] font-bold text-on-surface-variant">Lý do: "{c.terminationReason}"</p>
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
-                                  <button 
-                                    onClick={() => handleCancelTermination(c.id)}
-                                    className="bg-error text-on-error px-4 py-2 rounded-lg text-xs font-bold hover:scale-105 transition-all"
-                                  >
-                                    Hủy yêu cầu
-                                  </button>
+                                  
+                                  {c.noticeGivenBy === 'TENANT' ? (
+                                    <button 
+                                      onClick={() => handleCancelTermination(c.id)}
+                                      className="w-full md:w-auto bg-error text-on-error px-8 py-4 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-error/20 shrink-0"
+                                    >
+                                      Hủy yêu cầu trả phòng
+                                    </button>
+                                  ) : (
+                                    <div className="w-full md:w-auto px-6 py-3 bg-error/10 border border-error/20 rounded-xl flex items-center gap-2 shrink-0">
+                                      <span className="material-symbols-outlined text-error text-[18px]">info</span>
+                                      <span className="text-[10px] font-black text-error uppercase tracking-widest">Vui lòng liên hệ chủ nhà</span>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
