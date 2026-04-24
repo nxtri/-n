@@ -157,7 +157,7 @@ const contractController = {
         contractOptions.include.push({
           model: Room,
           as: 'room',
-          attributes: ['roomNumber', 'roomCode', 'price', 'address', 'houseNumber', 'roomType'],
+          attributes: ['roomNumber', 'roomCode', 'price', 'address', 'houseNumber', 'roomType', 'area', 'maxOccupants', 'electricityPrice', 'waterPrice', 'internetPrice', 'parkingPrice', 'servicePrice'],
           paranoid: false, // <-- Thêm cái này để không mất hợp đồng của phòng đã xoá
           where: { landlordId: currentUserId },
           required: true // BẮT BUỘC: Chỉ lấy Hợp đồng của phòng do Chủ nhà này sở hữu
@@ -169,7 +169,7 @@ const contractController = {
           model: Room,
           as: 'room',
           paranoid: false, // <-- Thêm cái này nữa
-          attributes: ['roomNumber', 'roomCode', 'price', 'address', 'houseNumber', 'roomType']
+          attributes: ['roomNumber', 'roomCode', 'price', 'address', 'houseNumber', 'roomType', 'area', 'maxOccupants', 'electricityPrice', 'waterPrice', 'internetPrice', 'parkingPrice', 'servicePrice']
         });
       }
 
@@ -234,7 +234,7 @@ const contractController = {
           status: 'ACTIVE' 
         },
         include: [
-          { model: Room, as: 'room', attributes: ['roomNumber', 'roomCode', 'price', 'address', 'houseNumber', 'roomType'] }
+          { model: Room, as: 'room', attributes: ['roomNumber', 'roomCode', 'price', 'address', 'houseNumber', 'roomType', 'area', 'maxOccupants', 'electricityPrice', 'waterPrice', 'internetPrice', 'parkingPrice', 'servicePrice'] }
         ]
       });
 

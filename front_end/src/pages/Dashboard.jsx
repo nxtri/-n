@@ -158,11 +158,19 @@ const Dashboard = () => {
   const [replyText, setReplyText] = useState('');
 
   const handleViewRoomDetails = async (room) => {
-    setViewRoomDetails(room);
+    setViewRoomDetails(room); // Set shallow data first for immediate feedback
     setCurrentImageIndex(0);
     try {
       const response = await roomApi.getRoomById(room.id);
+      const fullRoom = response.room || room; // Fallback to shallow if response.room is missing
+      setViewRoomDetails(fullRoom);
       setViewRoomReviews(response.reviews || []);
+
+      // Find active contract for this room if it's rented
+      if (fullRoom.status === 'RENTED') {
+        const activeContract = contracts.find(c => c.roomId == fullRoom.id && c.status === 'ACTIVE');
+        setViewRoomDetails(prev => ({ ...prev, activeContract }));
+      }
     } catch (error) {
       console.error(error);
       setViewRoomReviews([]);
@@ -660,6 +668,38 @@ const handleCreateRoom = async (e) => {
     }
   };
   // --- CÁC HÀM HỢP ĐỒNG & HÓA ĐƠN ---
+  // HÀM CLICK "KÝ HỢP ĐỒNG" - Reset Form và nạp giá phòng
+  const handleNewContractClick = (room) => {
+    setEditingContractId(null); // Đảm bảo không phải trạng thái sửa
+    setContractRoom(room);      // Mở Form
+    setConditionImages([]);
+    setConditionVideos([]);
+    setContractImages([]);
+    
+    // Reset toàn bộ data về mặc định, lấy giá từ phòng và THÔNG TIN CHỦ NHÀ TỪ USER ĐANG ĐĂNG NHẬP
+    setContractData({
+      // Tự động điền thông tin chủ nhà (Bên A) từ hồ sơ cá nhân
+      landlordName: user?.fullName || '', 
+      landlordDob: user?.dob || '', 
+      landlordPhone: user?.phone || '', 
+      landlordIdentityNumber: user?.identityNumber || '', 
+      landlordHometown: user?.address || '', // Sử dụng address làm quê quán/thường trú
+      
+      tenantEmail: '', tenantName: '', tenantDob: '', tenantPhone: '', tenantIdentityNumber: '', tenantHometown: '',
+      startDate: '', endDate: '',
+      price: room.price || 0, 
+      electricityPrice: room.electricityPrice || 0, 
+      waterPrice: room.waterPrice || 0, 
+      internetPrice: room.internetPrice || 0, 
+      parkingPrice: room.parkingPrice || 0, 
+      servicePrice: room.servicePrice || 0,
+      startElectricity: '', startWater: '', vehicleCount: 0,
+      members: [],
+      conditionDescription: '',
+      isDirectUtilityPayment: false
+    });
+  };
+
   // HÀM CLICK "CẬP NHẬT HỢP ĐỒNG" - Kéo dữ liệu cũ đắp lên Form
   const handleEditContractClick = (contract) => {
     setEditingContractId(contract.id); // Đánh dấu là đang Sửa
@@ -1223,141 +1263,181 @@ const handleCreateRoom = async (e) => {
                 </div>
               </div>
 
-              {/* Form Areas (Redesigned) */}
+              {/* --- KHU VỰC FORM TẠO HỢP ĐỒNG (BẢN ĐẦY ĐỦ PHÁP LÝ) --- */}
               {contractRoom && (
-                <div className="bg-surface-container-lowest p-8 rounded-3xl border-2 border-primary/30 shadow-2xl animate-in fade-in slide-in-from-top-4 space-y-8">
-                  <div className="flex items-center justify-between pb-4 border-b border-outline-variant/30">
-                    <div>
-                      <h3 className="text-2xl font-black text-primary">
-                        {editingContractId ? '✏️ Cập nhật Hợp đồng' : '✍️ Ký hợp đồng mới'}
-                      </h3>
-                      <p className="text-sm text-on-surface-variant font-medium opacity-70">Phòng: {contractRoom.roomNumber} | {contractRoom.address}</p>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-on-surface/40 backdrop-blur-md animate-in fade-in duration-300">
+                <div className="w-full max-w-5xl max-h-[95vh] overflow-y-auto bg-surface-container-lowest p-8 rounded-[2.5rem] border-t-8 border-primary shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 space-y-6 no-scrollbar">
+                  {/* HEADER */}
+                  <div className="flex items-center justify-between pb-6 border-b border-outline-variant/30">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+                        <span className="material-symbols-outlined text-3xl">description</span>
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-black text-on-surface tracking-tight">
+                          {editingContractId ? '✏️ Cập nhật Hợp đồng Phòng ' : '✍️ Ký hợp đồng cho Phòng '}{contractRoom.roomNumber}
+                        </h3>
+                        <p className="text-sm text-on-surface-variant font-bold opacity-60">{contractRoom.address}</p>
+                      </div>
                     </div>
-                    <button onClick={() => { setContractRoom(null); setEditingContractId(null); }} className="p-2 hover:bg-error/10 hover:text-error rounded-full transition-all">
-                      <span className="material-symbols-outlined">close</span>
+                    <button onClick={() => { setContractRoom(null); setEditingContractId(null); setConditionImages([]); setConditionVideos([]); setContractImages([]); }} className="w-12 h-12 flex items-center justify-center hover:bg-error/10 hover:text-error rounded-full transition-all group">
+                      <span className="material-symbols-outlined group-hover:rotate-90 transition-transform">close</span>
                     </button>
                   </div>
-                  
-                  <div className="space-y-10">
-                    {/* SECTION 1: LANDLORD */}
-                    <div>
-                      <h4 className="text-sm font-black text-on-surface-variant uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-[10px]">01</span>
-                        Bên cho thuê (Bên A)
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-surface-container-low p-6 rounded-2xl border border-outline-variant/30">
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Họ và tên *</label>
-                          <input type="text" value={contractData.landlordName} onChange={e => setContractData({...contractData, landlordName: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-sm font-bold" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Số điện thoại *</label>
-                          <input type="text" value={contractData.landlordPhone} onChange={e => setContractData({...contractData, landlordPhone: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-sm font-bold" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Số CCCD *</label>
-                          <input type="text" value={contractData.landlordIdentityNumber} onChange={e => setContractData({...contractData, landlordIdentityNumber: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary/20 outline-none text-sm font-bold" />
-                        </div>
-                      </div>
-                    </div>
 
-                    {/* SECTION 2: TENANT */}
-                    <div>
-                      <h4 className="text-sm font-black text-on-surface-variant uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center text-[10px]">02</span>
-                        Bên thuê (Bên B)
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-secondary-container/5 p-6 rounded-2xl border border-secondary/20">
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Họ và tên *</label>
-                          <input type="text" value={contractData.tenantName} onChange={e => setContractData({...contractData, tenantName: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl focus:ring-2 focus:ring-secondary/20 outline-none text-sm font-bold" />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Email *</label>
-                          <input type="email" value={contractData.tenantEmail} onChange={e => setContractData({...contractData, tenantEmail: e.target.value})} onBlur={handleCheckTenantEmail} className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl focus:ring-2 focus:ring-secondary/20 outline-none text-sm font-bold" placeholder="Gõ email để tự điền..." />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Số điện thoại *</label>
-                          <input type="text" value={contractData.tenantPhone} onChange={e => setContractData({...contractData, tenantPhone: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl focus:ring-2 focus:ring-secondary/20 outline-none text-sm font-bold" />
-                        </div>
+                  {/* PHẦN 1: BÊN A */}
+                  <div>
+                    <h4 className="text-sm font-black text-on-surface uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-[10px]">01</span>
+                      Thông tin Chủ nhà (Bên A)
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-surface-container-low p-5 rounded-2xl border border-outline-variant/30">
+                      <input type="text" placeholder="Họ và tên *" value={contractData.landlordName} onChange={e => setContractData({...contractData, landlordName: e.target.value})} className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                      <input type="text" placeholder="Số điện thoại *" value={contractData.landlordPhone} onChange={e => setContractData({...contractData, landlordPhone: e.target.value})} className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                      <input type="text" placeholder="Số CCCD/CMND *" value={contractData.landlordIdentityNumber} onChange={e => setContractData({...contractData, landlordIdentityNumber: e.target.value})} className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-on-surface-variant whitespace-nowrap">Ngày sinh:</span>
+                        <input type="date" value={contractData.landlordDob} onChange={e => setContractData({...contractData, landlordDob: e.target.value})} className="flex-1 px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
                       </div>
-                    </div>
-
-                    {/* SECTION 3: MEMBERS */}
-                    <div>
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="text-sm font-black text-on-surface-variant uppercase tracking-widest flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-lg bg-tertiary/10 text-tertiary flex items-center justify-center text-[10px]">03</span>
-                          Thành viên ở cùng
-                        </h4>
-                        <button onClick={() => setContractData({...contractData, members: [...contractData.members, { fullName: '', dob: '', phone: '', identityNumber: '', hometown: '' }]})} className="px-4 py-1.5 bg-tertiary text-on-tertiary rounded-lg text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-sm">
-                          + Thêm người
-                        </button>
-                      </div>
-                      <div className="space-y-4">
-                        {contractData.members.map((member, idx) => (
-                          <div key={idx} className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-surface-container-low p-4 rounded-2xl border border-outline-variant/30 relative group">
-                            <input type="text" placeholder="Họ và tên" value={member.fullName} onChange={e => { const m = [...contractData.members]; m[idx].fullName = e.target.value; setContractData({...contractData, members: m}); }} className="px-3 py-2 bg-white border border-outline-variant rounded-lg text-xs font-bold outline-none" />
-                            <input type="text" placeholder="Số điện thoại" value={member.phone} onChange={e => { const m = [...contractData.members]; m[idx].phone = e.target.value; setContractData({...contractData, members: m}); }} className="px-3 py-2 bg-white border border-outline-variant rounded-lg text-xs font-bold outline-none" />
-                            <input type="text" placeholder="Số CCCD" value={member.identityNumber} onChange={e => { const m = [...contractData.members]; m[idx].identityNumber = e.target.value; setContractData({...contractData, members: m}); }} className="px-3 py-2 bg-white border border-outline-variant rounded-lg text-xs font-bold outline-none" />
-                            <div className="flex gap-2">
-                              <input type="date" value={member.dob} onChange={e => { const m = [...contractData.members]; m[idx].dob = e.target.value; setContractData({...contractData, members: m}); }} className="flex-1 px-3 py-2 bg-white border border-outline-variant rounded-lg text-xs font-bold outline-none" />
-                              <button onClick={() => { const m = contractData.members.filter((_, i) => i !== idx); setContractData({...contractData, members: m}); }} className="p-2 text-error hover:bg-error/10 rounded-lg transition-all"><span className="material-symbols-outlined text-[20px]">delete</span></button>
-                            </div>
-                          </div>
-                        ))}
-                        {contractData.members.length === 0 && <p className="text-xs text-on-surface-variant italic opacity-50">Chưa có thành viên nào khác.</p>}
-                      </div>
-                    </div>
-
-                    {/* SECTION 4: FINANCE */}
-                    <div>
-                      <h4 className="text-sm font-black text-on-surface-variant uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-lg bg-error/10 text-error flex items-center justify-center text-[10px]">04</span>
-                        Chi phí & Chỉ số ban đầu
-                      </h4>
-                      <div className="bg-surface-container-low p-6 rounded-3xl border border-outline-variant/30 space-y-6">
-                        <div className="flex items-center gap-3 p-4 bg-primary-container/10 rounded-2xl border border-primary/20">
-                          <input type="checkbox" checked={contractData.isDirectUtilityPayment} onChange={e => setContractData({...contractData, isDirectUtilityPayment: e.target.checked})} className="w-5 h-5 rounded-lg text-primary focus:ring-0 cursor-pointer" id="directUtility" />
-                          <label htmlFor="directUtility" className="text-xs font-bold text-primary cursor-pointer uppercase tracking-tight">Khách thuê tự thanh toán hóa đơn điện/nước trực tiếp</label>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Giá thuê (đ/tháng)</label>
-                            <input type="number" value={contractData.price} onChange={e => setContractData({...contractData, price: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-black text-primary outline-none" />
-                          </div>
-                          {!contractData.isDirectUtilityPayment && (
-                            <>
-                              <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Giá điện (đ/số)</label>
-                                <input type="number" value={contractData.electricityPrice} onChange={e => setContractData({...contractData, electricityPrice: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none" />
-                              </div>
-                              <div className="space-y-1.5">
-                                <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Giá nước (đ/khối)</label>
-                                <input type="number" value={contractData.waterPrice} onChange={e => setContractData({...contractData, waterPrice: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none" />
-                              </div>
-                            </>
-                          )}
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Số điện ban đầu</label>
-                            <input type="number" value={contractData.startElectricity} onChange={e => setContractData({...contractData, startElectricity: e.target.value})} className="w-full px-4 py-2 bg-white border-2 border-error/30 rounded-xl text-sm font-black text-error outline-none" />
-                          </div>
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Số nước ban đầu</label>
-                            <input type="number" value={contractData.startWater} onChange={e => setContractData({...contractData, startWater: e.target.value})} className="w-full px-4 py-2 bg-white border-2 border-error/30 rounded-xl text-sm font-black text-error outline-none" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end gap-4 pt-8 border-t border-outline-variant/30">
-                      <button onClick={() => setContractRoom(null)} className="px-8 py-3 rounded-2xl border border-outline-variant text-on-surface-variant font-black uppercase tracking-widest text-[10px] hover:bg-surface-container-low transition-all">Hủy bỏ</button>
-                      <button onClick={handleCreateContract} className="px-12 py-4 bg-primary text-on-primary rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-primary/30 hover:scale-105 transition-all active:scale-95">
-                        {editingContractId ? 'Lưu Cập Nhật' : 'Xác nhận Ký Hợp Đồng'}
-                      </button>
+                      <input type="text" placeholder="Quê quán / Thường trú *" value={contractData.landlordHometown} onChange={e => setContractData({...contractData, landlordHometown: e.target.value})} className="md:col-span-2 px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
                     </div>
                   </div>
+
+                  {/* PHẦN 2: BÊN B */}
+                  <div>
+                    <h4 className="text-sm font-black text-on-surface uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center text-[10px]">02</span>
+                      Thông tin Người đại diện thuê (Bên B)
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-secondary-container/5 p-5 rounded-2xl border border-secondary/20">
+                      <input type="text" placeholder="Họ và tên *" value={contractData.tenantName} onChange={e => setContractData({...contractData, tenantName: e.target.value})} className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all" />
+                      <input type="email" placeholder="Email (Gõ xong bấm ra ngoài để tự điền) *" value={contractData.tenantEmail} onChange={e => setContractData({...contractData, tenantEmail: e.target.value})} onBlur={handleCheckTenantEmail} className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all" />
+                      <input type="text" placeholder="Số điện thoại *" value={contractData.tenantPhone} onChange={e => setContractData({...contractData, tenantPhone: e.target.value})} className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all" />
+                      <input type="text" placeholder="Số CCCD/CMND *" value={contractData.tenantIdentityNumber} onChange={e => setContractData({...contractData, tenantIdentityNumber: e.target.value})} className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all" />
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-on-surface-variant whitespace-nowrap">Ngày sinh:</span>
+                        <input type="date" value={contractData.tenantDob} onChange={e => setContractData({...contractData, tenantDob: e.target.value})} className="flex-1 px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all" />
+                      </div>
+                      <input type="text" placeholder="Quê quán / Thường trú *" value={contractData.tenantHometown} onChange={e => setContractData({...contractData, tenantHometown: e.target.value})} className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all" />
+                    </div>
+                  </div>
+
+                  {/* PHẦN 3: THỜI HẠN & ẢNH */}
+                  <div>
+                    <h4 className="text-sm font-black text-on-surface uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg bg-tertiary/10 text-tertiary flex items-center justify-center text-[10px]">03</span>
+                      Thời hạn hợp đồng
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-surface-container-low p-5 rounded-2xl border border-outline-variant/30">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Ngày bắt đầu:</label>
+                        <input type="date" value={contractData.startDate} onChange={e => setContractData({...contractData, startDate: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Ngày kết thúc:</label>
+                        <input type="date" value={contractData.endDate} onChange={e => setContractData({...contractData, endDate: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Ảnh hợp đồng (Có thể chọn nhiều):</label>
+                        <input type="file" multiple onChange={(e) => { setContractImages(Array.from(e.target.files)); }} className="w-full px-4 py-2 bg-white border border-dashed border-outline-variant rounded-xl text-sm font-bold outline-none file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-black file:bg-primary/10 file:text-primary" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* PHẦN 4: THÀNH VIÊN Ở CÙNG */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-black text-on-surface uppercase tracking-widest flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-tertiary/10 text-tertiary flex items-center justify-center text-[10px]">04</span>
+                        Danh sách người ở cùng (Không tính người đại diện)
+                      </h4>
+                      <button onClick={() => setContractData({...contractData, members: [...contractData.members, { fullName: '', dob: '', phone: '', identityNumber: '', hometown: '' }]})} className="px-4 py-1.5 bg-tertiary text-on-tertiary rounded-lg text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-sm">
+                        + Thêm người ở
+                      </button>
+                    </div>
+                    {contractData.members.map((member, index) => (
+                      <div key={index} className="mb-3 bg-surface-container-low p-4 rounded-2xl border border-dashed border-outline-variant/50 relative">
+                        <button onClick={() => { const newMembers = contractData.members.filter((_, i) => i !== index); setContractData({...contractData, members: newMembers}); }} className="absolute top-3 right-3 px-3 py-1 bg-error text-white rounded-lg text-[10px] font-black hover:bg-error/80 transition-all">Xóa</button>
+                        <p className="text-xs font-bold text-on-surface-variant opacity-50 mb-3">Thành viên {index + 1}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <input type="text" placeholder="Họ và tên *" value={member.fullName} onChange={(e) => { const m = [...contractData.members]; m[index].fullName = e.target.value; setContractData({...contractData, members: m}); }} className="px-3 py-2 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                          <input type="text" placeholder="Số điện thoại" value={member.phone} onChange={(e) => { const m = [...contractData.members]; m[index].phone = e.target.value; setContractData({...contractData, members: m}); }} className="px-3 py-2 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                          <input type="text" placeholder="Số CCCD/CMND *" value={member.identityNumber} onChange={(e) => { const m = [...contractData.members]; m[index].identityNumber = e.target.value; setContractData({...contractData, members: m}); }} className="px-3 py-2 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-on-surface-variant whitespace-nowrap">Ngày sinh:</span>
+                            <input type="date" value={member.dob} onChange={(e) => { const m = [...contractData.members]; m[index].dob = e.target.value; setContractData({...contractData, members: m}); }} className="flex-1 px-3 py-2 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                          </div>
+                          <input type="text" placeholder="Quê quán / Thường trú *" value={member.hometown} onChange={(e) => { const m = [...contractData.members]; m[index].hometown = e.target.value; setContractData({...contractData, members: m}); }} className="md:col-span-2 px-3 py-2 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                        </div>
+                      </div>
+                    ))}
+                    {contractData.members.length === 0 && <p className="text-xs text-on-surface-variant italic opacity-50">Chưa có thành viên nào. Bấm "+ Thêm người ở" nếu phòng có nhiều người.</p>}
+                  </div>
+
+                  {/* PHẦN 5: CHI PHÍ & CHỈ SỐ BAN ĐẦU */}
+                  <div>
+                    <h4 className="text-sm font-black text-on-surface uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg bg-error/10 text-error flex items-center justify-center text-[10px]">05</span>
+                      Chi phí & Chỉ số ban đầu
+                    </h4>
+                    <div className="flex items-center gap-3 p-3 bg-primary-container/10 rounded-2xl border border-primary/20 mb-4">
+                      <input type="checkbox" checked={contractData.isDirectUtilityPayment} onChange={e => setContractData({...contractData, isDirectUtilityPayment: e.target.checked})} className="w-5 h-5 rounded-lg text-primary focus:ring-0 cursor-pointer" id="directUtilityModal" />
+                      <label htmlFor="directUtilityModal" className="text-xs font-bold text-primary cursor-pointer uppercase tracking-tight">Khách thuê tự thanh toán hóa đơn điện/nước trực tiếp</label>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 bg-tertiary-container/5 p-5 rounded-2xl border border-tertiary/20">
+                      <div className="space-y-1"><label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Giá phòng (đ/Tháng)</label><input type="number" value={contractData.price} onChange={e => setContractData({...contractData, price: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-black text-primary outline-none focus:ring-2 focus:ring-primary/20 transition-all" /></div>
+                      {!contractData.isDirectUtilityPayment && (
+                        <>
+                          <div className="space-y-1"><label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Giá điện (đ/Ký)</label><input type="number" value={contractData.electricityPrice} onChange={e => setContractData({...contractData, electricityPrice: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" /></div>
+                          <div className="space-y-1"><label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Giá nước (đ/Khối)</label><input type="number" value={contractData.waterPrice} onChange={e => setContractData({...contractData, waterPrice: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" /></div>
+                        </>
+                      )}
+                      <div className="space-y-1"><label className="text-[10px] font-black text-error uppercase">Chỉ số ĐIỆN ban đầu</label><input type="number" placeholder="Số trên đồng hồ" value={contractData.startElectricity} onChange={e => setContractData({...contractData, startElectricity: e.target.value})} className="w-full px-4 py-2 bg-white border-2 border-error/30 rounded-xl text-sm font-black text-error outline-none focus:ring-2 focus:ring-error/10 transition-all" /></div>
+                      <div className="space-y-1"><label className="text-[10px] font-black text-error uppercase">Chỉ số NƯỚC ban đầu</label><input type="number" placeholder="Số trên đồng hồ" value={contractData.startWater} onChange={e => setContractData({...contractData, startWater: e.target.value})} className="w-full px-4 py-2 bg-white border-2 border-error/30 rounded-xl text-sm font-black text-error outline-none focus:ring-2 focus:ring-error/10 transition-all" /></div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-black text-primary uppercase">Số lượng xe (Chiếc)</label>
+                        <div className="flex gap-2">
+                          <input type="number" placeholder="Số xe" value={contractData.vehicleCount} onChange={e => setContractData({...contractData, vehicleCount: e.target.value})} className="w-2/5 px-3 py-2 bg-white border-2 border-primary/30 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-primary/10 transition-all" />
+                          <input type="number" placeholder="Giá/xe" value={contractData.parkingPrice} onChange={e => setContractData({...contractData, parkingPrice: e.target.value})} className="w-3/5 px-3 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/10 transition-all" />
+                        </div>
+                      </div>
+                      <div className="space-y-1"><label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Mạng Internet (đ/Tháng)</label><input type="number" value={contractData.internetPrice} onChange={e => setContractData({...contractData, internetPrice: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" /></div>
+                      <div className="space-y-1"><label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Phí Dịch vụ (đ/Tháng)</label><input type="number" value={contractData.servicePrice} onChange={e => setContractData({...contractData, servicePrice: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" /></div>
+                    </div>
+                  </div>
+
+                  {/* PHẦN 6: TÌNH TRẠNG BÀN GIAO */}
+                  <div>
+                    <h4 className="text-sm font-black text-on-surface uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg bg-outline/10 text-outline flex items-center justify-center text-[10px]">06</span>
+                      Tình trạng phòng bàn giao
+                    </h4>
+                    <div className="bg-surface-container-low p-5 rounded-2xl border border-outline-variant/30 space-y-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Mô tả chi tiết đồ dùng, trạng thái:</label>
+                        <textarea rows="3" value={contractData.conditionDescription} onChange={e => setContractData({...contractData, conditionDescription: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" placeholder="VD: Tường sạch, có 1 giường, 1 nệm cũ, tủ lạnh hoạt động bình thường..." />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Ảnh tình trạng phòng:</label>
+                          <input type="file" multiple accept="image/*" onChange={(e) => setConditionImages(Array.from(e.target.files))} className="w-full px-4 py-2 bg-white border border-dashed border-outline-variant rounded-xl text-sm font-bold outline-none file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-black file:bg-primary/10 file:text-primary" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Video tình trạng phòng (nếu có):</label>
+                          <input type="file" multiple accept="video/*" onChange={(e) => setConditionVideos(Array.from(e.target.files))} className="w-full px-4 py-2 bg-white border border-dashed border-outline-variant rounded-xl text-sm font-bold outline-none file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-black file:bg-primary/10 file:text-primary" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* NÚT HÀNH ĐỘNG */}
+                  <div className="flex justify-end gap-4 pt-6 border-t border-outline-variant/30">
+                    <button onClick={() => { setContractRoom(null); setEditingContractId(null); setConditionImages([]); setConditionVideos([]); setContractImages([]); }} className="px-10 py-4 rounded-2xl border-2 border-outline-variant text-on-surface-variant font-black uppercase tracking-widest text-xs hover:bg-surface-container-low transition-all active:scale-95">Hủy bỏ</button>
+                    <button onClick={handleCreateContract} className={`px-16 py-4 ${editingContractId ? 'bg-secondary shadow-xl shadow-secondary/30' : 'bg-primary shadow-xl shadow-primary/30'} text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all`}>
+                      {editingContractId ? 'Lưu Cập Nhật' : 'Tạo Hợp Đồng'}
+                    </button>
+                  </div>
+                </div>
                 </div>
               )}
 
@@ -1385,6 +1465,42 @@ const handleCreateRoom = async (e) => {
                         <button onClick={() => setBillContract(null)} className="w-12 h-12 flex items-center justify-center hover:bg-error/10 hover:text-error rounded-full transition-all group">
                           <span className="material-symbols-outlined group-hover:rotate-90 transition-transform">close</span>
                         </button>
+                      </div>
+
+                      {/* BỘ CHỌN THÁNG/NĂM CHỐT HÓA ĐƠN */}
+                      <div className="bg-surface-container-low p-6 rounded-[2rem] border border-outline-variant/30 flex flex-col md:flex-row items-center gap-6">
+                        <div className="flex items-center gap-4 shrink-0">
+                          <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                            <span className="material-symbols-outlined text-xl">calendar_month</span>
+                          </div>
+                          <span className="text-sm font-black text-on-surface whitespace-nowrap">Chọn kỳ thanh toán:</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 flex-1 w-full">
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1 opacity-50">Tháng</p>
+                            <select 
+                              value={billData.month} 
+                              onChange={e => setBillData({...billData, month: parseInt(e.target.value)})}
+                              className="w-full px-5 py-3 bg-white border border-outline-variant rounded-2xl text-sm font-black focus:ring-4 focus:ring-primary/10 outline-none transition-all cursor-pointer"
+                            >
+                              {[...Array(12)].map((_, i) => (
+                                <option key={i+1} value={i+1}>Tháng {i+1}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1 opacity-50">Năm</p>
+                            <select 
+                              value={billData.year} 
+                              onChange={e => setBillData({...billData, year: parseInt(e.target.value)})}
+                              className="w-full px-5 py-3 bg-white border border-outline-variant rounded-2xl text-sm font-black focus:ring-4 focus:ring-primary/10 outline-none transition-all cursor-pointer"
+                            >
+                              {[2024, 2025, 2026, 2027].map(y => (
+                                <option key={y} value={y}>Năm {y}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -1477,51 +1593,79 @@ const handleCreateRoom = async (e) => {
 
                     return (
                       <div key={room.id} className="bg-surface-container-lowest rounded-3xl overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-outline-variant/30 hover:shadow-2xl hover:border-primary/20 transition-all duration-500 group flex flex-col">
-                        <div className="relative h-56 overflow-hidden bg-surface-container">
-                          <img 
-                            src={room.images?.[0] ? `http://localhost:5000/uploads/${room.images[0]}` : "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=1000"} 
-                            alt={room.roomNumber} 
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
-                          />
+                        <div 
+                          className="relative h-56 overflow-hidden bg-surface-container cursor-pointer"
+                          onClick={() => handleViewRoomDetails(room)}
+                        >
+                          {(() => {
+                            let images = [];
+                            try { images = JSON.parse(room.images) || []; } catch(e) {}
+                            return images.length > 0 ? (
+                              <img 
+                                src={`http://localhost:5000/uploads/${images[0]}`} 
+                                alt={room.roomNumber} 
+                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex flex-col items-center justify-center text-outline-variant gap-2 bg-surface-container">
+                                <span className="material-symbols-outlined text-5xl">image_not_supported</span>
+                                <p className="text-xs font-bold uppercase tracking-widest">Chưa có ảnh</p>
+                              </div>
+                            );
+                          })()}
                           <div className={`absolute top-4 left-4 ${config.color} text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg flex items-center gap-2`}>
                             <span className="material-symbols-outlined text-[14px] font-black">{config.icon}</span>
                             {config.label}
                           </div>
+                          {room.reviewCount > 0 && (
                           <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl text-[10px] font-black text-primary shadow-sm flex items-center gap-1">
                             <span className="material-symbols-outlined text-[14px] fill-1">star</span>
-                            {room.avgRating || '5.0'}
+                            {room.avgRating}
                           </div>
+                          )}
                         </div>
 
                         <div className="p-6 flex flex-col flex-1 space-y-6">
-                          <div className="flex justify-between items-start">
-                            <div className="min-w-0">
-                              <h3 className="text-xl font-black text-on-surface line-clamp-1 group-hover:text-primary transition-colors">
-                                {(room.roomType === 'WHOLE_HOUSE' || /nhà|căn/i.test(room.roomNumber)) ? 'Nhà ' : 'Phòng '}{room.roomNumber}
-                              </h3>
-                              <p className="text-xs text-on-surface-variant flex items-center gap-1 mt-1 font-bold opacity-50">
-                                <span className="material-symbols-outlined text-[16px]">location_on</span>
-                                {room.address}
+                          {/* Title & Code */}
+                          <div>
+                            <h3 
+                              className="font-headline-md text-headline-md text-on-surface line-clamp-1 group-hover:text-primary transition-colors cursor-pointer"
+                              onClick={() => handleViewRoomDetails(room)}
+                            >
+                              {(room.roomType === 'WHOLE_HOUSE' || /nhà|căn/i.test(room.roomNumber)) ? 'Nhà ' : 'Phòng '}{room.roomNumber}
+                            </h3>
+                            {room.roomCode && (
+                              <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-50 mt-0.5">
+                                Mã: {room.roomCode}
                               </p>
-                            </div>
-                            <div className="text-right pl-4">
-                              <span className="text-2xl font-black text-primary block tracking-tighter">{(room.price || 0).toLocaleString()}</span>
-                              <span className="text-[10px] font-black text-on-surface-variant uppercase opacity-40">đ / tháng</span>
-                            </div>
+                            )}
                           </div>
 
-                          <div className="flex gap-4 py-4 border-y border-outline-variant/30">
-                            <div className="flex items-center gap-1.5" title="Diện tích">
-                              <div className="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant">
-                                <span className="material-symbols-outlined text-[18px]">aspect_ratio</span>
+                          {/* Price */}
+                          <p className="text-primary font-price-tag text-xl">
+                            {(room.price || 0).toLocaleString()} đ<span className="text-sm font-normal text-on-surface-variant">/tháng</span>
+                          </p>
+
+                          {/* Area, Capacity & Address */}
+                          <div className="space-y-3 pb-6 border-b border-outline-variant/20">
+                            <div className="flex items-center gap-4 text-on-surface-variant text-sm">
+                              <div className="flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-lg text-primary">square_foot</span>
+                                {room.area || '—'} m²
                               </div>
-                              <span className="text-xs font-black text-on-surface">{room.area}m²</span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="material-symbols-outlined text-lg text-primary">group</span>
+                                {room.maxOccupants || '—'} người
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1.5" title="Sức chứa">
-                              <div className="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-on-surface-variant">
-                                <span className="material-symbols-outlined text-[18px]">group</span>
+                            <div className="flex items-center gap-1.5 text-on-surface-variant text-sm marquee-container">
+                              <span className="material-symbols-outlined text-lg text-primary flex-shrink-0">location_on</span>
+                              <div className="marquee-content">
+                                <span>{room.houseNumber ? `${room.houseNumber}, ` : ''}{room.address}</span>
+                                {(room.address?.length > 20 || room.houseNumber) && (
+                                  <span className="ml-8">{room.houseNumber ? `${room.houseNumber}, ` : ''}{room.address}</span>
+                                )}
                               </div>
-                              <span className="text-xs font-black text-on-surface">{room.maxOccupants} người</span>
                             </div>
                           </div>
 
@@ -1554,7 +1698,7 @@ const handleCreateRoom = async (e) => {
                             <div className="grid grid-cols-2 gap-3">
                               {room.status === 'AVAILABLE' ? (
                                 <>
-                                  <button onClick={() => { setContractRoom(room); setContractData({...contractData, price: room.price, electricityPrice: room.electricityPrice, waterPrice: room.waterPrice, internetPrice: room.internetPrice, parkingPrice: room.parkingPrice, servicePrice: room.servicePrice}); }} className="col-span-2 py-3.5 bg-secondary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-secondary/20 hover:scale-[1.02] active:scale-95 transition-all">
+                                  <button onClick={() => handleNewContractClick(room)} className="col-span-2 py-3.5 bg-secondary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-secondary/20 hover:scale-[1.02] active:scale-95 transition-all">
                                     ✍️ Ký Hợp Đồng
                                   </button>
                                   <button onClick={() => handleEditRoomClick(room)} className="py-3 bg-surface-container-high text-on-surface-variant rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-surface-container-highest transition-all flex items-center justify-center gap-2">
@@ -1563,8 +1707,11 @@ const handleCreateRoom = async (e) => {
                                   <button onClick={() => handleDeleteRoom(room.id)} className="py-3 bg-error/10 text-error rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-error hover:text-white transition-all flex items-center justify-center gap-2">
                                     <span className="material-symbols-outlined text-[18px]">delete</span> Xóa
                                   </button>
-                                  <button onClick={() => setDepositModal({ show: true, roomId: room.id, note: room.depositNote || '' })} className="col-span-2 py-3 bg-tertiary/10 text-tertiary rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-tertiary hover:text-white transition-all">
-                                    {room.depositNote ? '📝 Cập nhật cọc' : '💰 Nhận cọc giữ chỗ'}
+                                  <button onClick={() => setDepositModal({ show: true, roomId: room.id, note: room.depositNote || '' })} className="py-3 bg-tertiary/10 text-tertiary rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-tertiary hover:text-white transition-all">
+                                    {room.depositNote ? '📝 Cập nhật cọc' : '💰 Nhận cọc'}
+                                  </button>
+                                  <button onClick={() => roomApi.updateStatus(room.id, 'MAINTENANCE').then(fetchRooms)} className="py-3 bg-error/10 text-error rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-error hover:text-white transition-all flex items-center justify-center gap-1">
+                                    <span className="material-symbols-outlined text-[16px]">build</span> Bảo trì
                                   </button>
                                 </>
                               ) : room.status === 'RENTED' ? (
@@ -1966,7 +2113,10 @@ const handleCreateRoom = async (e) => {
                                   }).map(c => (
                                     <tr key={c.id} className="hover:bg-surface-container-low/30 transition-colors group border-b border-outline-variant/30 last:border-0">
                                       <td className="py-4 px-8">
-                                        <div className="font-bold text-primary group-hover:text-surface-tint">
+                                        <div 
+                                          className="font-bold text-primary group-hover:text-surface-tint cursor-pointer hover:underline"
+                                          onClick={() => c.room && handleViewRoomDetails(c.room)}
+                                        >
                                           {(c.room?.roomType === 'WHOLE_HOUSE' || /nhà|căn/i.test(c.room?.roomNumber)) ? 'Nhà nguyên căn ' : 'Phòng trọ '}{c.room?.roomNumber || 'Đã xóa'}
                                         </div>
                                         <div className="text-[11px] font-bold text-on-surface-variant opacity-50 uppercase tracking-wider">Mã: {c.room?.roomCode || 'N/A'}</div>
@@ -2067,7 +2217,12 @@ const handleCreateRoom = async (e) => {
                               <div className="absolute bottom-0 left-0 w-full p-8 flex justify-between items-end">
                                 <div className="text-white">
                                   <div className="flex items-center gap-3 mb-3">
-                                    <h2 className="text-3xl font-black text-white tracking-tight">Phòng {c.room?.roomNumber}</h2>
+                                    <h2 
+                                      className="text-3xl font-black text-white tracking-tight cursor-pointer hover:text-primary-fixed-dim transition-colors"
+                                      onClick={() => c.room && handleViewRoomDetails(c.room)}
+                                    >
+                                      Phòng {c.room?.roomNumber}
+                                    </h2>
                                     <span className={`text-[10px] uppercase font-bold tracking-widest px-3 py-1 rounded-full border ${
                                       c.status === 'ACTIVE' ? 'bg-secondary/20 border-secondary/50 text-secondary-fixed' : 'bg-error/20 border-error/50 text-error-container'
                                     }`}>
@@ -3057,255 +3212,429 @@ const handleCreateRoom = async (e) => {
       {/* ========================================================= */}
       {viewRoomDetails && (
         <div 
-          style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}
-          onClick={() => setViewRoomDetails(null)} /* CÁCH 1: Bấm ra vùng đen để tắt */
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-on-surface/40 backdrop-blur-md animate-in fade-in duration-300"
+          onClick={() => setViewRoomDetails(null)}
         >
           <div 
-            style={{ background: '#fff', width: '780px', borderRadius: '12px', padding: '30px', position: 'relative', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', color: '#333',
-              maxHeight: '92vh',      // Chiều cao tối đa bằng 92% màn hình
-              overflowY: 'auto',      // Tự động hiện thanh cuộn dọc nếu nội dung dài hơn 92vh
-              boxSizing: 'border-box'
-             }}
-            onClick={(e) => e.stopPropagation()} /* Ngăn không cho click bên trong bảng bị tắt */
+            className="bg-surface-container-lowest w-full max-w-5xl max-h-[90vh] rounded-[2.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] border border-outline-variant/30 flex flex-col overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-8 duration-500"
+            onClick={(e) => e.stopPropagation()}
           >
-            
-            {/* CÁCH 2: NÚT ✖ Ở GÓC TRÊN CÙNG BÊN PHẢI */}
-            <button 
-              onClick={() => setViewRoomDetails(null)} 
-              style={{ position: 'absolute', top: '15px', right: '20px', background: 'transparent', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b', fontWeight: 'bold', transition: '0.2s' }}
-              onMouseEnter={(e) => e.target.style.color = '#ef4444'}
-              onMouseLeave={(e) => e.target.style.color = '#64748b'}
-              title="Đóng"
-            >
-              ✖
-            </button>
-            
-            <h2 style={{ margin: '0 0 20px 0', color: '#0f172a', borderBottom: '2px solid #e2e8f0', paddingBottom: '10px', textAlign: 'left' }}>
-              Thông tin {viewRoomDetails.roomType === 'WHOLE_HOUSE' ? 'Căn ' : 'Phòng '}{viewRoomDetails.roomNumber}
-            </h2>
+            {/* Modal Header */}
+            <div className="px-8 py-6 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-lowest sticky top-0 z-20">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                  <span className="material-symbols-outlined text-3xl font-black">meeting_room</span>
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-on-surface tracking-tight leading-none">
+                    {viewRoomDetails.roomType === 'WHOLE_HOUSE' ? 'Căn ' : 'Phòng '}{viewRoomDetails.roomNumber}
+                  </h2>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm border ${
+                      viewRoomDetails.status === 'AVAILABLE' ? 'bg-secondary/10 border-secondary/20 text-secondary' : 
+                      viewRoomDetails.status === 'RENTED' ? 'bg-primary/10 border-primary/20 text-primary' : 
+                      'bg-tertiary/10 border-tertiary/20 text-tertiary'
+                    }`}>
+                      {viewRoomDetails.status === 'AVAILABLE' ? 'Đang trống' : viewRoomDetails.status === 'RENTED' ? 'Đã cho thuê' : 'Đang sửa chữa'}
+                    </span>
+                    <span className="text-[10px] font-black text-on-surface uppercase tracking-widest">• Mã: {viewRoomDetails.roomCode || '—'}</span>
+                  </div>
+                </div>
+              </div>
+              <button 
+                onClick={() => setViewRoomDetails(null)}
+                className="w-12 h-12 rounded-full hover:bg-surface-container transition-all flex items-center justify-center text-on-surface-variant hover:text-error group"
+              >
+                <span className="material-symbols-outlined text-2xl group-hover:rotate-90 transition-transform duration-300">close</span>
+              </button>
+            </div>
 
-{/* THIẾT KẾ MỚI: 1 ẢNH LỚN TRÁI + LƯỚI 4 ẢNH NHỎ PHẢI (CÓ CHỨC NĂNG) */}
-            {viewRoomDetails.images && JSON.parse(viewRoomDetails.images).length > 0 && (
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', height: '420px' }}>
-                
-                {/* 1. KHUNG ẢNH LỚN BÊN TRÁI - GẮN SỰ KIỆN CLICK ĐỂ PHÓNG TO */}
-                <div style={{ flex: '2', position: 'relative', borderRadius: '8px', overflow: 'hidden' }}>
-                  
-                  {/* Ảnh chính sẽ thay đổi dựa vào currentImageIndex - GẮN onClick */}
-                  <img 
-                    src={`http://localhost:5000/uploads/${JSON.parse(viewRoomDetails.images)[currentImageIndex]}`} 
-                    alt="Ảnh chính" 
-                    onClick={() => {
-                      // Thay đổi từ text nút thành click vào ảnh
-                      setSelectedImage(`http://localhost:5000/uploads/${JSON.parse(viewRoomDetails.images)[currentImageIndex]}`);
-                    }}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} // Thêm cursor
-                  />
-                  
-                  {/* Nút mũi tên Trái - Chuyển về ảnh trước */}
-                  <button 
-                    onClick={() => setCurrentImageIndex((prev) => (prev === 0 ? JSON.parse(viewRoomDetails.images).length - 1 : prev - 1))}
-                    style={{ position: 'absolute', top: '50%', left: '10px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', zIndex: 10 }} // Thêm zIndex
-                  >
-                    ❮
-                  </button>
-                  
-                  {/* Nút mũi tên Phải - Chuyển sang ảnh sau */}
-                  <button 
-                    onClick={() => setCurrentImageIndex((prev) => (prev === JSON.parse(viewRoomDetails.images).length - 1 ? 0 : prev + 1))}
-                    style={{ position: 'absolute', top: '50%', right: '10px', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', zIndex: 10 }} // Thêm zIndex
-                  >
-                    ❯
-                  </button>
+            <div className="flex-1 overflow-y-auto custom-scrollbar">
+              <div className="p-8 space-y-10">
+                {/* Image Gallery Section */}
+                {viewRoomDetails.images && (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-[450px]">
+                    {(() => {
+                      const images = JSON.parse(viewRoomDetails.images || "[]");
+                      if (images.length === 0) return (
+                        <div className="col-span-3 bg-surface-container rounded-[2rem] flex items-center justify-center border-2 border-dashed border-outline-variant">
+                          <p className="text-on-surface-variant font-bold opacity-40 italic">Chưa có hình ảnh phòng</p>
+                        </div>
+                      );
 
-                  {/* Nút "Xem X ảnh" - Bấm vào sẽ hiện Modal Lightbox (có thể giữ lại hoặc xóa đi tùy ý) */}
-                  <div 
-                    onClick={() => setSelectedImage(`http://localhost:5000/uploads/${JSON.parse(viewRoomDetails.images)[currentImageIndex]}`)}
-                    style={{ position: 'absolute', bottom: '10px', left: '10px', background: 'rgba(0, 0, 0, 0.6)', color: 'white', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
-                  >
-                    <i className="fa fa-camera"></i> Xem tất cả {JSON.parse(viewRoomDetails.images).length} ảnh
+                      return (
+                        <>
+                          <div className="lg:col-span-2 relative group overflow-hidden rounded-[2.5rem] shadow-lg">
+                            <img 
+                              src={`http://localhost:5000/uploads/${images[currentImageIndex]}`} 
+                              alt="Main Room View" 
+                              className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 cursor-zoom-in"
+                              onClick={() => setSelectedImage(`http://localhost:5000/uploads/${images[currentImageIndex]}`)}
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-8">
+                              <p className="text-white text-xs font-bold uppercase tracking-widest">Xem ảnh phóng lớn</p>
+                            </div>
+                            
+                            {/* Navigation Arrows */}
+                            <button 
+                              onClick={() => setCurrentImageIndex(prev => (prev === 0 ? images.length - 1 : prev - 1))}
+                              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 flex items-center justify-center hover:bg-white/40 transition-all opacity-0 group-hover:opacity-100"
+                            >
+                              <span className="material-symbols-outlined font-black">chevron_left</span>
+                            </button>
+                            <button 
+                              onClick={() => setCurrentImageIndex(prev => (prev === images.length - 1 ? 0 : prev + 1))}
+                              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 flex items-center justify-center hover:bg-white/40 transition-all opacity-0 group-hover:opacity-100"
+                            >
+                              <span className="material-symbols-outlined font-black">chevron_right</span>
+                            </button>
+                            
+                            {/* Image Count Badge */}
+                            <div className="absolute top-4 left-4 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-xl text-[10px] font-black text-white tracking-widest uppercase">
+                              {currentImageIndex + 1} / {images.length}
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 lg:grid-cols-1 gap-4 overflow-hidden">
+                            {images.slice(1, 3).map((img, idx) => (
+                              <div key={idx} className="relative rounded-[1.5rem] overflow-hidden group shadow-sm h-full">
+                                <img 
+                                  src={`http://localhost:5000/uploads/${img}`} 
+                                  alt={`View ${idx + 1}`} 
+                                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 cursor-pointer"
+                                  onClick={() => setCurrentImageIndex(idx + 1)}
+                                />
+                                {idx === 1 && images.length > 3 && (
+                                  <div 
+                                    className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white cursor-pointer group-hover:bg-black/60 transition-all"
+                                    onClick={() => setSelectedImage(`http://localhost:5000/uploads/${images[2]}`)}
+                                  >
+                                    <span className="text-xl font-black">+{images.length - 3}</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Ảnh khác</span>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* Info Grid Section */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Main Details */}
+                  <div className="lg:col-span-2 space-y-8">
+                    <div className="bg-surface-container-low rounded-[2rem] p-8 border border-outline-variant/30">
+                      <h3 className="text-sm font-black uppercase tracking-widest text-primary mb-6 flex items-center gap-2">
+                        <span className="w-1.5 h-4 bg-primary rounded-full"></span>
+                        Thông tin chi tiết
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
+                            <span className="material-symbols-outlined text-2xl">payments</span>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-40">Giá thuê</p>
+                            <p className="text-lg font-black text-error">{(viewRoomDetails.activeContract?.price || viewRoomDetails.price || 0).toLocaleString()} <span className="text-xs">đ/tháng</span></p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
+                            <span className="material-symbols-outlined text-2xl">aspect_ratio</span>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-40">Diện tích</p>
+                            <p className="text-lg font-black text-on-surface">{viewRoomDetails.area || '—'} <span className="text-xs">m²</span></p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
+                            <span className="material-symbols-outlined text-2xl">group</span>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-40">Sức chứa</p>
+                            <p className="text-lg font-black text-on-surface">{viewRoomDetails.maxOccupants || '—'} <span className="text-xs">người</span></p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-8 pt-8 border-t border-outline-variant/30 flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
+                          <span className="material-symbols-outlined text-2xl">location_on</span>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-40">Địa chỉ</p>
+                          <p className="text-sm font-black text-on-surface">{viewRoomDetails.houseNumber ? `${viewRoomDetails.houseNumber}, ` : ''}{viewRoomDetails.address}</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-8 pt-8 border-t border-outline-variant/30">
+                        <h3 className="text-sm font-black uppercase tracking-widest text-primary mb-6 flex items-center gap-2">
+                          <span className="w-1.5 h-4 bg-primary rounded-full"></span>
+                          Tiện ích & Dịch vụ
+                        </h3>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {[
+                            { key: 'hasElevator', label: 'Thang máy', icon: 'elevator' },
+                            { key: 'hasWashingMachine', label: 'Máy giặt', icon: 'local_laundry_service' },
+                            { key: 'hasFridge', label: 'Tủ lạnh', icon: 'kitchen' },
+                            { key: 'hasKitchen', label: 'Bếp riêng', icon: 'countertops' },
+                            { key: 'hasHeater', label: 'Nóng lạnh', icon: 'water_heater' },
+                            { key: 'hasBalcony', label: 'Ban công', icon: 'balcony' }
+                          ].map(item => (
+                            <div key={item.key} className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${
+                              viewRoomDetails[item.key] ? 'bg-secondary/5 border-secondary/20 text-secondary' : 'bg-surface-container opacity-30 border-transparent text-on-surface-variant'
+                            }`}>
+                              <span className="material-symbols-outlined text-xl">{item.icon}</span>
+                              <span className="text-xs font-black uppercase tracking-tight">{item.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Description Section */}
+                    <div className="bg-surface-container-low rounded-[2rem] p-8 border border-outline-variant/30">
+                      <h3 className="text-sm font-black uppercase tracking-widest text-primary mb-6 flex items-center gap-2">
+                        <span className="w-1.5 h-4 bg-primary rounded-full"></span>
+                       Thông tin mô tả phòng
+                      </h3>
+                      <div className="text-sm font-bold text-on-surface-variant leading-relaxed bg-white/50 p-6 rounded-2xl border border-outline-variant/10">
+                        {viewRoomDetails.description ? viewRoomDetails.description : <span className="italic opacity-40">Chưa có mô tả chi tiết cho phòng này.</span>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Sidebar Info: Bills & Fees */}
+                  <div className="space-y-6">
+                    <div className="bg-primary/5 rounded-[2rem] p-8 border-2 border-dashed border-primary/20 space-y-6">
+                      <h3 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                        <span className="material-symbols-outlined text-xl">account_balance_wallet</span>
+                        Chi phí hàng tháng
+                      </h3>
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-on-surface-variant">Tiền điện</span>
+                          <span className="text-sm font-black text-on-surface">
+                            {viewRoomDetails.roomType === 'WHOLE_HOUSE' ? 'Tự trả' : 
+                              (viewRoomDetails.activeContract ? 
+                                (viewRoomDetails.activeContract.isDirectUtilityPayment ? 'Tự trả' : `${(viewRoomDetails.activeContract.electricityPrice || 0).toLocaleString()}đ/ký`) :
+                                (viewRoomDetails.electricityPrice ? `${viewRoomDetails.electricityPrice.toLocaleString()}đ/ký` : 'Giá NN')
+                              )
+                            }
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-on-surface-variant">Tiền nước</span>
+                          <span className="text-sm font-black text-on-surface">
+                            {viewRoomDetails.activeContract ? 
+                              `${(viewRoomDetails.activeContract.waterPrice || 0).toLocaleString()}đ/m³` :
+                              (viewRoomDetails.waterPrice ? `${viewRoomDetails.waterPrice.toLocaleString()}đ/m³` : 'Giá NN')
+                            }
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-on-surface-variant">Internet</span>
+                          <span className="text-sm font-black text-on-surface">
+                            {viewRoomDetails.activeContract ? 
+                              `${(viewRoomDetails.activeContract.internetPrice || 0).toLocaleString()}đ` :
+                              (viewRoomDetails.internetPrice ? `${viewRoomDetails.internetPrice.toLocaleString()}đ` : 'Tự túc')
+                            }
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-bold text-on-surface-variant">Gửi xe</span>
+                          <span className="text-sm font-black text-on-surface">
+                            {viewRoomDetails.activeContract ? 
+                              `${(viewRoomDetails.activeContract.parkingPrice || 0).toLocaleString()}đ/xe` :
+                              (viewRoomDetails.parkingPrice ? `${viewRoomDetails.parkingPrice.toLocaleString()}đ/xe` : 'Free')
+                            }
+                          </span>
+                        </div>
+                        <div className="pt-4 border-t border-primary/10 flex justify-between items-center">
+                          <span className="text-xs font-bold text-primary">Dịch vụ chung</span>
+                          <span className="text-sm font-black text-primary">
+                            {viewRoomDetails.activeContract ? 
+                              `${(viewRoomDetails.activeContract.servicePrice || 0).toLocaleString()}đ` :
+                              (viewRoomDetails.servicePrice ? `${viewRoomDetails.servicePrice.toLocaleString()}đ` : 'Free')
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {/* (Giữ nguyên phần lưới ảnh nhỏ bên phải) */}
-                <div style={{ flex: '1', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gridTemplateRows: 'repeat(2, 1fr)', gap: '10px' }}>
-                  {JSON.parse(viewRoomDetails.images).slice(1, 5).map((imgName, index) => (
-                    <div key={index} style={{ width: '100%', height: '100%', borderRadius: '8px', overflow: 'hidden' }}>
-                       {/* Bấm vào ảnh nhỏ nào thì ảnh lớn bên trái sẽ nhảy sang ảnh đó (index + 1 vì bỏ qua ảnh 0 ban đầu) */}
-                       <img 
-                        src={`http://localhost:5000/uploads/${imgName}`} 
-                        alt={`Ảnh ${index + 2}`} 
-                        onClick={() => setCurrentImageIndex(index + 1)}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }} 
-                      />
-                    </div>
-                  ))}
-                </div>
-
-              </div>
-            )}
-            {/* THÔNG TIN CHI TIẾT (Chia 2 cột) */}
-            <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', lineHeight: '1.8', textAlign: 'left' }}>
-              <div style={{ flex: 1 }}>
-                <p style={{ margin: 0, color: '#475569' }}><strong>Loại hình:</strong> <span style={{ color: '#2563eb', fontWeight: 'bold' }}>{viewRoomDetails.roomType === 'WHOLE_HOUSE' ? '🏠 Nhà nguyên căn' : '🚪 Phòng trọ'}</span></p>
-                <p style={{ margin: 0, color: '#475569' }}><strong>Giá thuê:</strong> <span style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '18px' }}>{viewRoomDetails.price?.toLocaleString()} đ/tháng</span></p>
-                <p style={{ margin: 0, color: '#475569' }}><strong>Diện tích:</strong> {viewRoomDetails.area || 0} m²</p>
-                <p style={{ margin: 0, color: '#475569' }}><strong>Số người ở tối đa:</strong> {viewRoomDetails.maxOccupants} người</p>
-                {viewRoomDetails.roomType === 'WHOLE_HOUSE' && (
-                  <>
-                    <p style={{ margin: 0, color: '#475569' }}><strong>Số tầng:</strong> {viewRoomDetails.numFloors || '?'}</p>
-                    <p style={{ margin: 0, color: '#475569' }}><strong>Số phòng ngủ:</strong> {viewRoomDetails.numBedrooms || '?'}</p>
-                    <p style={{ margin: 0, color: '#475569' }}><strong>Số nhà vệ sinh:</strong> {viewRoomDetails.numBathrooms || '?'}</p>
-                  </>
-                )}
-                <p style={{ margin: 0, color: '#475569' }}><strong>Trạng thái:</strong> <span style={{ color: viewRoomDetails.status === 'AVAILABLE' ? '#10b981' : viewRoomDetails.status === 'RENTED' ? '#ef4444' : '#f59e0b', fontWeight: 'bold' }}>{viewRoomDetails.status === 'AVAILABLE' ? 'Đang trống' : viewRoomDetails.status === 'RENTED' ? 'Đã cho thuê' : 'Đang sửa chữa'}</span></p>
-                <p style={{ margin: 0, color: '#475569' }}><strong>Địa chỉ:</strong> {viewRoomDetails.houseNumber ? `${viewRoomDetails.houseNumber}, ` : ''}{viewRoomDetails.address}</p>
-              </div>
-              <div style={{ flex: 1, borderLeft: '1px solid #e2e8f0', paddingLeft: '20px', textAlign: 'left' }}>
-                <p style={{ margin: 0, color: '#475569' }}><strong>Điện:</strong> {viewRoomDetails.roomType === 'WHOLE_HOUSE' ? <span style={{ color: '#0369a1', fontWeight: 'bold' }}>Tự trả điện lực</span> : (viewRoomDetails.electricityPrice ? `${viewRoomDetails.electricityPrice.toLocaleString()} đ/ký` : 'Theo giá nhà nước')}</p>
-                <p style={{ margin: 0, color: '#475569' }}><strong>Nước:</strong> {viewRoomDetails.waterPrice ? `${viewRoomDetails.waterPrice.toLocaleString()} đ/khối` : 'Theo giá nhà nước'}</p>
-                <p style={{ margin: 0, color: '#475569' }}><strong>Mạng internet:</strong> {viewRoomDetails.internetPrice ? `${viewRoomDetails.internetPrice.toLocaleString()} đ/tháng` : 'Tự túc'}</p>
-                <p style={{ margin: 0, color: '#475569' }}><strong>Gửi xe:</strong> {viewRoomDetails.parkingPrice ? `${viewRoomDetails.parkingPrice.toLocaleString()} đ/tháng` : 'Miễn phí'}</p>
-                <p style={{ margin: 0, color: '#475569' }}><strong>Phí dịch vụ/vệ sinh:</strong> {viewRoomDetails.servicePrice ? `${viewRoomDetails.servicePrice.toLocaleString()} đ/tháng` : 'Miễn phí'}</p>
-                <p style={{ margin: 0, color: '#475569' }}><strong>Tiện ích có sẵn:</strong><br/>
-                  <span style={{ color: '#0f172a' }}>
-                    {viewRoomDetails.hasElevator && '✔️ Thang máy '}
-                    {viewRoomDetails.hasWashingMachine && '✔️ Máy giặt '}
-                    {viewRoomDetails.hasFridge && '✔️ Tủ lạnh '}
-                    {viewRoomDetails.hasKitchen && '✔️ Bếp nấu '}
-                    {viewRoomDetails.hasHeater && '✔️ Nóng lạnh'}
-                  </span>
-                </p>
-              </div>
-            </div>
-
-            {/* PHẦN MÔ TẢ CHI TIẾT */}
-            <div style={{ marginBottom: '20px', padding: '15px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'left' }}>
-              <p style={{ margin: '0 0 5px 0', color: '#0f172a' }}><strong>Mô tả chi tiết:</strong></p>
-              <p style={{ margin: 0, whiteSpace: 'pre-wrap', color: '#475569', fontSize: '14px' }}>
-                {viewRoomDetails.description ? viewRoomDetails.description : <span style={{ fontStyle: 'italic', color: '#94a3b8' }}>Chưa có mô tả chi tiết cho phòng này.</span>}
-              </p>
-            </div>
-
-            {/* ========================================= */}
-            {/* KHU VỰC ĐÁNH GIÁ TRONG MODAL CHI TIẾT     */}
-            {/* ========================================= */}
-            <div style={{ marginBottom: '20px', padding: '15px', background: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', textAlign: 'left', maxHeight: '400px', overflowY: 'auto' }}>
-              <h4 style={{ margin: '0 0 15px 0', color: '#0f172a', fontSize: '16px' }}>Đánh giá từ người thuê trước ({viewRoomReviews.length})</h4>
-              
-              {(() => {
-                const totalRev = viewRoomReviews.length;
-                const avgRev = totalRev > 0 ? (viewRoomReviews.reduce((s, r) => s + r.rating, 0) / totalRev).toFixed(1) : 0;
-                
-                const filteredRev = viewRoomReviews.filter(r => {
-                  if (activeReviewFilter === 'ALL') return true;
-                  if (activeReviewFilter === 'HAS_IMAGE') {
-                    return JSON.parse(r.images || '[]').length > 0 || JSON.parse(r.videos || '[]').length > 0;
-                  }
-                  return r.rating === parseInt(activeReviewFilter);
-                });
-
-                return (
-                  <>
-                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', padding: '15px', display: 'flex', gap: '20px', alignItems: 'center', borderRadius: '6px', marginBottom: '15px', flexWrap: 'wrap' }}>
-                      <div style={{ textAlign: 'center', minWidth: '90px' }}>
-                        <div style={{ fontSize: '24px', color: '#f59e0b', fontWeight: 'bold' }}>
-                          {Number(avgRev).toFixed(1)} <span style={{ fontSize: '14px', color: '#f59e0b', fontWeight: 'normal' }}>trên 5</span>
+                {/* Reviews Section */}
+                <div className="bg-surface-container-low rounded-[2rem] p-8 border border-outline-variant/30">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+                    <div>
+                      <h3 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                        <span className="w-1.5 h-4 bg-primary rounded-full"></span>
+                        Đánh giá ({viewRoomReviews.length})
+                      </h3>
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="flex text-amber-500">
+                          {renderStars(viewRoomReviews.length > 0 ? (viewRoomReviews.reduce((s, r) => s + r.rating, 0) / viewRoomReviews.length) : 5, 'modal-avg', 20)}
                         </div>
-                        <div style={{ color: '#f59e0b', display: 'flex', justifyContent: 'center', marginTop: '5px' }}>
-                           {renderStars(avgRev, 'modal-avg', 16)}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                        {[
-                          { label: 'Tất Cả', val: 'ALL' },
-                          { label: '5 Sao', val: '5', count: viewRoomReviews.filter(r => r.rating===5).length },
-                          { label: '4 Sao', val: '4', count: viewRoomReviews.filter(r => r.rating===4).length },
-                          { label: '3 Sao', val: '3', count: viewRoomReviews.filter(r => r.rating===3).length },
-                          { label: '2 Sao', val: '2', count: viewRoomReviews.filter(r => r.rating===2).length },
-                          { label: '1 Sao', val: '1', count: viewRoomReviews.filter(r => r.rating===1).length },
-                          { label: 'Có Hình/Video', val: 'HAS_IMAGE', count: viewRoomReviews.filter(r => JSON.parse(r.images||'[]').length>0 || JSON.parse(r.videos||'[]').length>0).length }
-                        ].map(f => (
-                          <button 
-                            key={f.val}
-                            onClick={() => setActiveReviewFilter(f.val)}
-                            style={{ padding: '4px 10px', background: '#ffffff', border: activeReviewFilter === f.val ? '1px solid #f59e0b' : '1px solid #cbd5e1', color: activeReviewFilter === f.val ? '#f59e0b' : '#0f172a', borderRadius: '6px', cursor: 'pointer', fontSize: '12px' }}
-                          >
-                            {f.label} {f.count !== undefined && `(${f.count})`}
-                          </button>
-                        ))}
+                        <span className="text-xl font-black text-on-surface ml-1">
+                          {(viewRoomReviews.length > 0 ? (viewRoomReviews.reduce((s, r) => s + r.rating, 0) / viewRoomReviews.length) : 5).toFixed(1)}
+                        </span>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      {filteredRev.length === 0 ? (
-                        <div style={{ textAlign: 'center', color: '#64748b', padding: '15px' }}>Chưa có đánh giá nào phù hợp.</div>
-                      ) : (
-                        filteredRev.map((review) => (
-                          <div key={review.id} style={{ display: 'flex', gap: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '15px', marginBottom: '15px' }}>
-                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#94a3b8', fontSize: '16px', flexShrink: 0 }}>👤</div>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontSize: '13px', color: '#0f172a', fontWeight: 'bold' }}>
-                                {review.isAnonymous ? maskName(review.tenant?.fullName) : (review.tenant?.fullName || 'Khách thuê')}
-                              </div>
-                              <div style={{ margin: '2px 0', display: 'flex' }}>
-                                {renderStars(review.rating, `m-r-${review.id}`, 12)}
-                              </div>
-                              <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '5px' }}>Đăng ngày: {new Date(review.createdAt).toLocaleDateString('vi-VN')}</div>
-                              <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.4', marginBottom: '10px', whiteSpace: 'pre-wrap' }}>{review.comment}</div>
-                              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
-                                {JSON.parse(review.images || "[]").map((img, idx) => (
-                                  <img key={`img-${idx}`} src={`http://localhost:5000/uploads/${img}`} alt="review" style={{ width: '50px', height: '50px', objectFit: 'cover', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer' }} onClick={() => window.open(`http://localhost:5000/uploads/${img}`)} />
-                                ))}
-                                {JSON.parse(review.videos || "[]").map((vid, idx) => (
-                                  <video key={`vid-${idx}`} src={`http://localhost:5000/uploads/${vid}`} style={{ width: '50px', height: '50px', objectFit: 'cover', border: '1px solid #e2e8f0', borderRadius: '4px', background: '#000' }} controls />
-                                ))}
-                              </div>
-                              {review.landlordReply ? (
-                                <div style={{ background: '#f8fafc', padding: '10px', borderRadius: '6px', borderLeft: '3px solid #2563eb' }}>
-                                  <div style={{ fontWeight: 'bold', fontSize: '12px', color: '#2563eb', marginBottom: '3px' }}>Phản hồi của Chủ nhà:</div>
-                                  <div style={{ fontSize: '13px', color: '#475569' }}>{review.landlordReply}</div>
-                                  <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>{new Date(review.replyDate).toLocaleDateString('vi-VN')}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { label: 'Tất cả', val: 'ALL' },
+                        { label: '5 ★', val: '5' },
+                        { label: '4 ★', val: '4' },
+                        { label: '3 ★', val: '3' },
+                        { label: '2 ★', val: '2' },
+                        { label: '1 ★', val: '1' },
+                        { label: 'Có ảnh', val: 'HAS_IMAGE' }
+                      ].map(f => (
+                        <button 
+                          key={f.val}
+                          onClick={() => setActiveReviewFilter(f.val)}
+                          className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+                            activeReviewFilter === f.val ? 'bg-primary text-on-primary shadow-lg' : 'bg-surface-container-highest text-on-surface-variant hover:bg-surface-container'
+                          }`}
+                        >
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {viewRoomReviews.length === 0 ? (
+                      <div className="col-span-2 py-12 text-center bg-surface-container-lowest rounded-3xl border border-dashed border-outline-variant">
+                        <p className="text-on-surface-variant italic font-bold opacity-40">Phòng này chưa có đánh giá nào.</p>
+                      </div>
+                    ) : (
+                      viewRoomReviews
+                        .filter(r => {
+                          if (activeReviewFilter === 'ALL') return true;
+                          if (activeReviewFilter === 'HAS_IMAGE') return JSON.parse(r.images || '[]').length > 0;
+                          return r.rating === parseInt(activeReviewFilter);
+                        })
+                        .map((review) => (
+                          <div key={review.id} className="bg-surface-container-lowest p-6 rounded-3xl border border-outline-variant/20 space-y-4 hover:shadow-lg transition-shadow">
+                            <div className="flex justify-between items-start">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
+                                  <span className="material-symbols-outlined text-xl">person</span>
                                 </div>
-                              ) : (
-                                user?.role === 'LANDLORD' && user?.id === viewRoomDetails.landlordId && (
-                                  <div style={{ marginTop: '8px' }}>
-                                    {replyingTo === review.id ? (
-                                      <div style={{ display: 'flex', gap: '8px' }}>
-                                        <textarea value={replyText} onChange={e => setReplyText(e.target.value)} placeholder="Nhập phản hồi..." style={{ flex: 1, padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12px' }} rows="2" />
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                          <button onClick={() => handleReplySubmit(review.id)} style={{ padding: '6px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}>Gửi</button>
-                                          <button onClick={() => { setReplyingTo(null); setReplyText(''); }} style={{ padding: '6px', background: '#f1f5f9', color: '#0f172a', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}>Hủy</button>
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <button onClick={() => setReplyingTo(review.id)} style={{ background: 'transparent', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', padding: 0 }}>💬 Phản hồi</button>
-                                    )}
+                                <div>
+                                  <p className="text-sm font-black text-on-surface leading-tight">
+                                    {review.isAnonymous ? maskName(review.tenant?.fullName) : (review.tenant?.fullName || 'Khách thuê')}
+                                  </p>
+                                  <div className="flex mt-0.5">
+                                    {renderStars(review.rating, `r-${review.id}`, 12)}
                                   </div>
-                                )
-                              )}
+                                </div>
+                              </div>
+                              <span className="text-[10px] font-bold text-on-surface-variant opacity-40 uppercase tracking-widest">
+                                {new Date(review.createdAt).toLocaleDateString('vi-VN')}
+                              </span>
                             </div>
+                            
+                            <p className="text-sm font-bold text-on-surface-variant leading-relaxed italic">"{review.comment}"</p>
+                            
+                            {/* Review Media */}
+                            {JSON.parse(review.images || "[]").length > 0 && (
+                              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                                {JSON.parse(review.images || "[]").map((img, idx) => (
+                                  <img 
+                                    key={idx} 
+                                    src={`http://localhost:5000/uploads/${img}`} 
+                                    alt="Review" 
+                                    className="w-16 h-16 object-cover rounded-xl border border-outline-variant/30 hover:scale-105 transition-transform cursor-pointer"
+                                    onClick={() => setSelectedImage(`http://localhost:5000/uploads/${img}`)}
+                                  />
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Landlord Reply */}
+                            {review.landlordReply ? (
+                              <div className="bg-primary/5 p-4 rounded-2xl border-l-4 border-primary mt-4">
+                                <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1 flex items-center gap-2">
+                                  <span className="material-symbols-outlined text-[14px]">reply</span> Phản hồi của chủ nhà
+                                </p>
+                                <p className="text-xs font-bold text-on-surface-variant">{review.landlordReply}</p>
+                              </div>
+                            ) : (
+                              user?.role === 'LANDLORD' && user?.id === viewRoomDetails.landlordId && (
+                                <div className="mt-4 pt-4 border-t border-outline-variant/10">
+                                  {replyingTo === review.id ? (
+                                    <div className="space-y-3">
+                                      <textarea 
+                                        value={replyText} 
+                                        onChange={e => setReplyText(e.target.value)} 
+                                        placeholder="Gửi phản hồi cho khách thuê..." 
+                                        className="w-full p-4 bg-white border border-outline-variant rounded-2xl text-xs font-bold focus:ring-2 focus:ring-primary/20 outline-none resize-none"
+                                        rows="2"
+                                      />
+                                      <div className="flex gap-2">
+                                        <button 
+                                          onClick={() => handleReplySubmit(review.id)}
+                                          className="flex-1 py-2 bg-primary text-on-primary rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all"
+                                        >Gửi</button>
+                                        <button 
+                                          onClick={() => { setReplyingTo(null); setReplyText(''); }}
+                                          className="px-4 py-2 bg-surface-container-highest text-on-surface-variant rounded-xl text-[10px] font-black uppercase tracking-widest"
+                                        >Hủy</button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <button 
+                                      onClick={() => setReplyingTo(review.id)}
+                                      className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest hover:bg-primary/10 px-3 py-2 rounded-xl transition-all"
+                                    >
+                                      <span className="material-symbols-outlined text-[16px]">chat</span> Phản hồi khách thuê
+                                    </button>
+                                  )}
+                                </div>
+                              )
+                            )}
                           </div>
                         ))
-                      )}
-                    </div>
-                  </>
-                );
-              })()}
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* CÁC NÚT HÀNH ĐỘNG BÊN DƯỚI */}
-            <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '20px', display: 'flex', justifyContent: 'center', gap: '15px' }}>
+            {/* Modal Footer Actions */}
+            <div className="p-8 border-t border-outline-variant/10 bg-surface-container-lowest flex flex-wrap gap-4 sticky bottom-0 z-20">
+              <button 
+                onClick={() => setViewRoomDetails(null)}
+                className="flex-1 min-w-[120px] py-4 font-black uppercase tracking-widest text-on-surface-variant hover:bg-surface-container transition-all rounded-2xl border border-outline-variant/30"
+              >
+                Đóng cửa sổ
+              </button>
               
-              {/* CÁCH 3: NÚT "ĐÓNG" RÕ RÀNG Ở DƯỚI CÙNG */}
-              <button onClick={() => setViewRoomDetails(null)} style={{ padding: '10px 30px', background: '#64748b', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Đóng</button>
-
-              {/* Nếu là chủ nhà và phòng chưa cho thuê thì hiện thêm Sửa/Xóa */}
               {user.role === 'LANDLORD' && viewRoomDetails.status !== 'RENTED' && (
-                 <>
-                    <button onClick={() => { setViewRoomDetails(null); handleEditRoomClick(viewRoomDetails); }} style={{ padding: '10px 20px', background: '#0ea5e9', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>✏️ Sửa thông tin</button>
-                    <button onClick={() => { setViewRoomDetails(null); handleDeleteRoom(viewRoomDetails.id); }} style={{ padding: '10px 20px', background: '#ef4444', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>🗑️ Xóa phòng</button>
-                 </>
+                <>
+                  <button 
+                    onClick={() => { setViewRoomDetails(null); handleEditRoomClick(viewRoomDetails); }}
+                    className="flex-[1.5] min-w-[200px] py-4 bg-secondary text-on-secondary font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-secondary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-xl">edit</span>
+                    Sửa thông tin
+                  </button>
+                  <button 
+                    onClick={() => { setViewRoomDetails(null); handleDeleteRoom(viewRoomDetails.id); }}
+                    className="flex-[1.2] min-w-[150px] py-4 bg-error/10 text-error font-black uppercase tracking-widest rounded-2xl border border-error/20 hover:bg-error hover:text-on-error transition-all flex items-center justify-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-xl">delete</span>
+                    Xóa phòng
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -3886,17 +4215,17 @@ const handleCreateRoom = async (e) => {
         </div>
       )}
 
+
+
       {/* ========================================================= */}
-          {/* MODAL POPUP: XEM CHI TIẾT HÓA ĐƠN (BẢN ĐẦY ĐỦ)           */}
-          {/* ========================================================= */}
-          {viewBillDetails && (() => {
+      {/* MODAL POPUP: XEM CHI TIẾT HÓA ĐƠN (BẢN ĐẦY ĐỦ)           */}
+      {/* ========================================================= */}
+      {viewBillDetails && (() => {
             const bill = viewBillDetails;
             const contract = bill.contract;
             
-            // Tính toán lại các dòng chi tiết dựa trên giá trong hợp đồng để hiển thị
             const elecUsage = bill.electricityUsage || 0;
             const waterUsage = bill.waterUsage || 0;
-            // Ưu tiên lấy trực tiếp số xe từ hợp đồng hiện tại
             const vehicleCount = bill.vehicleCount || contract?.vehicleCount || 0;
 
             const elecPrice = contract?.electricityPrice || 0;
@@ -3910,250 +4239,310 @@ const handleCreateRoom = async (e) => {
             const serviceAmount = contract?.servicePrice || 0;
             const roomAmount = contract?.price || 0;
 
-            // Tính tổng cộng dựa trên các dòng chi tiết
-// 1. TÍNH LẠI TỔNG DỰA TRÊN LOẠI HÓA ĐƠN
             let calculatedTotal = 0;
             if (bill.billType === 'ROOM') {
               calculatedTotal = roomAmount + parkingAmount + internetAmount + serviceAmount;
             } else if (bill.billType === 'UTILITY') {
               calculatedTotal = elecAmount + waterAmount;
             } else {
-              // Dành cho các hóa đơn cũ chưa phân loại (nếu có)
               calculatedTotal = roomAmount + elecAmount + waterAmount + parkingAmount + internetAmount + serviceAmount;
             }
 
             return (
-              <div 
-                style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}
-                onClick={() => setViewBillDetails(null)} // Bấm ra ngoài vùng đen để tắt
-              >
+              <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center items-center z-[9999] p-4 overflow-hidden">
                 <div 
-                  style={{ background: '#fff', width: '650px', borderRadius: '12px', padding: '30px', position: 'relative', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', color: '#333', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}
-                  onClick={(e) => e.stopPropagation()} // Ngăn không cho click bên trong bảng bị tắt
+                  className="bg-white w-full max-w-[700px] max-h-[90vh] rounded-[2rem] flex flex-col shadow-2xl border border-outline-variant/20 animate-in fade-in zoom-in duration-300 overflow-hidden"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  
-                  {/* Nút tắt ✖ Ở GÓC TRÊN CÙNG BÊN PHẢI */}
-                  <button 
-                    onClick={() => setViewBillDetails(null)} 
-                    style={{ position: 'absolute', top: '15px', right: '20px', background: 'transparent', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b', fontWeight: 'bold' }}
-                    title="Đóng"
-                  >
-                    ✖
-                  </button>
-                  
-                  <h2 style={{ margin: '0 0 25px 0', color: '#0f172a', borderBottom: '2px solid #e2e8f0', paddingBottom: '10px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '22px' }}>🧾 Chi tiết Hóa Đơn</span>
-                    <span style={{ fontSize: '14px', background: bill.status === 'PAID' ? '#10b981' : '#ef4444', color: '#ffffff', padding: '4px 10px', borderRadius: '20px', fontWeight: 'normal' }}>
-                      {bill.status === 'PAID' ? 'Đã thu tiền' : 'Chờ thanh toán'}
-                    </span>
-                  </h2>
+                  {/* Header */}
+                  <div className="p-8 border-b border-outline-variant/10 flex justify-between items-center bg-surface-container-lowest">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                        <span className="material-symbols-outlined text-3xl">receipt_long</span>
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-black text-on-surface tracking-tight">Chi tiết Hóa Đơn</h2>
+                        <div className="flex items-center gap-2 mt-1">
+                          {bill.status === 'PAID' ? (
+                            <span className="px-3 py-1 bg-secondary text-on-secondary text-[10px] font-bold rounded-full uppercase tracking-widest shadow-sm">Đã thu tiền</span>
+                          ) : bill.status === 'PENDING_CONFIRM' ? (
+                            <span className="px-3 py-1 bg-tertiary text-on-tertiary text-[10px] font-bold rounded-full uppercase tracking-widest shadow-sm">Chờ xác nhận</span>
+                          ) : (
+                            <span className="px-3 py-1 bg-error text-on-error text-[10px] font-bold rounded-full uppercase tracking-widest shadow-sm">Chưa thanh toán</span>
+                          )}
+                          <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest opacity-50">• {bill.billType === 'ROOM' ? 'Hóa đơn tiền nhà' : (bill.billType === 'UTILITY' ? 'Hóa đơn dịch vụ' : 'Hóa đơn tổng hợp')}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => setViewBillDetails(null)}
+                      className="w-12 h-12 rounded-full hover:bg-surface-container transition-all flex items-center justify-center text-on-surface-variant hover:text-error"
+                    >
+                      <span className="material-symbols-outlined text-2xl">close</span>
+                    </button>
+                  </div>
 
-                  {/* THÔNG TIN KỲ HÓA ĐƠN & PHÒNG & KHÁCH */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '15px', marginBottom: '25px' }}>
-                      
-                      {/* Thẻ hiển thị Phòng (Dùng Snapshot) */}
-                      <div style={{ background: '#fef3c7', padding: '15px', borderRadius: '8px', border: '1px solid #fde68a', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.05)' }}>
-                          <p style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 'bold', color: '#d97706' }}>Tháng {bill.month}/{bill.year}</p>
-                          <p style={{ margin: '0 0 5px 0', fontSize: '15px', color: '#0f172a' }}>
-                            <strong>Phòng:</strong> {bill.roomNumberSnapshot || (contract?.room ? `P.${contract.room.roomNumber}` : 'Phòng đã bị xóa')}
+                  <div className="p-8 overflow-y-auto flex-1 space-y-8">
+                    {/* Info Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Room Info */}
+                      <div className="bg-surface-container-low p-6 rounded-3xl border border-outline-variant/30 space-y-3">
+                        <div className="flex items-center gap-2 text-primary">
+                          <span className="material-symbols-outlined text-xl">event</span>
+                          <span className="text-sm font-black uppercase tracking-widest">Kỳ hóa đơn</span>
+                        </div>
+                        <div>
+                          <p className="text-2xl font-black text-on-surface">Tháng {bill.month}/{bill.year}</p>
+                          <p className="text-sm font-bold text-on-surface-variant mt-1">
+                            Phòng: <span className="text-on-surface">{bill.roomNumberSnapshot || (contract?.room ? contract.room.roomNumber : '---')}</span>
                           </p>
-                          <p style={{ margin: 0, fontSize: '13px', color: '#475569', lineHeight: '1.4' }}>
-                            📍 Địa chỉ: {contract?.room?.address || 'Chưa cập nhật địa chỉ'}
+                          <p className="text-xs font-medium text-on-surface-variant/70 mt-1 line-clamp-1">
+                            📍 {contract?.room?.address || 'Chưa cập nhật địa chỉ'}
                           </p>
+                        </div>
                       </div>
 
-                      {/* Thẻ hiển thị thông tin Khách Thuê (Dùng Snapshot) */}
-                      <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                          <p style={{ margin: '0 0 8px 0', fontWeight: 'bold', fontSize: '15px', color: '#0f172a' }}>Khách thuê (Người đại diện):</p>
-                          <p style={{ margin: '0 0 5px 0', fontSize: '14px', color: '#475569' }}>
-                            👤 {bill.tenantNameSnapshot || contract?.tenantName || contract?.tenant?.fullName || 'Khách thuê cũ'}
+                      {/* Tenant Info */}
+                      <div className="bg-surface-container-low p-6 rounded-3xl border border-outline-variant/30 space-y-3">
+                        <div className="flex items-center gap-2 text-primary">
+                          <span className="material-symbols-outlined text-xl">person</span>
+                          <span className="text-sm font-black uppercase tracking-widest">Khách thuê</span>
+                        </div>
+                        <div>
+                          <p className="text-xl font-black text-on-surface line-clamp-1">
+                            {bill.tenantNameSnapshot || contract?.tenantName || 'Khách thuê cũ'}
                           </p>
-                          <p style={{ margin: '0 0 5px 0', fontSize: '13px', color: '#475569' }}>✉️ {contract?.tenantEmail || 'Không có email'}</p>
-                          <p style={{ margin: 0, fontSize: '13px', color: '#475569' }}>📞 {contract?.tenantPhone || contract?.tenant?.phone || 'Chưa cập nhật'}</p>
+                          <div className="space-y-1 mt-1">
+                            <p className="text-xs font-bold text-on-surface-variant flex items-center gap-1.5">
+                              <span className="material-symbols-outlined text-xs">mail</span>
+                              {contract?.tenantEmail || '---'}
+                            </p>
+                            <p className="text-xs font-bold text-on-surface-variant flex items-center gap-1.5">
+                              <span className="material-symbols-outlined text-xs">call</span>
+                              {contract?.tenantPhone || '---'}
+                            </p>
+                          </div>
+                        </div>
                       </div>
-                  </div>
-
-                  {/* BẢNG TÍNH CHI TIẾT ĐÃ ĐƯỢC CHIA TÁCH THÔNG MINH */}
-                  <div style={{ background: '#ffffff', padding: '20px', borderRadius: '8px', marginBottom: '25px', border: '1px solid #e2e8f0', boxShadow: '0 2px 5px rgba(0,0,0,0.03)' }}>
-                    <p style={{ margin: '0 0 18px 0', fontWeight: 'bold', color: '#0f172a', fontSize: '15px' }}>
-                      Bảng tính chi tiết ({bill.billType === 'ROOM' ? 'Hóa đơn tiền nhà & Dịch vụ' : (bill.billType === 'UTILITY' ? 'Hóa đơn Điện Nước' : 'Hóa đơn tổng hợp')}):
-                    </p>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px', fontSize: '14px', color: '#475569' }}>
-
-                      {/* KHỐI 1: CHỈ HIỂN THỊ KHI LÀ HÓA ĐƠN TIỀN NHÀ (ROOM) HOẶC HÓA ĐƠN CŨ CHƯA PHÂN LOẠI */}
-                      {(bill.billType === 'ROOM' || !bill.billType) && (
-                        <>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '6px' }}><span>Tiền phòng cố định:</span> <strong style={{ color: '#0f172a' }}>{roomAmount.toLocaleString('vi-VN')} đ</strong></div>
-                          
-                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '6px' }}>
-                            <span>Tiền gửi xe ({vehicleCount} xe x {parkingPrice.toLocaleString()}đ):</span> 
-                            <strong style={{ color: '#0f172a' }}>{parkingAmount.toLocaleString('vi-VN')} đ</strong>
-                          </div>
-                          
-                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px dashed #e2e8f0', paddingBottom: '6px' }}><span>Mạng Internet:</span> <strong style={{ color: '#0f172a' }}>{internetAmount.toLocaleString('vi-VN')} đ</strong></div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: (bill.billType !== 'ROOM' && !bill.billType) ? '1px dashed #e2e8f0' : 'none', paddingBottom: '6px' }}><span>Phí dịch vụ chung:</span> <strong style={{ color: '#0f172a' }}>{serviceAmount.toLocaleString('vi-VN')} đ</strong></div>
-                        </>
-                      )}
-
-                      {/* KHỐI 2: CHỈ HIỂN THỊ KHI LÀ HÓA ĐƠN ĐIỆN NƯỚC (UTILITY) */}
-                      {(bill.billType === 'UTILITY' || !bill.billType) && (
-                        <>
-                          {/* DÒNG ĐIỆN */}
-                          <div style={{ display: 'flex', flexDirection: 'column', borderBottom: '1px dashed #e2e8f0', paddingBottom: '10px', marginBottom: '10px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                              <span>Tiền điện ({elecUsage} ký x {elecPrice.toLocaleString()}đ):</span> 
-                              <strong style={{ color: '#0f172a' }}>{elecAmount.toLocaleString('vi-VN')} đ</strong>
-                            </div>
-                            {/* Hiển thị số đầu - số cuối */}
-                            <div style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>
-                              (Chỉ số đồng hồ: {bill.oldElectricity ?? '?'} ➡️ {bill.newElectricity ?? '?'})
-                            </div>
-                          </div>
-                          
-                          {/* DÒNG NƯỚC */}
-                          <div style={{ display: 'flex', flexDirection: 'column', borderBottom: 'none', paddingBottom: '0' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                              <span>Tiền nước ({waterUsage} khối x {waterPrice.toLocaleString()}đ):</span> 
-                              <strong style={{ color: '#0f172a' }}>{waterAmount.toLocaleString('vi-VN')} đ</strong>
-                            </div>
-                            {/* Hiển thị số đầu - số cuối */}
-                            <div style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>
-                              (Chỉ số đồng hồ: {bill.oldWater ?? '?'} ➡️ {bill.newWater ?? '?'})
-                            </div>
-                          </div>
-                        </>
-                      )}
-
                     </div>
-                    
-                    <div style={{ marginTop: '20px', paddingTop: '15px', borderTop: '2px dashed #cbd5e1', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a' }}>
-                        {bill.billType === 'ROOM' ? 'TỔNG TIỀN NHÀ:' : (bill.billType === 'UTILITY' ? 'TỔNG ĐIỆN NƯỚC:' : 'TỔNG CỘNG:')}
-                      </span>
-                      <span style={{ fontSize: '26px', fontWeight: 'bold', color: '#ef4444' }}>{calculatedTotal.toLocaleString('vi-VN')} đ</span>
-                    </div>
-                  </div>
 
-                  {/* CÁC NÚT HÀNH ĐỘNG BÊN DƯỚI */}
-                  <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '20px', textAlign: 'right', display: 'flex', justifyContent: 'flex-end', gap: '15px' }}>
-                    <button onClick={() => setViewBillDetails(null)} style={{ padding: '10px 35px', background: '#64748b', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Đóng</button>
-                    {/* Thêm nút đánh dấu đã thanh toán nếu cần */}
-                    {bill.status === 'UNPAID' && user.role === 'LANDLORD' && (
-                        <button onClick={() => handlePayBill(bill.id).then(() => setViewBillDetails(null))} style={{ padding: '10px 25px', background: '#10b981', color: '#ffffff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>✅ Xác nhận đã thu tiền</button>
-                    )}
-                  </div>
-                  
-                  {/* ========================================================= */}
-                  {/* GIAO DIỆN KHÁCH THUÊ: QUÉT QR VÀ UPLOAD ẢNH MINH CHỨNG      */}
-                  {/* ========================================================= */}
-                  {user.role === 'TENANT' && bill.status === 'UNPAID' && (
-                    <div style={{ textAlign: 'center', background: '#f8fafc', padding: '20px', borderRadius: '8px', border: '2px dashed #0ea5e9', marginBottom: '25px', marginTop: '25px' }}>
-                      <h4 style={{ margin: '0 0 15px 0', color: '#0ea5e9', fontSize: '18px' }}>Mã QR Thanh Toán Tự Động</h4>
+                    {/* Bill Details */}
+                    <div className="bg-white rounded-3xl border border-outline-variant/30 overflow-hidden">
+                      <div className="px-6 py-4 bg-surface-container-lowest border-b border-outline-variant/10">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-on-surface-variant flex items-center gap-2">
+                          <span className="w-1.5 h-4 bg-primary rounded-full"></span>
+                          Bảng kê chi tiết
+                        </h4>
+                      </div>
                       
-                      {/* Tạo ảnh VietQR động */}
-                      {/* Lấy thông tin chủ nhà từ hợp đồng. Nếu chủ nhà chưa cài đặt, dùng STK mặc định để chống lỗi */}
-                      {(() => {
-                        const bankName = contract?.room?.landlord?.bankName || 'MB';
-                        const accNum = contract?.room?.landlord?.accountNumber || 'CHUA_CO_STK';
-                        const accName = contract?.room?.landlord?.accountHolder || 'CHU NHA';
+                      <div className="p-6 space-y-4">
+                        {(bill.billType === 'ROOM' || !bill.billType) && (
+                          <div className="space-y-4">
+                            <div className="flex justify-between items-center group">
+                              <span className="text-sm font-bold text-on-surface-variant">Tiền phòng cố định</span>
+                              <span className="text-sm font-black text-on-surface">{roomAmount.toLocaleString('vi-VN')} đ</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <div className="flex flex-col">
+                                <span className="text-sm font-bold text-on-surface-variant">Phí gửi xe</span>
+                                <span className="text-[10px] font-bold text-outline uppercase tracking-wider">{vehicleCount} xe × {parkingPrice.toLocaleString()}đ</span>
+                              </div>
+                              <span className="text-sm font-black text-on-surface">{parkingAmount.toLocaleString('vi-VN')} đ</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-bold text-on-surface-variant">Internet / Wifi</span>
+                              <span className="text-sm font-black text-on-surface">{internetAmount.toLocaleString('vi-VN')} đ</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-bold text-on-surface-variant">Dịch vụ chung</span>
+                              <span className="text-sm font-black text-on-surface">{serviceAmount.toLocaleString('vi-VN')} đ</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {(bill.billType === 'UTILITY' || !bill.billType) && (
+                          <div className="space-y-4 pt-4 border-t border-outline-variant/10">
+                            <div className="flex justify-between items-start">
+                              <div className="flex flex-col">
+                                <span className="text-sm font-bold text-on-surface-variant">Tiền điện</span>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-[10px] font-bold bg-primary/5 text-primary px-2 py-0.5 rounded-md border border-primary/10">
+                                    {bill.oldElectricity ?? '?'} ⮕ {bill.newElectricity ?? '?'}
+                                  </span>
+                                  <span className="text-[10px] font-bold text-outline uppercase tracking-wider">{elecUsage} ký × {elecPrice.toLocaleString()}đ</span>
+                                </div>
+                              </div>
+                              <span className="text-sm font-black text-on-surface">{elecAmount.toLocaleString('vi-VN')} đ</span>
+                            </div>
+
+                            <div className="flex justify-between items-start">
+                              <div className="flex flex-col">
+                                <span className="text-sm font-bold text-on-surface-variant">Tiền nước</span>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-[10px] font-bold bg-primary/5 text-primary px-2 py-0.5 rounded-md border border-primary/10">
+                                    {bill.oldWater ?? '?'} ⮕ {bill.newWater ?? '?'}
+                                  </span>
+                                  <span className="text-[10px] font-bold text-outline uppercase tracking-wider">{waterUsage} khối × {waterPrice.toLocaleString()}đ</span>
+                                </div>
+                              </div>
+                              <span className="text-sm font-black text-on-surface">{waterAmount.toLocaleString('vi-VN')} đ</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Total */}
+                        <div className="pt-6 border-t-2 border-dashed border-outline-variant/30 flex justify-between items-end">
+                          <div>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-1">Tổng cộng thanh toán</p>
+                            <h3 className="text-sm font-bold text-on-surface-variant italic">
+                              {bill.billType === 'ROOM' ? 'Hóa đơn tiền nhà' : (bill.billType === 'UTILITY' ? 'Hóa đơn điện nước' : 'Tổng hóa đơn kỳ này')}
+                            </h3>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-3xl font-black text-error tracking-tighter">{calculatedTotal.toLocaleString('vi-VN')}</span>
+                            <span className="text-sm font-bold text-error ml-1">đ</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Action Section for Tenant */}
+                    {user.role === 'TENANT' && bill.status === 'UNPAID' && (
+                      <div className="bg-primary/5 rounded-[2rem] border-2 border-dashed border-primary/20 p-8 space-y-6">
+                        <div className="text-center space-y-2">
+                          <h4 className="text-lg font-black text-primary tracking-tight">Thanh toán nhanh qua VietQR</h4>
+                          <p className="text-xs font-bold text-on-surface-variant/70">Quét mã bằng ứng dụng Ngân hàng hoặc Ví điện tử để thanh toán tự động</p>
+                        </div>
                         
-                        // Xóa bỏ khoảng trắng trong nội dung chuyển khoản để QR quét mượt hơn
-                        const addInfo = `THANHTOAN PHONG ${contract?.room?.roomNumber}`.replace(/ /g, '%20');
-
-                        return (
-                          <img 
-                            src={`https://img.vietqr.io/image/${bankName}-${accNum}-compact.png?amount=${calculatedTotal}&addInfo=${addInfo}&accountName=${accName}`} 
-                            alt="VietQR" 
-                            style={{ width: '250px', borderRadius: '8px', border: '1px solid #cbd5e1', marginBottom: '15px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }} 
-                          />
-                        );
-                      })()}
-                      <p style={{ margin: '0 0 15px 0', fontSize: '14px', color: '#475569', lineHeight: '1.6' }}>
-                        * Hãy dùng App Ngân hàng hoặc MoMo/ZaloPay để quét mã.<br/>
-                        
-                      </p>
-
-                      <div style={{ borderTop: '1px solid #cbd5e1', paddingTop: '15px', textAlign: 'left' }}>
-                        <h5 style={{ margin: '0 0 10px 0', color: '#0f172a' }}>Tải lên ảnh chụp màn hình chuyển khoản (Tối đa 3 ảnh):</h5>
-                        <input 
-                          type="file" multiple accept="image/*"
-                          onChange={(e) => {
-                            if (e.target.files.length > 3) {
-                              alert("Chỉ được chọn tối đa 3 ảnh!"); e.target.value = null;
-                            } else { setProofFiles(e.target.files); }
-                          }}
-                          style={{ marginBottom: '10px', width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', background: '#ffffff', color: '#0f172a' }}
-                        />
-                        <button 
-                          onClick={() => handleUploadProof(bill.id)} 
-                          style={{ width: '100%', padding: '12px', background: '#10b981', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '15px' }}
-                        >
-                          📤 Gửi Ảnh Minh Chứng Ngay
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Thông báo cho khách nếu đã gửi ảnh xong */}
-                  {user.role === 'TENANT' && bill.status === 'PENDING_CONFIRM' && (
-                    <div style={{ background: '#d4edda', padding: '15px', borderRadius: '8px', marginBottom: '25px', textAlign: 'center', color: '#155724', border: '1px solid #c3e6cb' }}>
-                        <p style={{ fontWeight: 'bold', margin: '0 0 5px 0', fontSize: '16px' }}>✅ Đã nộp ảnh minh chứng!</p>
-                        <p style={{ fontSize: '14px', margin: 0 }}>Hệ thống đang chờ Chủ nhà kiểm tra tài khoản và xác nhận.</p>
-                    </div>
-                  )}
-
-
-                  {/* ========================================================= */}
-                  {/* GIAO DIỆN CHỦ NHÀ: XEM ẢNH KHÁCH GỬI VÀ BẤM XÁC NHẬN        */}
-                  {/* ========================================================= */}
-                  {user.role === 'LANDLORD' && bill.status === 'PENDING_CONFIRM' && (
-                    <div style={{ background: '#fef3c7', padding: '20px', borderRadius: '8px', marginBottom: '25px', border: '1px solid #fde68a' }}>
-                      <p style={{ color: '#d97706', fontWeight: 'bold', margin: '0 0 15px 0', fontSize: '16px' }}>
-                        ⚠️ Khách thuê báo đã chuyển khoản. Hãy kiểm tra ảnh minh chứng bên dưới!
-                      </p>
-                      
-                      {/* Lưới hiển thị ảnh minh chứng */}
-                      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', overflowX: 'auto', paddingBottom: '5px' }}>
-                        {(() => {
-                          let images = [];
-                          try { images = JSON.parse(bill.proofImages || "[]"); } catch(e) {}
-                          
-                          return images.map((img, idx) => {
-                            // 🚨 THUẬT TOÁN "HỦY DIỆT": Bất chấp DB lưu là gì (/uploads/anh.jpg hay anh.jpg), 
-                            // dòng này sẽ chém hết đường dẫn cũ, chỉ lấy đúng cái TÊN FILE cuối cùng.
-                            const fileName = img.replace(/^.*[\\\/]/, ''); 
-                            
-                            // Sau đó ghép chuẩn xác với địa chỉ Backend
-                            const imgSrc = `http://localhost:5000/uploads/${fileName}`;
+                        <div className="flex flex-col items-center gap-6">
+                          {(() => {
+                            const bankName = contract?.room?.landlord?.bankName || 'MB';
+                            const accNum = contract?.room?.landlord?.accountNumber || '000000000';
+                            const accName = contract?.room?.landlord?.accountHolder || 'CHU NHA';
+                            const addInfo = `THANHTOAN PHONG ${contract?.room?.roomNumber || ''}`.replace(/ /g, '%20');
 
                             return (
-                              <img 
-                                key={idx} 
-                                src={imgSrc} 
-                                alt={`Minh chứng ${idx}`}
-                                style={{ width: '120px', height: '180px', objectFit: 'cover', borderRadius: '6px', cursor: 'pointer', border: '1px solid #e2e8f0', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }} 
-                                onClick={() => window.open(imgSrc)}
-                                // 🚨 Xóa link mạng đi. Nếu ảnh bị lỗi (do bạn xóa nhầm file), nó sẽ ẩn luôn cái khung rách đi cho đẹp.
-                                onError={(e) => { e.target.style.display = 'none'; }}
-                              />
-                            )
-                          });
-                        })()}
-                      </div>
+                              <div className="relative group">
+                                <div className="absolute -inset-4 bg-primary/10 rounded-[2.5rem] blur-xl group-hover:bg-primary/20 transition-all"></div>
+                                <img 
+                                  src={`https://img.vietqr.io/image/${bankName}-${accNum}-compact.png?amount=${calculatedTotal}&addInfo=${addInfo}&accountName=${accName}`} 
+                                  alt="VietQR" 
+                                  className="relative w-64 rounded-3xl border-4 border-white shadow-2xl transition-transform hover:scale-105 duration-300" 
+                                />
+                              </div>
+                            );
+                          })()}
 
+                          <div className="w-full space-y-4">
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Tải lên minh chứng (Tối đa 3 ảnh) *</label>
+                              <div className="relative group">
+                                <input 
+                                  type="file" multiple accept="image/*"
+                                  onChange={(e) => {
+                                    if (e.target.files.length > 3) {
+                                      alert("Chỉ được chọn tối đa 3 ảnh!"); e.target.value = null;
+                                    } else { setProofFiles(e.target.files); }
+                                  }}
+                                  className="w-full p-4 bg-white border-2 border-dashed border-outline-variant rounded-2xl text-xs font-bold text-on-surface-variant file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-primary/10 file:text-primary hover:border-primary/50 transition-all cursor-pointer"
+                                />
+                              </div>
+                            </div>
+                            <button 
+                              onClick={() => handleUploadProof(bill.id)} 
+                              className="w-full py-4 bg-primary text-on-primary font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                            >
+                              <span className="material-symbols-outlined text-xl">upload_file</span>
+                              Gửi ảnh xác nhận thanh toán
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Pending Confirmation for Tenant */}
+                    {user.role === 'TENANT' && bill.status === 'PENDING_CONFIRM' && (
+                      <div className="bg-secondary/10 p-8 rounded-[2rem] border border-secondary/20 flex flex-col items-center text-center space-y-4">
+                        <div className="w-16 h-16 rounded-full bg-secondary/20 flex items-center justify-center text-secondary animate-pulse">
+                          <span className="material-symbols-outlined text-4xl">verified_user</span>
+                        </div>
+                        <div>
+                          <h4 className="text-xl font-black text-secondary tracking-tight">Đã gửi minh chứng!</h4>
+                          <p className="text-sm font-bold text-on-surface-variant mt-1 leading-relaxed">Hệ thống đang chờ Chủ nhà kiểm tra và xác nhận giao dịch. Vui lòng giữ lại biên lai nếu cần đối chiếu.</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Landlord View: Confirm Payment */}
+                    {user.role === 'LANDLORD' && bill.status === 'PENDING_CONFIRM' && (
+                      <div className="bg-tertiary/5 p-8 rounded-[2rem] border-2 border-tertiary/20 space-y-6">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-tertiary/10 flex items-center justify-center text-tertiary">
+                            <span className="material-symbols-outlined text-2xl">pending_actions</span>
+                          </div>
+                          <div>
+                            <h4 className="text-lg font-black text-tertiary tracking-tight">Xác nhận thanh toán</h4>
+                            <p className="text-xs font-bold text-on-surface-variant/70">Kiểm tra kỹ ảnh minh chứng bên dưới trước khi xác nhận</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
+                          {(() => {
+                            let images = [];
+                            try { images = JSON.parse(bill.proofImages || "[]"); } catch(e) {}
+                            
+                            return images.map((img, idx) => {
+                              const fileName = img.replace(/^.*[\\\/]/, ''); 
+                              const imgSrc = `http://localhost:5000/uploads/${fileName}`;
+
+                              return (
+                                <img 
+                                  key={idx} 
+                                  src={imgSrc} 
+                                  alt={`Proof ${idx}`}
+                                  className="w-32 h-48 object-cover rounded-2xl border-2 border-white shadow-md hover:scale-105 transition-all cursor-zoom-in shrink-0" 
+                                  onClick={() => window.open(imgSrc)}
+                                  onError={(e) => { e.target.style.display = 'none'; }}
+                                />
+                              )
+                            });
+                          })()}
+                        </div>
+
+                        <button 
+                          onClick={() => handlePayBill(bill.id).then(() => setViewBillDetails(null))}
+                          className="w-full py-5 bg-tertiary text-on-tertiary font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-tertiary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                        >
+                          <span className="material-symbols-outlined text-2xl">check_circle</span>
+                          Xác nhận đã nhận đủ tiền
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Footer Actions */}
+                  <div className="p-8 border-t border-outline-variant/10 bg-surface-container-lowest flex gap-4">
+                    <button 
+                      onClick={() => setViewBillDetails(null)}
+                      className="flex-1 py-4 font-black uppercase tracking-widest text-on-surface-variant hover:bg-surface-container transition-all rounded-2xl border border-outline-variant/30"
+                    >
+                      Đóng cửa sổ
+                    </button>
+                    {bill.status === 'UNPAID' && user.role === 'LANDLORD' && (
                       <button 
-                        // Tái sử dụng luôn hàm handlePayBill cũ để đổi trạng thái thành PAID
                         onClick={() => handlePayBill(bill.id).then(() => setViewBillDetails(null))}
-                        style={{ width: '100%', background: '#10b981', color: '#ffffff', border: 'none', padding: '15px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '16px' }}
+                        className="flex-[2] py-4 bg-secondary text-on-secondary font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-secondary/20 hover:scale-[1.02] active:scale-95 transition-all"
                       >
-                        ✅ XÁC NHẬN ĐÃ NHẬN ĐỦ TIỀN
+                        Thu tiền mặt trực tiếp
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             );
           })()}
+
+
 
       {/* MODAL GHI CHÚ NHẬT CỌC / GIỮ CHỖ (Redesigned) */}
       {depositModal.show && (
@@ -4217,7 +4606,10 @@ const handleCreateRoom = async (e) => {
           </div>
         </div>
       )}
-{/* ========================================================= */}
+
+
+
+
       {/* MODAL PHÓNG TO ẢNH (LIGHTBOX) - ĐÃ CÓ CHỨC NĂNG CHUYỂN ẢNH */}
       {/* ========================================================= */}
       {selectedImage && viewRoomDetails && ( // Cần thêm check viewRoomDetails để lấy list ảnh
@@ -4278,6 +4670,7 @@ const handleCreateRoom = async (e) => {
         </div>
 
       )}
+
 
 
       {/* ========================================================= */}
@@ -4371,6 +4764,7 @@ const handleCreateRoom = async (e) => {
       
       )}
 
+
       {/* MODAL HIỂN THỊ NỘI QUY HỆ THỐNG */}
       {showRuleModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000, backdropFilter: 'blur(5px)' }}>
@@ -4429,6 +4823,8 @@ const handleCreateRoom = async (e) => {
           `}</style>
         </div>
       )}
+
+
 
       {/* NÚT HỖ TRỢ ZALO GÓC TRÁI DƯỚI */}
       <a 
