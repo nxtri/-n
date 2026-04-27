@@ -234,14 +234,22 @@ const RoomDetail = () => {
             <div className="space-y-8">
               <div className="bg-white p-8 rounded-3xl border border-outline-variant/20 shadow-xl sticky top-28">
                 <div className="mb-6">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-widest">
-                      {room.roomType === 'WHOLE_HOUSE' ? 'Nhà nguyên căn' : 'Phòng trọ'}
-                    </span>
-                    {room.status === 'AVAILABLE' ? (
-                      <span className="px-3 py-1 bg-secondary/10 text-secondary rounded-full text-[10px] font-black uppercase tracking-widest">Trống</span>
-                    ) : (
-                      <span className="px-3 py-1 bg-tertiary/10 text-tertiary rounded-full text-[10px] font-black uppercase tracking-widest">Sắp trống</span>
+                  <div className="space-y-3 mb-6">
+                    <div className="flex items-center gap-2">
+                      <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-widest">
+                        {room.roomType === 'WHOLE_HOUSE' ? 'Nhà nguyên căn' : 'Phòng trọ'}
+                      </span>
+                      {room.status === 'AVAILABLE' ? (
+                        <span className="px-3 py-1 bg-secondary/10 text-secondary rounded-full text-[10px] font-black uppercase tracking-widest">Trống</span>
+                      ) : (
+                        <span className="px-3 py-1 bg-tertiary/10 text-tertiary rounded-full text-[10px] font-black uppercase tracking-widest">Sắp trống</span>
+                      )}
+                    </div>
+                    {room.status !== 'AVAILABLE' && room.intendedMoveOutDate && (
+                      <div className="flex items-center gap-2 text-tertiary font-bold text-xs bg-tertiary/5 p-2 rounded-xl border border-tertiary/10 w-fit">
+                        <span className="material-symbols-outlined text-[16px]">calendar_today</span>
+                        <span>Trống từ ngày: {new Date(room.intendedMoveOutDate).toLocaleDateString('vi-VN')}</span>
+                      </div>
                     )}
                   </div>
                   <h1 className="font-display-md text-display-md text-on-surface mb-4">

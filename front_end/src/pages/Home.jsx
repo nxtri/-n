@@ -259,10 +259,25 @@ const Home = () => {
               try { images = JSON.parse(room.images) || []; } catch(e) {}
               const firstImage = images.length > 0 ? `http://localhost:5000/uploads/${images[0]}` : "https://via.placeholder.com/400x300?text=Chua+Co+Anh";
 
+              // Viền bài đăng theo gói đăng ký của chủ nhà
+              const plan = room.landlord?.subscriptionPlan;
+              let borderStyle = 'border border-outline-variant/10'; // Gói Đồng: không viền đặc biệt
+              let glowStyle = '';
+              let planBadge = null;
+              if (plan === 'SILVER') {
+                borderStyle = 'border-2 border-green-300';
+              } else if (plan === 'GOLD') {
+                borderStyle = 'border-2 border-teal-400';
+              } else if (plan === 'DIAMOND') {
+                borderStyle = 'border-[3px] border-yellow-400';
+                glowStyle = 'shadow-[0_0_20px_rgba(250,204,21,0.35)]';
+                planBadge = <div className="absolute top-4 right-4 z-10 bg-gradient-to-r from-yellow-400 to-amber-500 text-black text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest shadow-lg flex items-center gap-1"><span>💎</span>VIP</div>;
+              }
+
               return (
                 <article 
                   key={room.id}
-                  className="bg-white rounded-2xl overflow-hidden custom-shadow card-hover transition-all duration-300 border border-outline-variant/10 flex flex-col group cursor-pointer"
+                  className={`bg-white rounded-2xl overflow-hidden custom-shadow card-hover transition-all duration-300 ${borderStyle} ${glowStyle} flex flex-col group cursor-pointer`}
                   onClick={() => navigate(`/room/${room.id}`)}
                 >
                   <div className="relative h-60 overflow-hidden">
@@ -271,26 +286,43 @@ const Home = () => {
                       alt={room.roomNumber} 
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
-                    <div className="absolute top-4 left-4 flex items-center gap-2">
-                      {room.status === 'AVAILABLE' ? (
-                        <div className="px-3 py-1 bg-secondary text-on-secondary text-[10px] font-bold rounded-full uppercase tracking-wider shadow-sm">Trống</div>
-                      ) : (
-                        <div className="px-3 py-1 bg-tertiary text-on-tertiary text-[10px] font-bold rounded-full uppercase tracking-wider shadow-sm">Sắp trống</div>
-                      )}
-                      {room.reviewCount > 0 && (
-                        <div className="flex items-center gap-1 text-[#f59e0b] bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full shadow-sm text-[10px] font-bold">
-                          <span className="material-symbols-outlined text-sm fill-current">star</span>
-                          <span>{room.avgRating}</span>
+                    {planBadge}
+                    <div className="absolute top-4 left-4 flex flex-col items-start gap-1.5">
+                      <div className="flex items-center gap-2">
+                        {room.status === 'AVAILABLE' ? (
+                          <div className="px-3 py-1 bg-secondary text-on-secondary text-[10px] font-bold rounded-full uppercase tracking-wider shadow-sm">Trống</div>
+                        ) : (
+                          <div className="px-3 py-1 bg-tertiary text-on-tertiary text-[10px] font-bold rounded-full uppercase tracking-wider shadow-sm">Sắp trống</div>
+                        )}
+                        {room.reviewCount > 0 && (
+                          <div className="flex items-center gap-1 text-[#f59e0b] bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full shadow-sm text-[10px] font-bold">
+                            <span className="material-symbols-outlined text-sm fill-current">star</span>
+                            <span>{room.avgRating}</span>
+                          </div>
+                        )}
+                      </div>
+                      {room.status === 'RENTED' && room.intendedMoveOutDate && (
+                        <div className="px-2.5 py-1 bg-white/90 backdrop-blur-sm text-tertiary text-[9px] font-black rounded-lg shadow-sm border border-tertiary/20 flex items-center gap-1 animate-in slide-in-from-left-2 duration-500">
+                          <span className="material-symbols-outlined text-[12px]">calendar_today</span>
+                          Trống từ: {new Date(room.intendedMoveOutDate).toLocaleDateString('vi-VN')}
                         </div>
                       )}
                     </div>
-                    <button className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-on-surface-variant hover:text-error transition-all hover:bg-white active:scale-90">
-                      <span className="material-symbols-outlined text-xl">favorite</span>
-                    </button>
+                    {!planBadge && (
+                      <button className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-on-surface-variant hover:text-error transition-all hover:bg-white active:scale-90">
+                        <span className="material-symbols-outlined text-xl">favorite</span>
+                      </button>
+                    )}
+                    {/* Price Overlay */}
+                    <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg border border-white/20">
+                      <p className="text-primary font-price-tag text-lg leading-none">
+                        {room.price?.toLocaleString()} đ<span className="text-xs font-normal text-on-surface-variant ml-1">/tháng</span>
+                      </p>
+                    </div>
                   </div>
 
                   <div className="p-6 flex flex-col flex-grow">
-                    <div className="mb-2">
+                    <div className="mb-6">
                       <h3 className="font-headline-md text-headline-md text-on-surface line-clamp-1 group-hover:text-primary transition-colors">
                         {room.roomType === 'WHOLE_HOUSE' ? 'NHÀ NGUYÊN CĂN' : 'PHÒNG TRỌ'} {room.roomNumber}
                       </h3>
@@ -300,10 +332,6 @@ const Home = () => {
                         </p>
                       )}
                     </div>
-                    
-                    <p className="text-primary font-price-tag text-xl mb-4">
-                      {room.price?.toLocaleString()} đ<span className="text-sm font-normal text-on-surface-variant">/tháng</span>
-                    </p>
 
                     <div className="space-y-3 mb-6 pb-6 border-b border-outline-variant/20">
                       <div className="flex items-center gap-4 text-on-surface-variant text-sm">

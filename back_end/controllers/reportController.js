@@ -1,4 +1,5 @@
 const { Report, Room } = require('../models');
+const notificationHelper = require('../utils/notificationHelper');
 
 const createReport = async (req, res) => {
   try {
@@ -19,6 +20,12 @@ const createReport = async (req, res) => {
       reason,
       description
     });
+
+    // Notify Admins
+    await notificationHelper.notifyAdmins(
+      'Có Báo Cáo Mới',
+      `Người dùng ${fullName} (${phoneNumber}) vừa báo cáo phòng ${room.roomNumber} với lý do: ${reason}.`
+    );
 
     res.status(201).json({ message: 'Cảm ơn bạn đã phản ánh. Admin sẽ xem xét sớm nhất!', report: newReport });
   } catch (error) {

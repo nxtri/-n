@@ -19,9 +19,14 @@ const ProfileModal = ({ user, onClose }) => {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   
   const [profileData, setProfileData] = useState({
-    fullName: user?.fullName || '', phone: user?.phone || '',
-    dob: user?.dob || '', address: user?.address || '', identityNumber: user?.identityNumber || '',
-    bankName: user?.bankName || 'MB', accountNumber: user?.accountNumber || '', accountHolder: user?.accountHolder || ''
+    fullName: user?.fullName || '', 
+    phone: user?.phone || '',
+    dob: user?.dob || '', 
+    address: user?.address || '', 
+    identityNumber: user?.identityNumber || '',
+    bankName: user?.bankName || 'MB', 
+    accountNumber: user?.accountNumber || '', 
+    accountHolder: user?.accountHolder || ''
   });
 
   const [passwordData, setPasswordData] = useState({
@@ -67,168 +72,231 @@ const ProfileModal = ({ user, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center items-center z-[9999] p-4">
-      <div className="bg-white w-full max-w-[550px] rounded-3xl overflow-hidden shadow-2xl border border-outline-variant/20 animate-in fade-in slide-in-from-bottom-8 duration-300">
-        <div className="p-8 relative">
-          <button 
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex justify-center items-center z-[9999] p-4 animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-[660px] rounded-[2rem] shadow-2xl border border-outline-variant/20 overflow-hidden relative animate-in zoom-in-95 duration-300">
+        
+        {/* Header */}
+        <div className="p-8 pb-4 flex justify-between items-center">
+          <h2 className="text-2xl font-black text-on-surface flex items-center gap-3">
+            <span className="material-symbols-outlined text-primary text-3xl">
+              {isChangingPassword ? 'lock_reset' : isEditingProfile ? 'edit_note' : 'account_circle'}
+            </span>
+            {isChangingPassword ? 'Đổi mật khẩu' : isEditingProfile ? 'Chỉnh sửa thông tin' : 'Thông tin người dùng'}
+          </h2>
+          <button
             onClick={onClose}
-            className="absolute top-6 right-6 w-9 h-9 rounded-full hover:bg-surface-container transition-all flex items-center justify-center text-outline"
+            className="w-10 h-10 rounded-full hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant transition-colors"
           >
             <span className="material-symbols-outlined">close</span>
           </button>
+        </div>
 
-          <h2 className="text-2xl font-bold text-on-surface text-center mb-8">
-            {isChangingPassword ? '🔐 Đổi mật khẩu' : isEditingProfile ? '✍️ Cập nhật hồ sơ' : '👤 Thông tin cá nhân'}
-          </h2>
-
+        <div className="p-8 pt-4 space-y-6 overflow-y-auto max-h-[80vh] no-scrollbar">
+          
           {isChangingPassword ? (
             <div className="space-y-5">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-on-surface-variant px-1">Mật khẩu cũ</label>
+              <div className="space-y-2">
+                <label className="text-xs font-black text-on-surface-variant uppercase tracking-widest px-1">Mật khẩu hiện tại</label>
                 <div className="relative">
                   <input 
-                    type={showOldPwd ? "text" : "password"}
-                    className="w-full p-3.5 bg-surface-container-low border border-outline-variant/30 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                    value={passwordData.oldPassword}
-                    onChange={(e) => setPasswordData({...passwordData, oldPassword: e.target.value})}
+                    type={showOldPwd ? "text" : "password"} 
+                    value={passwordData.oldPassword} 
+                    onChange={e => setPasswordData({ ...passwordData, oldPassword: e.target.value })} 
+                    className="w-full p-4 bg-surface-container-low border border-outline-variant/30 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-medium"
+                    placeholder="••••••••"
                   />
-                  <button onClick={() => setShowOldPwd(!showOldPwd)} className="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors">
+                  <button onClick={() => setShowOldPwd(!showOldPwd)} className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary">
                     {showOldPwd ? <EyeOffIcon /> : <EyeIcon />}
                   </button>
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-on-surface-variant px-1">Mật khẩu mới</label>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-on-surface-variant uppercase tracking-widest px-1">Mật khẩu mới (ít nhất 6 ký tự)</label>
                 <div className="relative">
                   <input 
-                    type={showNewPwd ? "text" : "password"}
-                    className="w-full p-3.5 bg-surface-container-low border border-outline-variant/30 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                    value={passwordData.newPassword}
-                    onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
+                    type={showNewPwd ? "text" : "password"} 
+                    value={passwordData.newPassword} 
+                    onChange={e => setPasswordData({ ...passwordData, newPassword: e.target.value })} 
+                    className="w-full p-4 bg-surface-container-low border border-outline-variant/30 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-medium"
+                    placeholder="••••••••"
                   />
-                  <button onClick={() => setShowNewPwd(!showNewPwd)} className="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors">
+                  <button onClick={() => setShowNewPwd(!showNewPwd)} className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary">
                     {showNewPwd ? <EyeOffIcon /> : <EyeIcon />}
                   </button>
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-on-surface-variant px-1">Xác nhận mật khẩu mới</label>
+
+              <div className="space-y-2">
+                <label className="text-xs font-black text-on-surface-variant uppercase tracking-widest px-1">Xác nhận mật khẩu mới</label>
                 <div className="relative">
                   <input 
-                    type={showConfirmPwd ? "text" : "password"}
-                    className="w-full p-3.5 bg-surface-container-low border border-outline-variant/30 rounded-xl focus:ring-2 focus:ring-primary/20 outline-none transition-all"
-                    value={passwordData.confirmPassword}
-                    onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                    type={showConfirmPwd ? "text" : "password"} 
+                    value={passwordData.confirmPassword} 
+                    onChange={e => setPasswordData({ ...passwordData, confirmPassword: e.target.value })} 
+                    className="w-full p-4 bg-surface-container-low border border-outline-variant/30 rounded-2xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none transition-all font-medium"
+                    placeholder="••••••••"
                   />
-                  <button onClick={() => setShowConfirmPwd(!showConfirmPwd)} className="absolute right-4 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors">
+                  <button onClick={() => setShowConfirmPwd(!showConfirmPwd)} className="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary">
                     {showConfirmPwd ? <EyeOffIcon /> : <EyeIcon />}
                   </button>
                 </div>
               </div>
-
-              <div className="flex gap-3 pt-4">
-                <button 
-                  onClick={() => setIsChangingPassword(false)}
-                  className="flex-1 py-3.5 font-bold text-on-surface-variant hover:bg-surface-container transition-all rounded-xl border border-outline-variant/30"
-                >
-                  Hủy
-                </button>
-                <button 
-                  onClick={handleSavePassword}
-                  className="flex-1 py-3.5 bg-primary text-on-primary font-bold rounded-xl hover:opacity-90 transition-all shadow-lg shadow-primary/20"
-                >
-                  Cập nhật
-                </button>
-              </div>
-            </div>
-          ) : isEditingProfile ? (
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto px-1 custom-scrollbar">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-on-surface-variant px-1">Họ và tên</label>
-                  <input className="w-full p-3 bg-surface-container-low border border-outline-variant/30 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all" value={profileData.fullName} onChange={e => setProfileData({...profileData, fullName: e.target.value})} />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-on-surface-variant px-1">Số điện thoại</label>
-                  <input className="w-full p-3 bg-surface-container-low border border-outline-variant/30 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all" value={profileData.phone} onChange={e => setProfileData({...profileData, phone: e.target.value})} />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-on-surface-variant px-1">Ngày sinh</label>
-                  <input type="date" className="w-full p-3 bg-surface-container-low border border-outline-variant/30 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all" value={profileData.dob} onChange={e => setProfileData({...profileData, dob: e.target.value})} />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-on-surface-variant px-1">Số CMND/CCCD</label>
-                  <input className="w-full p-3 bg-surface-container-low border border-outline-variant/30 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all" value={profileData.identityNumber} onChange={e => setProfileData({...profileData, identityNumber: e.target.value})} />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-on-surface-variant px-1">Địa chỉ thường trú</label>
-                <input className="w-full p-3 bg-surface-container-low border border-outline-variant/30 rounded-xl outline-none focus:ring-2 focus:ring-primary/20 transition-all" value={profileData.address} onChange={e => setProfileData({...profileData, address: e.target.value})} />
-              </div>
-
-              <div className="pt-4 border-t border-outline-variant/20">
-                <h4 className="text-xs font-black text-primary uppercase tracking-widest mb-4">Thông tin ngân hàng</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-on-surface-variant px-1">Ngân hàng</label>
-                    <select className="w-full p-3 bg-surface-container-low border border-outline-variant/30 rounded-xl outline-none" value={profileData.bankName} onChange={e => setProfileData({...profileData, bankName: e.target.value})}>
-                      <option value="MB">MB Bank</option><option value="VCB">Vietcombank</option><option value="TCB">Techcombank</option><option value="BIDV">BIDV</option><option value="AGRI">Agribank</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-on-surface-variant px-1">Số tài khoản</label>
-                    <input className="w-full p-3 bg-surface-container-low border border-outline-variant/30 rounded-xl outline-none" value={profileData.accountNumber} onChange={e => setProfileData({...profileData, accountNumber: e.target.value})} />
-                  </div>
-                </div>
-                <div className="space-y-1.5 mt-4">
-                  <label className="text-xs font-bold text-on-surface-variant px-1">Chủ tài khoản</label>
-                  <input className="w-full p-3 bg-surface-container-low border border-outline-variant/30 rounded-xl outline-none" value={profileData.accountHolder} onChange={e => setProfileData({...profileData, accountHolder: e.target.value})} />
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-6">
-                <button onClick={() => setIsEditingProfile(false)} className="flex-1 py-3.5 font-bold text-on-surface-variant hover:bg-surface-container transition-all rounded-xl border border-outline-variant/30">Hủy</button>
-                <button onClick={handleSaveProfile} className="flex-1 py-3.5 bg-primary text-on-primary font-bold rounded-xl hover:opacity-90 transition-all shadow-lg shadow-primary/20">Lưu thay đổi</button>
-              </div>
             </div>
           ) : (
-            <div className="space-y-8">
-              <div className="flex flex-col items-center">
-                <div className="w-24 h-24 rounded-full bg-primary-fixed-dim flex items-center justify-center text-4xl font-black text-on-primary-fixed mb-4 shadow-xl border-4 border-white">
-                  {user?.fullName?.charAt(0) || 'U'}
+            <div className="space-y-6">
+              {/* Basic Info Section */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-black text-on-surface-variant uppercase tracking-[0.2em] px-1">Họ tên</label>
+                  {isEditingProfile ? (
+                    <input type="text" value={profileData.fullName} onChange={e => setProfileData({ ...profileData, fullName: e.target.value })} className="w-full p-3.5 bg-surface-container-low border border-outline-variant/30 rounded-xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none font-bold" />
+                  ) : (
+                    <div className="p-3.5 bg-surface-container-lowest border border-outline-variant/10 rounded-xl font-bold text-on-surface">{user?.fullName}</div>
+                  )}
                 </div>
-                <h3 className="text-xl font-bold text-on-surface">{user?.fullName}</h3>
-                <p className="text-sm text-on-surface-variant bg-surface-container-high px-3 py-1 rounded-full mt-2 font-bold uppercase tracking-wider">{user?.role === 'LANDLORD' ? 'Chủ nhà' : user?.role === 'ADMIN' ? 'Quản trị viên' : 'Người thuê'}</p>
+
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-black text-on-surface-variant uppercase tracking-[0.2em] px-1">Email (Cố định)</label>
+                  <div className="p-3.5 bg-surface-container-low/50 border border-outline-variant/10 rounded-xl font-bold text-on-surface-variant opacity-70 cursor-not-allowed">
+                    {user?.email}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-black text-on-surface-variant uppercase tracking-[0.2em] px-1">Số điện thoại</label>
+                  {isEditingProfile ? (
+                    <input type="text" value={profileData.phone} onChange={e => setProfileData({ ...profileData, phone: e.target.value })} className="w-full p-3.5 bg-surface-container-low border border-outline-variant/30 rounded-xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none font-bold" />
+                  ) : (
+                    <div className="p-3.5 bg-surface-container-lowest border border-outline-variant/10 rounded-xl font-bold text-on-surface">{user?.phone || 'Chưa cập nhật'}</div>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-black text-on-surface-variant uppercase tracking-[0.2em] px-1">Ngày sinh</label>
+                  {isEditingProfile ? (
+                    <input type="date" value={profileData.dob} onChange={e => setProfileData({ ...profileData, dob: e.target.value })} className="w-full p-3.5 bg-surface-container-low border border-outline-variant/30 rounded-xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none font-bold" />
+                  ) : (
+                    <div className="p-3.5 bg-surface-container-lowest border border-outline-variant/10 rounded-xl font-bold text-on-surface">{user?.dob || 'Chưa cập nhật'}</div>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-black text-on-surface-variant uppercase tracking-[0.2em] px-1">Số CMND/CCCD</label>
+                  {isEditingProfile ? (
+                    <input type="text" value={profileData.identityNumber} onChange={e => setProfileData({ ...profileData, identityNumber: e.target.value })} className="w-full p-3.5 bg-surface-container-low border border-outline-variant/30 rounded-xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none font-bold" />
+                  ) : (
+                    <div className="p-3.5 bg-surface-container-lowest border border-outline-variant/10 rounded-xl font-bold text-on-surface">{user?.identityNumber || 'Chưa cập nhật'}</div>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-black text-on-surface-variant uppercase tracking-[0.2em] px-1">Địa chỉ</label>
+                  {isEditingProfile ? (
+                    <input type="text" value={profileData.address} onChange={e => setProfileData({ ...profileData, address: e.target.value })} className="w-full p-3.5 bg-surface-container-low border border-outline-variant/30 rounded-xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none font-bold" />
+                  ) : (
+                    <div className="p-3.5 bg-surface-container-lowest border border-outline-variant/10 rounded-xl font-bold text-on-surface">{user?.address || 'Chưa cập nhật'}</div>
+                  )}
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-6 bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/10">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black text-outline uppercase tracking-widest">Số điện thoại</p>
-                  <p className="font-bold text-on-surface">{user?.phone || 'Chưa cập nhật'}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black text-outline uppercase tracking-widest">Ngày sinh</p>
-                  <p className="font-bold text-on-surface">{user?.dob || 'Chưa cập nhật'}</p>
-                </div>
-                <div className="space-y-1 col-span-2">
-                  <p className="text-[10px] font-black text-outline uppercase tracking-widest">Địa chỉ</p>
-                  <p className="font-bold text-on-surface">{user?.address || 'Chưa cập nhật'}</p>
-                </div>
-              </div>
+              {/* Bank Info Section (Only for LANDLORD) */}
+              {user?.role === 'LANDLORD' && (
+                <div className="pt-6 border-t border-outline-variant/30">
+                  <div className="flex items-center gap-2 mb-6">
+                    <span className="material-symbols-outlined text-primary">account_balance</span>
+                    <h3 className="font-black text-primary uppercase tracking-widest text-lg">Thông tin nhận tiền (VietQR)</h3>
+                  </div>
 
-              <div className="flex flex-col gap-3">
-                <button onClick={() => setIsEditingProfile(true)} className="w-full py-4 bg-primary text-on-primary font-bold rounded-2xl hover:opacity-90 transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
-                  <span className="material-symbols-outlined text-xl">edit</span>
-                  Chỉnh sửa hồ sơ
-                </button>
-                <button onClick={() => setIsChangingPassword(true)} className="w-full py-4 bg-white text-on-surface font-bold rounded-2xl border border-outline-variant/30 hover:bg-surface-container transition-all flex items-center justify-center gap-2">
-                  <span className="material-symbols-outlined text-xl">lock</span>
-                  Đổi mật khẩu
-                </button>
-              </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-1.5">
+                      <label className="text-[13px] font-black text-on-surface-variant uppercase tracking-widest px-1">Ngân hàng</label>
+                      {isEditingProfile ? (
+                        <select 
+                          value={profileData.bankName} 
+                          onChange={e => setProfileData({ ...profileData, bankName: e.target.value })} 
+                          className="w-full p-3.5 bg-surface-container-low border border-outline-variant/30 rounded-xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none font-bold appearance-none cursor-pointer"
+                        >
+                          {['MB', 'VCB', 'TCB', 'ACB', 'BIDV', 'VPB', 'ICB', 'VBA', 'STB', 'SHB', 'TPB', 'HDB', 'VIB'].map(b => (
+                            <option key={b} value={b}>{b}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="p-3.5 bg-surface-container-lowest border border-outline-variant/10 rounded-xl font-bold text-on-surface">{user?.bankName || 'Chưa cập nhật'}</div>
+                      )}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[13px] font-black text-on-surface-variant uppercase tracking-widest px-1">Số tài khoản</label>
+                      {isEditingProfile ? (
+                        <input type="text" value={profileData.accountNumber} onChange={e => setProfileData({ ...profileData, accountNumber: e.target.value })} className="w-full p-3.5 bg-surface-container-low border border-outline-variant/30 rounded-xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none font-bold" />
+                      ) : (
+                        <div className="p-3.5 bg-surface-container-lowest border border-outline-variant/10 rounded-xl font-black text-on-surface text-lg tracking-wider">{user?.accountNumber || 'Chưa cập nhật'}</div>
+                      )}
+                    </div>
+
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-[13px] font-black text-on-surface-variant uppercase tracking-widest px-1">Tên chủ tài khoản</label>
+                      {isEditingProfile ? (
+                        <input type="text" value={profileData.accountHolder} onChange={e => setProfileData({ ...profileData, accountHolder: e.target.value.toUpperCase() })} placeholder="VIET HOA KHONG DAU" className="w-full p-3.5 bg-surface-container-low border border-outline-variant/30 rounded-xl focus:ring-4 focus:ring-primary/10 focus:border-primary outline-none font-bold" />
+                      ) : (
+                        <div className="p-3.5 bg-surface-container-lowest border border-outline-variant/10 rounded-xl font-black text-on-surface uppercase">{user?.accountHolder || 'Chưa cập nhật'}</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
+          )}
+        </div>
+
+        {/* Footer Actions */}
+        <div className="p-8 pt-4 bg-surface-container-low/30 border-t border-outline-variant/20 flex flex-col sm:flex-row justify-end gap-3">
+          {isChangingPassword ? (
+            <>
+              <button 
+                onClick={() => { setIsChangingPassword(false); setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' }); }} 
+                className="px-8 py-3 rounded-2xl font-bold text-on-surface-variant hover:bg-surface-container-high transition-all border border-outline-variant/30"
+              >
+                Hủy bỏ
+              </button>
+              <button 
+                onClick={handleSavePassword} 
+                className="px-8 py-3 bg-primary text-on-primary rounded-2xl font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-xl">save</span> Lưu mật khẩu
+              </button>
+            </>
+          ) : !isEditingProfile ? (
+            <>
+              <button 
+                onClick={() => setIsChangingPassword(true)} 
+                className="flex-1 py-4 bg-surface-container-high text-on-surface rounded-2xl font-black transition-all hover:bg-surface-container-highest flex items-center justify-center gap-2 border border-outline-variant/30 active:scale-95"
+              >
+                <span className="material-symbols-outlined text-xl">lock_open</span> Đổi mật khẩu
+              </button>
+              <button 
+                onClick={() => setIsEditingProfile(true)} 
+                className="flex-1 py-4 bg-primary text-white rounded-2xl font-black transition-all hover:bg-primary/90 shadow-lg shadow-primary/20 flex items-center justify-center gap-2 border-none active:scale-95"
+              >
+                <span className="material-symbols-outlined text-xl">edit</span> Chỉnh sửa hồ sơ
+              </button>
+            </>
+          ) : (
+            <>
+              <button 
+                onClick={() => setIsEditingProfile(false)} 
+                className="px-8 py-3 rounded-2xl font-bold text-on-surface-variant hover:bg-surface-container-high transition-all border border-outline-variant/30"
+              >
+                Hủy bỏ
+              </button>
+              <button 
+                onClick={handleSaveProfile} 
+                className="px-8 py-3 bg-blue-600 text-white rounded-2xl font-black shadow-lg shadow-blue-200 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined text-xl">check_circle</span> Lưu thay đổi
+              </button>
+            </>
           )}
         </div>
       </div>

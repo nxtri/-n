@@ -11,6 +11,7 @@ const Incident = require('./Incident');
 const IncidentMessage = require('./IncidentMessage');
 const Report = require('./Report');
 const SystemConfig = require('./SystemConfig');
+const Transaction = require('./Transaction');
 // ---------------------------------------------------
 // THIẾT LẬP MỐI QUAN HỆ (ASSOCIATIONS)
 // ---------------------------------------------------
@@ -69,6 +70,10 @@ Room.hasMany(Report, { foreignKey: 'roomId', as: 'reports' });
 Report.belongsTo(User, { foreignKey: 'reporterId', as: 'reporter' });
 User.hasMany(Report, { foreignKey: 'reporterId', as: 'submittedReports' });
 
+// 9. Giao dịch tài chính (Transaction) - Quan hệ 1:N với User
+User.hasMany(Transaction, { foreignKey: 'userId', as: 'transactions' });
+Transaction.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
 // Xuất các model ra để sử dụng ở các phần khác của dự án
 module.exports = {
   sequelize,
@@ -81,5 +86,6 @@ module.exports = {
   Incident,
   IncidentMessage,
   Report,
-  SystemConfig
+  SystemConfig,
+  Transaction
 };

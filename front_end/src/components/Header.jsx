@@ -76,7 +76,7 @@ const Header = ({
             {user ? (
               <div className="flex items-center gap-4">
                  <button 
-                  onClick={() => navigate('/dashboard')}
+                  onClick={() => user?.role === 'ADMIN' ? navigate('/admin') : navigate('/dashboard')}
                   className="flex items-center gap-2 text-gray-600 hover:text-primary transition-all font-label-md text-label-md"
                 >
                   <span className="material-symbols-outlined">dashboard</span>
@@ -84,35 +84,34 @@ const Header = ({
                 </button>
 
                 <div className="relative" ref={userDropdownRef}>
-                  <button 
-                    onClick={() => setShowDropdown(!showDropdown)}
-                    className="flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-lg border border-outline-variant/30 hover:bg-surface-container-high transition-all"
+                  <div 
+                    onClick={() => setShowDropdown(!showDropdown)} 
+                    className="flex items-center gap-3 cursor-pointer pl-2 pr-4 py-1.5 rounded-full bg-surface-container-low border border-outline-variant/30 hover:bg-surface-container-high transition-all"
                   >
-                    <div className="w-8 h-8 rounded-full bg-primary-fixed-dim flex items-center justify-center font-bold text-on-primary-fixed text-sm">
-                      {user.fullName?.charAt(0) || 'U'}
+                    <div className="w-8 h-8 rounded-full bg-primary flex justify-center items-center shadow-inner">
+                      <span className="text-white font-black text-[14px]">{user.fullName?.charAt(0).toUpperCase()}</span>
                     </div>
-                    <span className="text-sm font-semibold text-on-surface truncate max-w-[100px]">
-                      {user.fullName}
-                    </span>
-                    <span className="material-symbols-outlined text-sm">expand_more</span>
-                  </button>
-
+                    <span className="text-[14px] max-w-[120px] truncate font-bold hidden md:inline-block">{user?.fullName}</span>
+                    <span className="text-on-surface-variant opacity-60 material-symbols-outlined hidden md:inline-block">expand_more</span>
+                  </div>
                   {showDropdown && (
-                    <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-outline-variant/20 py-2 z-50">
-                      <button 
-                        onClick={() => { onProfileClick(); setShowDropdown(false); }}
-                        className="w-full text-left px-4 py-2 text-sm text-on-surface hover:bg-surface-container transition-all flex items-center gap-3"
+                    <div className="absolute top-[120%] right-0 bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-2 w-[180px] shadow-2xl z-[100] animate-in fade-in slide-in-from-top-2">
+                      <div className="px-4 py-3 border-b border-outline-variant/30 mb-1">
+                        <div className="font-black text-sm truncate">{user?.fullName}</div>
+                        <div className="font-bold text-[10px] text-on-surface-variant uppercase tracking-widest">{user?.role}</div>
+                      </div>
+                      <div 
+                        onClick={() => { onProfileClick(); setShowDropdown(false); }} 
+                        className="px-4 py-2.5 rounded-xl cursor-pointer text-[13px] font-bold transition-all hover:bg-surface-container-low hover:text-primary flex items-center gap-3"
                       >
-                        <span className="material-symbols-outlined text-lg">person</span>
-                        Hồ sơ cá nhân
-                      </button>
-                      <button 
-                        onClick={handleLogout}
-                        className="w-full text-left px-4 py-2 text-sm text-error hover:bg-error-container/20 transition-all flex items-center gap-3"
+                        <span className="material-symbols-outlined text-[18px]">manage_accounts</span> Hồ sơ
+                      </div>
+                      <div 
+                        onClick={handleLogout} 
+                        className="px-4 py-2.5 rounded-xl cursor-pointer text-error text-[13px] font-bold transition-all hover:bg-error/10 flex items-center gap-3 mt-1"
                       >
-                        <span className="material-symbols-outlined text-lg">logout</span>
-                        Đăng xuất
-                      </button>
+                        <span className="material-symbols-outlined text-[18px]">logout</span> Đăng xuất
+                      </div>
                     </div>
                   )}
                 </div>

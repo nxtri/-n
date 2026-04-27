@@ -47,9 +47,9 @@ const Register = () => {
                       value="TENANT"
                       onChange={(e) => setRole(e.target.value)}
                     />
-                    <div className="w-full rounded-xl border border-outline-variant bg-surface p-4 text-center hover:bg-surface-container peer-checked:border-primary peer-checked:bg-primary-fixed peer-checked:text-on-primary-fixed transition-colors duration-200">
-                      <span className="material-symbols-outlined mb-1 text-[28px]">person</span>
-                      <span className="block font-label-md text-label-md">Người thuê</span>
+                    <div className="w-full rounded-xl border border-outline-variant bg-surface p-4 text-center hover:bg-surface-container peer-checked:border-primary peer-checked:bg-primary-fixed peer-checked:text-primary transition-colors duration-200">
+                      <span className="material-symbols-outlined mb-1 text-[28px] block peer-checked:font-black">person</span>
+                      <span className="block font-label-md text-label-md peer-checked:font-black italic">Người thuê</span>
                     </div>
                   </label>
                   <label className="relative flex cursor-pointer">
@@ -61,9 +61,9 @@ const Register = () => {
                       value="LANDLORD"
                       onChange={(e) => setRole(e.target.value)}
                     />
-                    <div className="w-full rounded-xl border border-outline-variant bg-surface p-4 text-center hover:bg-surface-container peer-checked:border-primary peer-checked:bg-primary-fixed peer-checked:text-on-primary-container transition-colors duration-200">
-                      <span className="material-symbols-outlined mb-1 text-[28px]">real_estate_agent</span>
-                      <span className="block font-label-md text-label-md">Chủ nhà</span>
+                    <div className="w-full rounded-xl border border-outline-variant bg-surface p-4 text-center hover:bg-surface-container peer-checked:border-primary peer-checked:bg-primary-fixed peer-checked:text-primary transition-colors duration-200">
+                      <span className="material-symbols-outlined mb-1 text-[28px] block peer-checked:font-black">real_estate_agent</span>
+                      <span className="block font-label-md text-label-md peer-checked:font-black italic">Chủ nhà</span>
                     </div>
                   </label>
                 </div>

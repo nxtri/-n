@@ -43,6 +43,13 @@ app.use('/api/admin', adminRoutes);
 
 const reportRoutes = require('./routes/reportRoutes');
 app.use('/api/reports', reportRoutes);
+
+// --- WALLET & SUBSCRIPTION ROUTES ---
+const walletRoutes = require('./routes/walletRoutes');
+app.use('/api/wallet', walletRoutes);
+
+const subscriptionRoutes = require('./routes/subscriptionRoutes');
+app.use('/api/subscriptions', subscriptionRoutes);
 // --------------------
 
 const { sequelize } = require('./models');

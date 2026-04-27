@@ -72,8 +72,10 @@ const adminController = {
     }
   },
 
-  // Xóa tài khoản (Có thể làm xóa mềm nếu config paranoid)
+  // Xóa tài khoản (ĐÃ VÔ HIỆU HÓA THEO YÊU CẦU)
   deleteUser: async (req, res) => {
+    return res.status(403).json({ message: 'Chức năng xóa người dùng đã bị vô hiệu hóa. Vui lòng sử dụng chức năng Khóa tài khoản.' });
+    /*
     try {
       const user = await User.findByPk(req.params.id);
       if (!user) return res.status(404).json({ message: 'Không tìm thấy người dùng!' });
@@ -94,6 +96,7 @@ const adminController = {
       console.error(error);
       res.status(500).json({ message: 'Lỗi server khi xóa tài khoản' });
     }
+    */
   },
 
   // ==========================================
@@ -272,9 +275,10 @@ const adminController = {
   // ==========================================
   getDashboardStats: async (req, res) => {
     try {
-      const { ServiceBill, Incident, RentalContract } = require('../models');
+      const { ServiceBill, Incident, RentalContract, Transaction } = require('../models');
       
       const { Op } = require('sequelize');
+      const sequelize = require('../config/database');
       const { month, year } = req.query;
 
       // 1. Thống kê người dùng
@@ -284,21 +288,21 @@ const adminController = {
       const lockedLandlords = await User.count({ where: { role: 'LANDLORD', isActive: false } });
 
       let newUsersFilter = {};
+      // Bộ lọc thời gian cho Transaction (dùng createdAt thay vì month/year)
+      let txTimeFilter = {};
       if (month && month !== 'ALL') {
           const y = year && year !== 'ALL' ? parseInt(year) : new Date().getFullYear();
           const m = parseInt(month) - 1;
           const startDate = new Date(y, m, 1);
           const endDate = new Date(y, m + 1, 0, 23, 59, 59, 999);
-          newUsersFilter.createdAt = {
-              [Op.between]: [startDate, endDate]
-          };
+          newUsersFilter.createdAt = { [Op.between]: [startDate, endDate] };
+          txTimeFilter.createdAt = { [Op.between]: [startDate, endDate] };
       } else if (year && year !== 'ALL') {
           const y = parseInt(year);
           const startDate = new Date(y, 0, 1);
           const endDate = new Date(y, 11, 31, 23, 59, 59, 999);
-          newUsersFilter.createdAt = {
-              [Op.between]: [startDate, endDate]
-          };
+          newUsersFilter.createdAt = { [Op.between]: [startDate, endDate] };
+          txTimeFilter.createdAt = { [Op.between]: [startDate, endDate] };
       }
       
       const newUsers = await User.count({ where: { ...newUsersFilter, role: { [Op.in]: ['TENANT', 'LANDLORD'] } } });
@@ -309,12 +313,11 @@ const adminController = {
       const rentedRooms = await Room.count({ where: { status: 'RENTED', isHidden: false } });
       const hiddenRooms = await Room.count({ where: { isHidden: true } });
 
-      // 3. Thống kê doanh thu (Theo thời gian và loại hóa đơn)
+      // 3. Thống kê doanh thu Chủ nhà (Theo thời gian và loại hóa đơn)
       const billFilter = {};
       if (month && month !== 'ALL') billFilter.month = parseInt(month);
       if (year && year !== 'ALL') billFilter.year = parseInt(year);
 
-      // (ROOM & UTILITY đã thanh toán)
       const roomRevenue = await ServiceBill.sum('totalAmount', { 
         where: { ...billFilter, status: 'PAID', billType: 'ROOM' } 
       }) || 0;
@@ -323,7 +326,6 @@ const adminController = {
         where: { ...billFilter, status: 'PAID', billType: 'UTILITY' } 
       }) || 0;
 
-      // Khách đang nợ (UNPAID và PENDING_CONFIRM)
       const totalDebt = await ServiceBill.sum('totalAmount', {
         where: { 
           ...billFilter, 
@@ -331,6 +333,41 @@ const adminController = {
           billType: { [Op.in]: ['ROOM', 'UTILITY'] }
         }
       }) || 0;
+
+      // ==========================================
+      // 4. THỐNG KÊ DOANH THU NỀN TẢNG (SYSTEM)
+      // ==========================================
+
+      // 4a. Tổng tiền Chủ nhà đã nạp vào ví (DEPOSIT đã được duyệt)
+      const totalDeposit = await Transaction.sum('amount', {
+        where: { ...txTimeFilter, type: 'DEPOSIT', status: 'APPROVED' }
+      }) || 0;
+
+      // 4b. Doanh thu thực tế từ bán gói dịch vụ (SUBSCRIPTION hoàn tất)
+      const systemRevenue = await Transaction.sum('amount', {
+        where: { ...txTimeFilter, type: 'SUBSCRIPTION', status: 'COMPLETED' }
+      }) || 0;
+
+      // 4c. Tổng số dư ví hiện tại của tất cả Chủ nhà (không lọc theo thời gian)
+      const totalWalletBalance = await User.sum('balance', {
+        where: { role: 'LANDLORD' }
+      }) || 0;
+
+      // 4d. Thống kê phân bổ gói dịch vụ
+      const planCounts = await User.findAll({
+        where: { role: 'LANDLORD' },
+        attributes: [
+          'subscriptionPlan',
+          [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+        ],
+        group: ['subscriptionPlan'],
+        raw: true
+      });
+      // Chuyển thành object dạng { NONE: 10, BRONZE: 5, SILVER: 3, GOLD: 1, DIAMOND: 0 }
+      const planStats = {};
+      for (const row of planCounts) {
+        planStats[row.subscriptionPlan || 'NONE'] = parseInt(row.count);
+      }
 
       res.status(200).json({
         users: { totalTenants, totalLandlords, lockedTenants, lockedLandlords, newUsers },
@@ -340,6 +377,12 @@ const adminController = {
           roomRevenue,
           utilityRevenue,
           totalDebt
+        },
+        systemStats: {
+          totalDeposit,
+          systemRevenue,
+          totalWalletBalance,
+          planStats
         }
       });
     } catch (error) {

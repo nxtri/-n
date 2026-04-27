@@ -65,6 +65,21 @@ const notificationHelper = {
     } catch (error) {
       console.error('Lỗi trong notificationHelper.bulkSend:', error);
     }
+  },
+
+  /**
+   * Gửi thông báo cho tất cả Admin
+   */
+  notifyAdmins: async (title, message, shouldSendEmail = false) => {
+    try {
+      const admins = await User.findAll({ where: { role: 'ADMIN' }, attributes: ['id'] });
+      const adminIds = admins.map(admin => admin.id);
+      if (adminIds.length > 0) {
+        await notificationHelper.bulkSend(adminIds, title, message, shouldSendEmail);
+      }
+    } catch (error) {
+      console.error('Lỗi trong notificationHelper.notifyAdmins:', error);
+    }
   }
 };
 

@@ -47,6 +47,16 @@ const User = sequelize.define('User', {
   violationsCount: { type: DataTypes.INTEGER, defaultValue: 0 },
   lockGracePeriodStart: { type: DataTypes.DATE, allowNull: true },
 
+  // === HỆ THỐNG VÍ & GÓI ĐĂNG KÝ (SaaS) ===
+  balance: { type: DataTypes.FLOAT, defaultValue: 0 }, // Số dư ví (VNĐ)
+  subscriptionPlan: {
+    type: DataTypes.STRING,
+    defaultValue: 'NONE'
+    // Giá trị: 'NONE', 'BRONZE', 'SILVER', 'GOLD', 'DIAMOND'
+  },
+  subscriptionExpiry: { type: DataTypes.DATE, allowNull: true }, // Ngày hết hạn gói
+  extraRoomLimit: { type: DataTypes.INTEGER, defaultValue: 0 }, // Số lượng phòng gói lẻ mua thêm
+  hasBasePlan: { type: DataTypes.BOOLEAN, defaultValue: false } // Đánh dấu có đang xài gói chính không
 }, {
   tableName: 'users',
   timestamps: true // Tự động tạo cột thời gian tạo và cập nhật

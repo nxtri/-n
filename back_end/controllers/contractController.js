@@ -439,7 +439,8 @@ const contractController = {
         });
       }
 
-      // 🚨 LOGIC TỰ ĐỘNG ẨN PHÒNG NẾU ĐÁNH GIÁ THẤP (< 2 SAO)
+      /* 
+      // 🚨 LOGIC TỰ ĐỘNG ẨN PHÒNG NẾU ĐÁNH GIÁ THẤP (< 2 SAO) - ĐÃ TẠM TẮT THEO YÊU CẦU
       // Tính lại điểm trung bình của phòng
       const allReviews = await Review.findAll({ where: { roomId: contract.roomId } });
       
@@ -462,6 +463,7 @@ const contractController = {
           }
         }
       }
+      */
 
       return res.status(200).json({ 
         message: review.isNewRecord ? 'Đánh giá thành công!' : 'Cập nhật đánh giá thành công!', 

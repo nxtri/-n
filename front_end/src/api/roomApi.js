@@ -15,6 +15,8 @@ const roomApi = {
   }),
   
   updateStatus: (id, status) => axiosClient.put(`/rooms/${id}/status`, { status }),
+  toggleVisibility: (id) => axiosClient.put(`/rooms/${id}/toggle-visibility`),
+  bulkToggleVisibility: (roomIds, isHidden) => axiosClient.post('/rooms/bulk-toggle-visibility', { roomIds, isHidden }),
   updateRoom: (id, data) => axiosClient.put(`/rooms/${id}`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   deleteRoom: (id) => axiosClient.delete(`/rooms/${id}`),
 };

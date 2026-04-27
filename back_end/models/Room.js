@@ -48,6 +48,12 @@ const Room = sequelize.define('Room', {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   },
+  hiddenReason: {
+    type: DataTypes.STRING,
+    defaultValue: 'NONE'
+    // NONE: Phòng bình thường / VIOLATION: Bị Admin ẩn do vi phạm
+    // Việc "ẩn do hết hạn gói" được xử lý động dựa trên subscriptionExpiry của chủ nhà
+  },
   landlordId: { type: DataTypes.INTEGER, allowNull: false }
 },
 {

@@ -1,9 +1,40 @@
-const { Room, User, RentalContract } = require('../models');
+const { Room, User, RentalContract, SystemConfig } = require('../models');
 
 const roomController = {
 
   createRoom: async (req, res) => {
     try {
+      // === KIỂM TRA GÓI ĐĂNG KÝ ===
+      const landlord = await User.findByPk(req.user.id);
+      if (!landlord) return res.status(404).json({ message: 'Không tìm thấy chủ nhà!' });
+
+      // Kiểm tra gói còn hạn không
+      const now = new Date();
+      if (!landlord.subscriptionPlan || landlord.subscriptionPlan === 'NONE' || !landlord.subscriptionExpiry || new Date(landlord.subscriptionExpiry) < now) {
+        return res.status(403).json({ message: 'Bạn chưa đăng ký gói dịch vụ hoặc gói đã hết hạn! Vui lòng mua gói để đăng tin.' });
+      }
+
+      // Kiểm tra giới hạn số phòng của gói
+      const currentRoomCount = await Room.count({ where: { landlordId: req.user.id } });
+      // Lấy giới hạn từ SystemConfig (nếu Admin đã cấu hình)
+      let baseLimit = 0;
+      if (landlord.hasBasePlan) {
+        const limitConfig = await SystemConfig.findOne({ where: { key: `PLAN_${landlord.subscriptionPlan}_LIMIT` } });
+        if (limitConfig) {
+          baseLimit = parseInt(limitConfig.value);
+        } else {
+          // Giá trị mặc định
+          const defaultLimits = { BRONZE: 10, SILVER: 25, GOLD: 55, DIAMOND: -1 };
+          baseLimit = defaultLimits[landlord.subscriptionPlan] ?? 0;
+        }
+      }
+
+      let roomLimit = baseLimit === -1 ? -1 : baseLimit + (landlord.extraRoomLimit || 0);
+
+      if (roomLimit !== -1 && currentRoomCount >= roomLimit) {
+        return res.status(403).json({ message: `Giới hạn gói của bạn chỉ cho phép tối đa ${roomLimit} phòng. Bạn đã có ${currentRoomCount} phòng. Vui lòng nâng cấp gói hoặc mua thêm phòng lẻ!` });
+      }
+
       // 1. Lấy danh sách ảnh
       const imageFiles = req.files ? req.files.map(file => file.filename) : [];
 
@@ -125,6 +156,21 @@ const roomController = {
       if (!room) {
         return res.status(404).json({ message: 'Không tìm thấy phòng!' });
       }
+
+      // Nếu phòng đang thuê, lấy thêm ngày dự kiến dọn đi từ hợp đồng đang hiệu lực
+      let intendedMoveOutDate = null;
+      if (room.status === 'RENTED') {
+        const activeContract = await RentalContract.findOne({
+          where: { roomId: roomId, status: 'ACTIVE' },
+          attributes: ['intendedMoveOutDate']
+        });
+        if (activeContract) {
+          intendedMoveOutDate = activeContract.intendedMoveOutDate;
+        }
+      }
+
+      const roomData = { ...room.toJSON(), intendedMoveOutDate };
+
       // 🚨 TÌM TẤT CẢ CÁC ĐÁNH GIÁ CỦA PHÒNG NÀY
       const { Review } = require('../models');
       const reviews = await Review.findAll({
@@ -134,7 +180,7 @@ const roomController = {
         include: [{ model: User, as: 'tenant', attributes: ['fullName'] }],
         order: [['createdAt', 'DESC']] // Đánh giá mới nhất lên đầu
       });
-      res.status(200).json({ message: 'Thành công', room, reviews });
+      res.status(200).json({ message: 'Thành công', room: roomData, reviews });
     } catch (error) {
       console.error("=== LỖI LẤY CHI TIẾT PHÒNG ===", error);
       res.status(500).json({ message: 'Lỗi server' });
@@ -163,7 +209,32 @@ const roomController = {
       res.status(500).json({ message: 'Lỗi server khi cập nhật trạng thái!' });
     }
   },
-  // ... (Hàm updateStatus ở trên) ...
+
+  toggleVisibility: async (req, res) => {
+    try {
+      const roomId = req.params.id;
+      const room = await Room.findByPk(roomId);
+      if (!room) return res.status(404).json({ message: 'Không tìm thấy phòng!' });
+      
+      await room.update({ isHidden: !room.isHidden });
+      res.status(200).json({ message: 'Cập nhật trạng thái hiển thị thành công!', isHidden: room.isHidden });
+    } catch (error) {
+      res.status(500).json({ message: 'Lỗi khi cập nhật trạng thái hiển thị' });
+    }
+  },
+
+  bulkToggleVisibility: async (req, res) => {
+    try {
+      const { roomIds, isHidden } = req.body;
+      if (!Array.isArray(roomIds)) return res.status(400).json({ message: 'Danh sách ID không hợp lệ!' });
+      
+      await Room.update({ isHidden }, { where: { id: roomIds, landlordId: req.user.id } });
+      res.status(200).json({ message: 'Đã cập nhật trạng thái các phòng thành công!' });
+    } catch (error) {
+      res.status(500).json({ message: 'Lỗi khi ẩn phòng hàng loạt' });
+    }
+  },
+
 
   // 4. Sửa thông tin phòng
 // 4. Sửa thông tin phòng
@@ -227,32 +298,46 @@ const roomController = {
   getPublicRooms: async (req, res) => {
     try {
       const { Room, RentalContract, Review } = require('../models'); 
+      const { Op } = require('sequelize');
 
       // 1. LẤY PHÒNG TRỐNG (NHƯNG CHƯA AI CỌC)
       const availableRooms = await Room.findAll({ 
         where: { status: 'AVAILABLE', isHidden: false }, 
         include: [
-          { model: User, as: 'landlord', attributes: ['fullName', 'phone'] },
+          { model: User, as: 'landlord', attributes: ['fullName', 'phone', 'subscriptionPlan', 'subscriptionExpiry'] },
           { model: Review, as: 'reviews', attributes: ['rating'] }
         ]
       });
+
       // 🚨 BỘ LỌC 1: Chỉ lấy phòng có depositNote rỗng hoặc null
-      const safeAvailable = availableRooms.filter(r => !r.depositNote || r.depositNote.trim() === '');
+      // 🚨 BỘ LỌC GÓI: Chỉ lấy phòng của chủ nhà có gói còn hạn
+      const now = new Date();
+      const safeAvailable = availableRooms.filter(r => {
+        if (r.depositNote && r.depositNote.trim() !== '') return false;
+        // Kiểm tra gói chủ nhà còn hạn
+        if (!r.landlord?.subscriptionPlan || r.landlord.subscriptionPlan === 'NONE') return false;
+        if (!r.landlord?.subscriptionExpiry || new Date(r.landlord.subscriptionExpiry) < now) return false;
+        return true;
+      });
 
       // 2. LẤY PHÒNG ĐANG THUÊ (SẮP TRỐNG)
       const rentedRooms = await Room.findAll({ 
         where: { status: 'RENTED', isHidden: false },
-        include: [{ model: User, as: 'landlord', attributes: ['fullName', 'phone'] }] // 🚨 THÊM DÒNG NÀY
+        include: [
+          { model: User, as: 'landlord', attributes: ['fullName', 'phone', 'subscriptionPlan', 'subscriptionExpiry'] }
+        ]
       });
       const activeContracts = await RentalContract.findAll({
         where: { status: 'ACTIVE' },
         attributes: ['roomId', 'intendedMoveOutDate'] 
       });
 
-      // 🚨 BỘ LỌC 2: Chỉ lấy phòng sắp trống mà CHƯA AI CỌC
+      // 🚨 BỘ LỌC 2: Chỉ lấy phòng sắp trống mà CHƯA AI CỌC + chủ nhà còn hạn gói
       const upcomingRooms = rentedRooms.map(room => {
-        // Nếu đã có ghi chú cọc -> Loại ngay, không cho lên trang chủ
         if (room.depositNote && room.depositNote.trim() !== '') return null; 
+        // Kiểm tra gói chủ nhà
+        if (!room.landlord?.subscriptionPlan || room.landlord.subscriptionPlan === 'NONE') return null;
+        if (!room.landlord?.subscriptionExpiry || new Date(room.landlord.subscriptionExpiry) < now) return null;
 
         const contract = activeContracts.find(c => c.roomId === room.id);
         if (contract && contract.intendedMoveOutDate) {
@@ -270,7 +355,6 @@ const roomController = {
           : 0;
         const reviewCount = reviews.length;
         
-        // Loại bỏ mảng reviews chi tiết để giảm tải dung lượng trả về
         delete roomData.reviews; 
         
         return { ...roomData, avgRating, reviewCount };
@@ -281,8 +365,14 @@ const roomController = {
         ...upcomingRooms.map(r => processRoom(r))
       ];
 
-      // Sắp xếp: Những bài viết có số sao nhiều hơn thì xếp ở trên
-      finalRooms.sort((a, b) => b.avgRating - a.avgRating);
+      // SắP XẾP: Ưu tiên Kim Cương lên đầu, sau đó theo số sao
+      const planPriority = { DIAMOND: 4, GOLD: 3, SILVER: 2, BRONZE: 1, NONE: 0 };
+      finalRooms.sort((a, b) => {
+        const priorityA = planPriority[a.landlord?.subscriptionPlan] || 0;
+        const priorityB = planPriority[b.landlord?.subscriptionPlan] || 0;
+        if (priorityB !== priorityA) return priorityB - priorityA;
+        return b.avgRating - a.avgRating;
+      });
 
       res.status(200).json({ rooms: finalRooms });
     } catch (error) {

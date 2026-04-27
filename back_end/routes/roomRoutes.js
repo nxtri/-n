@@ -24,6 +24,11 @@ router.post(
 
 // Chủ nhà đổi trạng thái phòng (Trống <-> Đang sửa)
 router.put('/:id/status', authMiddleware.verifyToken, authMiddleware.isLandlord, roomController.updateStatus);
+
+// Chủ nhà ẩn/hiện phòng
+router.put('/:id/toggle-visibility', authMiddleware.verifyToken, authMiddleware.isLandlord, roomController.toggleVisibility);
+router.post('/bulk-toggle-visibility', authMiddleware.verifyToken, authMiddleware.isLandlord, roomController.bulkToggleVisibility);
+
 // Chủ nhà Sửa thông tin phòng (CÓ NHẬN ẢNH)
 router.put('/:id', authMiddleware.verifyToken, authMiddleware.isLandlord, upload.array('images', 15), roomController.updateRoom);
 

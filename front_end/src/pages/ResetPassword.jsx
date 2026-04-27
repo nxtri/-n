@@ -1,20 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import authApi from '../api/authApi';
-
-// --- Component SVG cho Mắt ---
-const EyeIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-    <circle cx="12" cy="12" r="3"></circle>
-  </svg>
-);
-const EyeOffIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-    <line x1="1" y1="1" x2="23" y2="23"></line>
-  </svg>
-);
 
 const ResetPassword = () => {
   const [password, setPassword] = useState('');
@@ -44,65 +30,101 @@ const ResetPassword = () => {
   };
 
   return (
-    <div style={{ backgroundColor: '#0f172a', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif', position: 'relative' }}>
-      
-      <div style={{ background: '#ffffff', padding: '40px', borderRadius: '12px', width: '100%', maxWidth: '400px', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', border: '1px solid #dee2e6' }}>
-        <h2 style={{ textAlign: 'center', color: '#1266dd', margin: '0 0 10px 0', fontSize: '28px' }}>ĐẶT LẠI MẬT KHẨU</h2>
-        <p style={{ textAlign: 'center', color: '#adb5bd', marginBottom: '30px' }}>Vui lòng nhập mật khẩu mới cho tài khoản của bạn</p>
-
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', color: '#495057', fontSize: '14px' }}>Mật khẩu mới</label>
-            <div style={{ position: 'relative' }}>
-              <input 
-                type={showPassword ? "text" : "password"} 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)} 
-                required 
-                placeholder="Nhập mật khẩu mới" 
-                style={{ width: '100%', padding: '12px', boxSizing: 'border-box', borderRadius: '6px', border: '1px solid #ced4da', background: '#f8f9fa', color: '#212529', outline: 'none', paddingRight: '40px' }} 
-              />
-              <span onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#adb5bd', display: 'flex', alignItems: 'center' }}>
-                {showPassword ? <EyeIcon /> : <EyeOffIcon />}
-              </span>
-            </div>
+    <div className="bg-background text-on-background font-body-md text-body-md min-h-screen flex flex-col antialiased">
+      <main className="flex-grow flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          {/* Branding/Logo */}
+          <div className="text-center mb-8">
+            <Link to="/" className="inline-block text-2xl font-black tracking-tight text-primary">PHONGTROSIEUCAP</Link>
+            <h1 className="font-headline-lg text-headline-lg text-on-surface mt-2">Đặt lại mật khẩu</h1>
+            <p className="font-body-sm text-body-sm text-on-surface-variant mt-1">Vui lòng nhập mật khẩu mới bảo mật cho tài khoản của bạn.</p>
           </div>
 
-          <div style={{ marginBottom: '25px' }}>
-            <label style={{ display: 'block', marginBottom: '8px', color: '#495057', fontSize: '14px' }}>Xác nhận mật khẩu</label>
-            <input 
-              type={showPassword ? "text" : "password"} 
-              value={confirmPassword} 
-              onChange={(e) => setConfirmPassword(e.target.value)} 
-              required 
-              placeholder="Nhập lại mật khẩu mới" 
-              style={{ width: '100%', padding: '12px', boxSizing: 'border-box', borderRadius: '6px', border: '1px solid #ced4da', background: '#f8f9fa', color: '#212529', outline: 'none' }} 
-            />
+          {/* Reset Password Card */}
+          <div className="bg-surface-container-lowest rounded-3xl shadow-[0px_4px_20px_rgba(0,0,0,0.05)] p-8 border border-outline-variant/30 animate-in fade-in zoom-in-95 duration-500">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* New Password Input */}
+              <div className="space-y-2">
+                <label className="block font-label-md text-label-md text-on-surface" htmlFor="password">Mật khẩu mới</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="material-symbols-outlined text-outline text-[20px]">lock</span>
+                  </div>
+                  <input 
+                    className="block w-full pl-10 pr-10 py-3 border border-outline rounded-xl text-on-surface bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors font-body-md text-body-md" 
+                    id="password" 
+                    name="password" 
+                    placeholder="Tối thiểu 6 ký tự" 
+                    required 
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                    <button 
+                      className="text-outline hover:text-on-surface-variant focus:outline-none" 
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      <span className="material-symbols-outlined text-[20px]">
+                        {showPassword ? 'visibility' : 'visibility_off'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Confirm Password Input */}
+              <div className="space-y-2">
+                <label className="block font-label-md text-label-md text-on-surface" htmlFor="confirmPassword">Xác nhận mật khẩu mới</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="material-symbols-outlined text-outline text-[20px]">verified_user</span>
+                  </div>
+                  <input 
+                    className="block w-full pl-10 pr-3 py-3 border border-outline rounded-xl text-on-surface bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-colors font-body-md text-body-md" 
+                    id="confirmPassword" 
+                    name="confirmPassword" 
+                    placeholder="Nhập lại mật khẩu mới" 
+                    required 
+                    type={showPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <button 
+                disabled={loading}
+                className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent rounded-xl shadow-sm font-label-md text-label-md text-on-primary bg-primary hover:bg-primary-container focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed" 
+                type="submit"
+              >
+                {loading ? (
+                  <>
+                    <span className="animate-spin material-symbols-outlined text-[20px]">sync</span>
+                    Đang cập nhật...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-[20px]">save</span>
+                    Cập nhật mật khẩu
+                  </>
+                )}
+              </button>
+            </form>
           </div>
 
-          <button 
-            type="submit" 
-            disabled={loading}
-            style={{ 
-              width: '100%', 
-              padding: '14px', 
-              background: '#3b82f6', 
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '6px', 
-              cursor: loading ? 'not-allowed' : 'pointer', 
-              fontSize: '16px', 
-              fontWeight: 'bold', 
-              transition: '0.2s',
-              opacity: loading ? 0.7 : 1
-            }} 
-            onMouseEnter={(e) => !loading && (e.target.style.background = '#3a8ee6')} 
-            onMouseLeave={(e) => !loading && (e.target.style.background = '#3b82f6')}
-          >
-            {loading ? 'ĐANG CẬP NHẬT...' : 'CẬP NHẬT MẬT KHẨU'}
-          </button>
-        </form>
-      </div>
+          <div className="mt-8 text-center">
+            <Link 
+              to="/login" 
+              className="font-label-md text-label-md text-primary hover:text-primary-container transition-colors"
+            >
+              Quay lại Đăng nhập
+            </Link>
+          </div>
+        </div>
+      </main>
     </div>
   );
 };
