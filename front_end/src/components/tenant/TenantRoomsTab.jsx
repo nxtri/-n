@@ -76,23 +76,25 @@ const TenantRoomsTab = ({
                       src={c.room?.images?.[0] ? `http://localhost:5000/uploads/${c.room.images[0]}` : "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=1000"} 
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
+
+                    {/* Badge trạng thái - Góc trái trên cùng */}
+                    <div className="absolute top-4 left-4">
+                      <span className={`text-[10px] uppercase font-bold tracking-widest px-3 py-1.5 rounded-full border backdrop-blur-sm ${
+                        c.status === 'ACTIVE' ? 'bg-secondary/20 border-secondary/50 text-secondary-fixed' : 'bg-error/20 border-error/50 text-error-container'
+                      }`}>
+                        {c.status === 'ACTIVE' ? 'Đang hiệu lực' : 'Đã kết thúc'}
+                      </span>
+                    </div>
                     
                     {/* Thông tin hiển thị trên ảnh */}
                     <div className="absolute bottom-0 left-0 w-full p-8 flex justify-between items-end">
                       <div className="text-white">
-                        <div className="flex items-center gap-3 mb-3">
-                          <h2 
-                            className="text-3xl font-black text-white tracking-tight cursor-pointer hover:text-primary-fixed-dim transition-colors"
+                        <h2 
+                            className="text-3xl font-black text-white tracking-tight cursor-pointer hover:text-primary-fixed-dim transition-colors mb-3"
                             onClick={() => c.room && handleViewRoomDetails(c.room)}
                           >
                             Phòng {c.room?.roomNumber}
                           </h2>
-                          <span className={`text-[10px] uppercase font-bold tracking-widest px-3 py-1 rounded-full border ${
-                            c.status === 'ACTIVE' ? 'bg-secondary/20 border-secondary/50 text-secondary-fixed' : 'bg-error/20 border-error/50 text-error-container'
-                          }`}>
-                            {c.status === 'ACTIVE' ? 'Đang hiệu lực' : 'Đã kết thúc'}
-                          </span>
-                        </div>
                         <p className="text-base flex items-center gap-2 opacity-90 font-medium">
                           <span className="material-symbols-outlined text-[20px] text-primary-fixed-dim">location_on</span>
                           {c.room?.houseNumber ? `${c.room.houseNumber}, ` : ''}{c.room?.address}
@@ -127,20 +129,13 @@ const TenantRoomsTab = ({
                     </div>
 
                     {/* Các nút bấm thao tác */}
-                    <div className="flex flex-col sm:flex-row items-center gap-4 pt-8 border-t border-outline-variant/30">
-                      <button 
-                        onClick={() => setViewContract(c)}
-                        className="w-full sm:w-auto bg-primary text-on-primary hover:bg-surface-tint transition-all px-8 py-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
-                      >
-                        <span className="material-symbols-outlined text-[20px]">visibility</span>
-                        Xem Hợp đồng điện tử
-                      </button>
+                    <div className="flex flex-col sm:flex-row items-start gap-4 pt-8 border-t border-outline-variant/30">
                       
                       {/* Nút báo trả phòng (chỉ hiện khi hợp đồng ACTIVE và chưa báo trả) */}
                       {c.status === 'ACTIVE' && !c.intendedMoveOutDate && (
                         <button 
                           onClick={() => { setTerminateData({ contractId: c.id, moveOutDate: '', reason: '' }); setShowTerminateModal(true); }}
-                          className="w-full sm:w-auto bg-surface-container-high hover:bg-error/10 hover:text-error hover:border-error transition-all border border-outline-variant text-on-surface-variant px-8 py-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 sm:ml-auto"
+                          className="w-full sm:w-auto bg-surface-container-high hover:bg-error/10 hover:text-error hover:border-error transition-all border border-outline-variant text-on-surface-variant px-8 py-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2"
                         >
                           <span className="material-symbols-outlined text-[20px]">exit_to_app</span>
                           Báo trước dọn đi
@@ -159,7 +154,7 @@ const TenantRoomsTab = ({
                             }
                             setShowReviewModal(true);
                           }}
-                          className="w-full sm:w-auto bg-tertiary text-on-tertiary hover:bg-tertiary/90 transition-all px-8 py-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 sm:ml-auto shadow-lg shadow-tertiary/20"
+                          className="w-full sm:w-auto bg-tertiary text-on-tertiary hover:bg-tertiary/90 transition-all px-8 py-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-tertiary/20"
                         >
                           <span className="material-symbols-outlined text-[20px]">star</span>
                           {myReviews.some(r => r.contractId === c.id) ? 'Xem & Sửa đánh giá' : 'Đánh giá phòng'}
@@ -191,43 +186,45 @@ const TenantRoomsTab = ({
                           </div>
                         </div>
                         
-                        {c.noticeGivenBy === 'TENANT' ? (
-                          <button 
-                            onClick={() => handleCancelTermination(c.id)}
-                            className="w-full md:w-auto bg-error text-on-error px-8 py-4 rounded-xl text-xs font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-error/20 shrink-0"
-                          >
-                            Hủy yêu cầu trả phòng
-                          </button>
-                        ) : (
-                          <div className="w-full md:w-auto px-6 py-3 bg-error/10 border border-error/20 rounded-xl flex items-center gap-2 shrink-0">
-                            <span className="material-symbols-outlined text-error text-[18px]">info</span>
-                            <span className="text-[10px] font-black text-error uppercase tracking-widest">Vui lòng liên hệ chủ nhà</span>
-                          </div>
-                        )}
+                        <div className="w-full md:w-auto px-6 py-3 bg-error/10 border border-error/20 rounded-xl flex items-center gap-2 shrink-0">
+                          <span className="material-symbols-outlined text-error text-[18px]">info</span>
+                          <span className="text-[10px] font-black text-error uppercase tracking-widest">
+                            {c.noticeGivenBy === 'TENANT' ? 'Liên hệ chủ nhà để hủy yêu cầu' : 'Vui lòng liên hệ chủ nhà'}
+                          </span>
+                        </div>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Thanh hiển thị các tiện ích của phòng */}
-                <div className="bg-surface-container-low/50 rounded-2xl border border-outline-variant/30 p-6 flex flex-wrap justify-center md:justify-between items-center gap-8 shadow-inner">
-                  <div className="flex items-center gap-3 text-on-surface-variant">
-                    <div className="w-10 h-10 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-sm"><span className="material-symbols-outlined text-primary text-[20px]">wifi</span></div>
-                    <span className="text-sm font-bold opacity-80">Wifi tốc độ cao</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-on-surface-variant">
-                    <div className="w-10 h-10 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-sm"><span className="material-symbols-outlined text-primary text-[20px]">local_laundry_service</span></div>
-                    <span className="text-sm font-bold opacity-80">Máy giặt chung</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-on-surface-variant">
-                    <div className="w-10 h-10 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-sm"><span className="material-symbols-outlined text-primary text-[20px]">ac_unit</span></div>
-                    <span className="text-sm font-bold opacity-80">Điều hòa nhiệt độ</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-on-surface-variant">
-                    <div className="w-10 h-10 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-sm"><span className="material-symbols-outlined text-primary text-[20px]">security</span></div>
-                    <span className="text-sm font-bold opacity-80">An ninh 24/7</span>
-                  </div>
-                </div>
+                {/* Thanh hiển thị các tiện ích của phòng (render động từ dữ liệu thực tế) */}
+                {(() => {
+                  const amenities = [
+                    { key: 'hasElevator',      icon: 'elevator',             label: 'Thang máy' },
+                    { key: 'hasWashingMachine', icon: 'local_laundry_service', label: 'Máy giặt' },
+                    { key: 'hasFridge',         icon: 'kitchen',              label: 'Tủ lạnh' },
+                    { key: 'hasKitchen',        icon: 'soup_kitchen',         label: 'Bếp nấu' },
+                    { key: 'hasHeater',         icon: 'water_heater',         label: 'Nóng lạnh' },
+                  ].filter(a => c.room?.[a.key]);
+
+                  return amenities.length > 0 ? (
+                    <div className="bg-surface-container-low/50 rounded-2xl border border-outline-variant/30 p-6 flex flex-wrap items-center gap-6 shadow-inner">
+                      {amenities.map(a => (
+                        <div key={a.key} className="flex items-center gap-3 text-on-surface-variant">
+                          <div className="w-10 h-10 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-sm">
+                            <span className="material-symbols-outlined text-primary text-[20px]">{a.icon}</span>
+                          </div>
+                          <span className="text-sm font-bold opacity-80">{a.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-surface-container-low/50 rounded-2xl border border-outline-variant/30 p-5 flex items-center gap-3 shadow-inner text-on-surface-variant">
+                      <span className="material-symbols-outlined text-outline text-[20px]">info</span>
+                      <span className="text-sm italic opacity-60">Phòng này chưa có thông tin tiện ích.</span>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Bảng điều khiển Hồ sơ & Tạm trú (Bên phải - Chiếm 1 cột) */}
@@ -255,10 +252,10 @@ const TenantRoomsTab = ({
                         </div>
                         <div>
                           <p className="text-sm font-bold text-on-surface group-hover:text-primary transition-colors">Hợp đồng thuê nhà</p>
-                          <p className="text-[11px] text-on-surface-variant font-medium mt-0.5">E-PDF • Hiệu lực {c.startDate}</p>
+                          <p className="text-[11px] text-on-surface-variant font-medium mt-0.5">Hiệu lực từ {c.startDate}</p>
                         </div>
                       </div>
-                      <span className="material-symbols-outlined text-primary opacity-0 group-hover:opacity-100 transition-all text-[20px]">download</span>
+                      <span className="material-symbols-outlined text-primary/40 group-hover:text-primary transition-all text-[20px]">visibility</span>
                     </div>
 
                     {/* Thẻ Khai báo tạm trú */}

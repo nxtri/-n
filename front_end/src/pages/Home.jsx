@@ -9,6 +9,8 @@ import ProfileModal from '../components/ProfileModal';
 const Home = () => {
   const [rooms, setRooms] = useState([]);
   const [filteredRooms, setFilteredRooms] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
   const navigate = useNavigate();
   const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
   
@@ -127,6 +129,7 @@ const Home = () => {
     if (tempAmenities.includes('hasHeater')) result = result.filter(r => r.hasHeater);
 
     setFilteredRooms(result);
+    setCurrentPage(1);
     setShowFilterModal(false);
   };
 
@@ -151,6 +154,102 @@ const Home = () => {
     localStorage.removeItem('user');
     localStorage.removeItem('token');
     window.location.reload();
+  };
+
+  const totalPages = Math.ceil(filteredRooms.length / ITEMS_PER_PAGE);
+  const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
+  const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
+  const currentRooms = filteredRooms.slice(indexOfFirstItem, indexOfLastItem);
+
+  const renderPagination = () => {
+    if (filteredRooms.length === 0) return null;
+
+    const pageNumbers = [];
+    const maxVisiblePages = 4;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = startPage + maxVisiblePages - 1;
+
+    if (endPage > totalPages) {
+      endPage = totalPages;
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(i);
+    }
+
+    return (
+      <div className="flex justify-center items-center gap-2 mt-12 mb-4">
+        <button 
+          onClick={() => {
+            setCurrentPage(prev => Math.max(prev - 1, 1));
+            window.scrollTo({ top: document.getElementById('search-results')?.offsetTop - 100 || 0, behavior: 'smooth' });
+          }}
+          disabled={currentPage === 1}
+          className="px-4 py-2 border border-outline-variant/30 rounded hover:bg-surface-container disabled:opacity-50 disabled:cursor-not-allowed bg-white font-medium text-sm text-on-surface transition-colors"
+        >
+          « Trang trước
+        </button>
+        
+        {startPage > 1 && (
+          <>
+            <button 
+              onClick={() => {
+                setCurrentPage(1);
+                window.scrollTo({ top: document.getElementById('search-results')?.offsetTop - 100 || 0, behavior: 'smooth' });
+              }} 
+              className="w-10 h-10 border border-outline-variant/30 rounded hover:bg-surface-container bg-white font-medium text-sm text-on-surface transition-colors"
+            >
+              1
+            </button>
+            {startPage > 2 && <span className="px-2 text-on-surface-variant font-medium">...</span>}
+          </>
+        )}
+
+        {pageNumbers.map(number => (
+          <button
+            key={number}
+            onClick={() => {
+              setCurrentPage(number);
+              window.scrollTo({ top: document.getElementById('search-results')?.offsetTop - 100 || 0, behavior: 'smooth' });
+            }}
+            className={`w-10 h-10 border rounded transition-colors font-bold text-sm ${
+              currentPage === number 
+                ? 'bg-[#ff5722] text-white border-[#ff5722]' 
+                : 'bg-white hover:bg-surface-container text-on-surface border-outline-variant/30'
+            }`}
+          >
+            {number}
+          </button>
+        ))}
+
+        {endPage < totalPages && (
+          <>
+            {endPage < totalPages - 1 && <span className="px-2 text-on-surface-variant font-medium">...</span>}
+            <button 
+              onClick={() => {
+                setCurrentPage(totalPages);
+                window.scrollTo({ top: document.getElementById('search-results')?.offsetTop - 100 || 0, behavior: 'smooth' });
+              }} 
+              className="w-10 h-10 border border-outline-variant/30 rounded hover:bg-surface-container bg-white font-medium text-sm text-on-surface transition-colors"
+            >
+              {totalPages}
+            </button>
+          </>
+        )}
+
+        <button 
+          onClick={() => {
+            setCurrentPage(prev => Math.min(prev + 1, totalPages));
+            window.scrollTo({ top: document.getElementById('search-results')?.offsetTop - 100 || 0, behavior: 'smooth' });
+          }}
+          disabled={currentPage === totalPages}
+          className="px-4 py-2 border border-outline-variant/30 rounded hover:bg-surface-container disabled:opacity-50 disabled:cursor-not-allowed bg-white font-medium text-sm text-on-surface transition-colors"
+        >
+          Trang sau »
+        </button>
+      </div>
+    );
   };
 
   return (
@@ -248,13 +347,13 @@ const Home = () => {
           </div>
 
           {/* Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredRooms.length === 0 ? (
+          <div id="search-results" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {currentRooms.length === 0 ? (
               <div className="col-span-full py-20 text-center">
                 <span className="material-symbols-outlined text-6xl text-outline-variant mb-4">search_off</span>
                 <p className="text-xl text-on-surface-variant">Không tìm thấy phòng nào phù hợp.</p>
               </div>
-            ) : filteredRooms.map((room) => {
+            ) : currentRooms.map((room) => {
               let images = [];
               try { images = JSON.parse(room.images) || []; } catch(e) {}
               const firstImage = images.length > 0 ? `http://localhost:5000/uploads/${images[0]}` : "https://via.placeholder.com/400x300?text=Chua+Co+Anh";
@@ -379,6 +478,9 @@ const Home = () => {
               );
             })}
           </div>
+
+          {/* Pagination */}
+          {renderPagination()}
         </section>
       </main>
 

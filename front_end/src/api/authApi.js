@@ -35,6 +35,12 @@ const authApi = {
   updateProfile: (data) => {
     const url = '/auth/profile';
     return axiosClient.put(url, data);
+  },
+
+  // Lấy thông tin người dùng qua email
+  getUserByEmail: (email) => {
+    const url = `/auth/user/by-email?email=${email}`;
+    return axiosClient.get(url);
   }
 };
 

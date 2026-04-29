@@ -67,8 +67,19 @@ const ContractFormModal = ({
     try {
       const res = await authApi.getUserByEmail(contractData.tenantEmail);
       if (res.user) {
-        setTenantDetails({ fullName: res.user.fullName, phone: res.user.phone, identityNumber: res.user.identityNumber });
-        setContractData(prev => ({...prev, tenantName: res.user.fullName, tenantPhone: res.user.phone, tenantIdentityNumber: res.user.identityNumber}));
+        setTenantDetails({ 
+          fullName: res.user.fullName, 
+          phone: res.user.phone, 
+          identityNumber: res.user.identityNumber 
+        });
+        setContractData(prev => ({
+          ...prev, 
+          tenantName: res.user.fullName, 
+          tenantPhone: res.user.phone, 
+          tenantIdentityNumber: res.user.identityNumber,
+          tenantDob: res.user.dob || '',
+          tenantHometown: res.user.address || ''
+        }));
         alert("Đã tìm thấy thông tin Khách thuê! Hệ thống đã tự điền vào Form.");
       }
     } catch (error) {

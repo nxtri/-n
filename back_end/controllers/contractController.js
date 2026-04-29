@@ -169,7 +169,7 @@ const contractController = {
           model: Room,
           as: 'room',
           paranoid: false, // <-- Thêm cái này nữa
-          attributes: ['roomNumber', 'roomCode', 'price', 'address', 'houseNumber', 'roomType', 'area', 'maxOccupants', 'electricityPrice', 'waterPrice', 'internetPrice', 'parkingPrice', 'servicePrice']
+          attributes: ['roomNumber', 'roomCode', 'price', 'address', 'houseNumber', 'roomType', 'area', 'maxOccupants', 'electricityPrice', 'waterPrice', 'internetPrice', 'parkingPrice', 'servicePrice', 'hasElevator', 'hasWashingMachine', 'hasFridge', 'hasKitchen', 'hasHeater']
         });
       }
 
@@ -234,7 +234,7 @@ const contractController = {
           status: 'ACTIVE' 
         },
         include: [
-          { model: Room, as: 'room', attributes: ['roomNumber', 'roomCode', 'price', 'address', 'houseNumber', 'roomType', 'area', 'maxOccupants', 'electricityPrice', 'waterPrice', 'internetPrice', 'parkingPrice', 'servicePrice'] }
+          { model: Room, as: 'room', attributes: ['roomNumber', 'roomCode', 'price', 'address', 'houseNumber', 'roomType', 'area', 'maxOccupants', 'electricityPrice', 'waterPrice', 'internetPrice', 'parkingPrice', 'servicePrice', 'hasElevator', 'hasWashingMachine', 'hasFridge', 'hasKitchen', 'hasHeater'] }
         ]
       });
 
@@ -361,6 +361,11 @@ const contractController = {
       const contractId = req.params.id;
       const role = req.user.role;
 
+      // 🚨 CHỈ CHỦ NHÀ mới có quyền hủy yêu cầu trả phòng
+      if (role !== 'LANDLORD') {
+        return res.status(403).json({ message: 'Bạn không có quyền hủy yêu cầu này. Vui lòng liên hệ chủ nhà!' });
+      }
+
       const contract = await RentalContract.findByPk(contractId, {
         include: [{ model: Room, as: 'room' }]
       });
@@ -375,6 +380,11 @@ const contractController = {
         noticeGivenBy: null,
         terminationReason: null
       });
+
+      // Xóa ghi chú cọc (depositNote) của phòng nếu có, vì khách sẽ không dọn đi nữa
+      if (contract.room && contract.room.depositNote) {
+        await contract.room.update({ depositNote: '' });
+      }
 
       // 2. 🔔 Bắn Notification báo cho người kia biết là đã "hủy kèo" (Web + Email)
       const targetUserId = role === 'LANDLORD' ? contract.tenantId : contract.room.landlordId;

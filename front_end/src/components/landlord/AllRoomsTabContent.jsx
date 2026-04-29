@@ -110,7 +110,7 @@ const AllRoomsTabContent = ({
           </div>
         ) : (
           displayedRooms.map((room) => {
-            const activeContract = contracts.find(c => c.roomId === room.id && c.status === 'ACTIVE');
+            const activeContract = contracts.find(c => c.roomId == room.id && c.status === 'ACTIVE');
             const isReturningSoon = activeContract && !!activeContract.intendedMoveOutDate;
             
             const statusConfig = {
@@ -279,7 +279,7 @@ const AllRoomsTabContent = ({
                       /* Hiển thị ghi chú cọc khi phòng trống */
                       <div className="py-2">
                         <p className="text-xs text-on-surface-variant font-bold opacity-40 italic">
-                          {room.status === 'AVAILABLE' ? '— Sẵn sàng đón khách mới' : room.status === 'DEPOSITED' ? '— Đã nhận đặt cọc giữ chỗ' : '— Đang trong quá trình bảo trì'}
+                          {room.status === 'AVAILABLE' ? '— Sẵn sàng đón khách mới' : room.status === 'DEPOSITED' ? '— Đã nhận đặt cọc giữ chỗ' : room.status === 'RENTED' ? '— Đang cập nhật thông tin thuê' : '— Đang trong quá trình bảo trì'}
                         </p>
                         {room.depositNote && (
                           <div className="mt-3 bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl animate-in fade-in duration-500">
