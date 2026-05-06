@@ -34,7 +34,10 @@ const AdminSettingsTab = ({
     <div className="max-w-[500px] my-10 mx-auto">
       <div className="bg-surface-container-lowest p-10 rounded-3xl border border-outline-variant/30 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
         <h3 className="m-0 mb-8 text-on-surface text-2xl font-black flex items-center justify-center gap-3">
-          <span className="w-12 h-12 flex items-center justify-center rounded-2xl bg-primary/10 text-primary border border-primary/20 material-symbols-outlined text-[24px]">lock_reset</span> Thay đổi mật khẩu
+          <span className="w-12 h-12 flex items-center justify-center rounded-full bg-primary/10 text-primary border border-primary/20">
+            <span className="material-symbols-outlined text-[24px]">lock_reset</span>
+          </span> 
+          Thay đổi mật khẩu
         </h3>
         
         <form onSubmit={handleSavePassword} className="flex flex-col gap-6">

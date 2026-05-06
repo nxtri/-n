@@ -147,7 +147,7 @@ body {
 
 .marquee-content {
   display: inline-block;
-  padding-left: 20px; /* Gap for looping */
+  padding-right: 20px; /* Gap for looping - moved to right to align left */
 }
 
 .card-hover:hover .marquee-content,
@@ -159,3 +159,8 @@ body {
   0% { transform: translateX(0); }
   100% { transform: translateX(-100%); }
 }
+
+.custom-scrollbar::-webkit-scrollbar { height: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }

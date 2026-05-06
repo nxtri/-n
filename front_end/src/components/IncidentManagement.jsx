@@ -204,9 +204,13 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
   if (searchTerm.trim()) {
     const s = searchTerm.toLowerCase();
     displayedIncidents = displayedIncidents.filter(i => 
-      i.title.toLowerCase().includes(s) || 
-      i.description.toLowerCase().includes(s) ||
-      i.room?.roomNumber?.toString().includes(s)
+      i.title?.toLowerCase().includes(s) || 
+      i.description?.toLowerCase().includes(s) ||
+      i.room?.roomNumber?.toString().includes(s) ||
+      i.room?.roomCode?.toLowerCase().includes(s) ||
+      i.tenant?.fullName?.toLowerCase().includes(s) ||
+      i.tenant?.phone?.toLowerCase().includes(s) ||
+      i.tenant?.email?.toLowerCase().includes(s)
     );
   }
 
@@ -222,8 +226,8 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
           <div className="relative">
             <span className="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-on-surface-variant text-[20px]">filter_list</span>
             <input 
-              className="pl-10 pr-4 py-2.5 rounded-full border border-outline-variant bg-surface-container-lowest focus:border-primary focus:ring-1 focus:ring-primary font-body-sm text-body-sm w-full md:w-64 transition-all shadow-sm" 
-              placeholder="Lọc sự cố..." 
+              className="pl-10 pr-4 py-2.5 rounded-full border border-outline-variant bg-surface-container-lowest focus:border-primary focus:ring-1 focus:ring-primary font-body-sm text-body-sm w-full md:w-80 transition-all shadow-sm" 
+              placeholder="Tìm tiêu đề, phòng, khách thuê..." 
               type="text"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}

@@ -322,7 +322,7 @@ const AdminDashboard = () => {
   return (
     <div className="flex flex-col h-screen font-['Inter'] bg-surface-container-lowest text-on-surface">
       {/* HEADER */}
-      <div className="bg-surface-container-lowest text-on-surface px-6 py-3 flex justify-between items-center shadow-sm border-b border-outline-variant/30 z-10 sticky top-0">
+      <div className="bg-surface-container-lowest text-on-surface px-6 py-3 flex justify-between items-center shadow-sm border-b border-outline-variant/30 z-50 sticky top-0">                         
         <h2 className="m-0 text-primary font-black text-2xl tracking-tight flex items-center gap-2 cursor-pointer" onClick={() => setActiveTab('STATS')}>
           <span className="material-symbols-outlined text-[28px] fill-1">admin_panel_settings</span>
           HỆ THỐNG QUẢN TRỊ

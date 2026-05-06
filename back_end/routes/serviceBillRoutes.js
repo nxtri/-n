@@ -27,5 +27,20 @@ router.put(
   serviceBillController.payBill
 );
 
+// Cập nhật hóa đơn điện nước (Chỉ dành cho chủ nhà và trạng thái UNPAID)
+router.put(
+  '/:id',
+  authMiddleware.verifyToken,
+  authMiddleware.isLandlord,
+  serviceBillController.updateBill
+);
+
+// Xóa hóa đơn điện nước (Chỉ dành cho chủ nhà và trạng thái UNPAID)
+router.delete(
+  '/:id',
+  authMiddleware.verifyToken,
+  authMiddleware.isLandlord,
+  serviceBillController.deleteBill
+);
 
 module.exports = router;

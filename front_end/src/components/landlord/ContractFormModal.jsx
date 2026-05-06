@@ -31,12 +31,69 @@ const ContractFormModal = ({
   });
 
   const [contractImages, setContractImages] = useState([]);
+  const [contractPreviews, setContractPreviews] = useState([]);
   const [conditionImages, setConditionImages] = useState([]);
+  const [conditionImagesPreviews, setConditionImagesPreviews] = useState([]);
   const [conditionVideos, setConditionVideos] = useState([]);
+  const [conditionVideosPreviews, setConditionVideosPreviews] = useState([]);
+  
+  const [existingContractImages, setExistingContractImages] = useState([]);
+  const [existingConditionImages, setExistingConditionImages] = useState([]);
+  const [existingConditionVideos, setExistingConditionVideos] = useState([]);
+  
+  const [viewingMedia, setViewingMedia] = useState(null); // Lưu { url, type } để xem phóng to
+  
   const [tenantDetails, setTenantDetails] = useState({ fullName: '', phone: '', identityNumber: '' });
+
+  // Hàm xử lý khi chọn file (nối thêm vào mảng cũ)
+  const handleFileChange = (e, type) => {
+    const files = Array.from(e.target.files);
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+
+    if (type === 'contract') {
+      setContractImages(prev => [...prev, ...files]);
+      setContractPreviews(prev => [...prev, ...newPreviews]);
+    } else if (type === 'conditionImage') {
+      setConditionImages(prev => [...prev, ...files]);
+      setConditionImagesPreviews(prev => [...prev, ...newPreviews]);
+    } else if (type === 'conditionVideo') {
+      setConditionVideos(prev => [...prev, ...files]);
+      setConditionVideosPreviews(prev => [...prev, ...newPreviews]);
+    }
+    // Reset input để có thể chọn lại cùng 1 file nếu vừa xóa
+    e.target.value = null;
+  };
+
+  // Hàm xóa file cụ thể
+  const removeFile = (index, type, isExisting = false) => {
+    if (isExisting) {
+      if (type === 'contract') setExistingContractImages(prev => prev.filter((_, i) => i !== index));
+      else if (type === 'conditionImage') setExistingConditionImages(prev => prev.filter((_, i) => i !== index));
+      else if (type === 'conditionVideo') setExistingConditionVideos(prev => prev.filter((_, i) => i !== index));
+    } else {
+      if (type === 'contract') {
+        setContractImages(prev => prev.filter((_, i) => i !== index));
+        setContractPreviews(prev => prev.filter((_, i) => i !== index));
+      } else if (type === 'conditionImage') {
+        setConditionImages(prev => prev.filter((_, i) => i !== index));
+        setConditionImagesPreviews(prev => prev.filter((_, i) => i !== index));
+      } else if (type === 'conditionVideo') {
+        setConditionVideos(prev => prev.filter((_, i) => i !== index));
+        setConditionVideosPreviews(prev => prev.filter((_, i) => i !== index));
+      }
+    }
+  };
 
   // Initialize form
   useEffect(() => {
+    // Dọn dẹp sạch sẽ các tệp đang chọn dở của lần thao tác trước
+    setContractImages([]);
+    setContractPreviews([]);
+    setConditionImages([]);
+    setConditionImagesPreviews([]);
+    setConditionVideos([]);
+    setConditionVideosPreviews([]);
+
     if (contractToEdit) {
       let parsedMembers = [];
       try { parsedMembers = typeof contractToEdit.members === 'string' ? JSON.parse(contractToEdit.members) : (contractToEdit.members || []); } catch(e) {}
@@ -50,6 +107,19 @@ const ContractFormModal = ({
         isDirectUtilityPayment: !!contractToEdit.isDirectUtilityPayment,
         members: parsedMembers
       });
+
+      // Khởi tạo các file cũ
+      let oldContracts = [];
+      try { oldContracts = Array.isArray(contractToEdit.contractImage) ? contractToEdit.contractImage : JSON.parse(contractToEdit.contractImage || '[]'); } catch(e) {}
+      setExistingContractImages(oldContracts);
+
+      let oldCondImages = [];
+      try { oldCondImages = Array.isArray(contractToEdit.conditionImages) ? contractToEdit.conditionImages : JSON.parse(contractToEdit.conditionImages || '[]'); } catch(e) {}
+      setExistingConditionImages(oldCondImages);
+
+      let oldCondVideos = [];
+      try { oldCondVideos = Array.isArray(contractToEdit.conditionVideos) ? contractToEdit.conditionVideos : JSON.parse(contractToEdit.conditionVideos || '[]'); } catch(e) {}
+      setExistingConditionVideos(oldCondVideos);
     } else if (roomForNewContract) {
       setContractData({
         landlordName: user?.fullName || '', landlordDob: user?.dob || '', landlordPhone: user?.phone || '', landlordIdentityNumber: user?.identityNumber || '', landlordHometown: user?.address || '',
@@ -67,18 +137,21 @@ const ContractFormModal = ({
     try {
       const res = await authApi.getUserByEmail(contractData.tenantEmail);
       if (res.user) {
+        const tenant = res.user;
+        const formattedDob = tenant.dob ? tenant.dob.split('T')[0] : '';
+
         setTenantDetails({ 
-          fullName: res.user.fullName, 
-          phone: res.user.phone, 
-          identityNumber: res.user.identityNumber 
+          fullName: tenant.fullName, 
+          phone: tenant.phone, 
+          identityNumber: tenant.identityNumber 
         });
         setContractData(prev => ({
           ...prev, 
-          tenantName: res.user.fullName, 
-          tenantPhone: res.user.phone, 
-          tenantIdentityNumber: res.user.identityNumber,
-          tenantDob: res.user.dob || '',
-          tenantHometown: res.user.address || ''
+          tenantName: tenant.fullName, 
+          tenantPhone: tenant.phone, 
+          tenantIdentityNumber: tenant.identityNumber,
+          tenantDob: formattedDob,
+          tenantHometown: tenant.address || ''
         }));
         alert("Đã tìm thấy thông tin Khách thuê! Hệ thống đã tự điền vào Form.");
       }
@@ -92,16 +165,32 @@ const ContractFormModal = ({
     e.preventDefault();
     try {
       const formData = new FormData();
-      formData.append('roomId', contractToEdit ? contractToEdit.roomId : roomForNewContract.id);
+      const roomId = contractToEdit ? contractToEdit.roomId : roomForNewContract?.id;
+      if (!roomId) return alert("Không tìm thấy thông tin phòng!");
+
+      formData.append('roomId', roomId);
       
+      // Đóng gói các trường dữ liệu text
       Object.keys(contractData).forEach(key => {
-        if (key === 'members') formData.append('members', JSON.stringify(contractData.members));
-        else formData.append(key, contractData[key]);
+        if (key === 'members') {
+          formData.append('members', JSON.stringify(contractData.members));
+        } else if (key === 'electricityPrice') {
+          formData.append('electricityPrice', contractData.isDirectUtilityPayment ? 0 : contractData.electricityPrice);
+        } else if (key === 'waterPrice') {
+          formData.append('waterPrice', contractData.isDirectUtilityPayment ? 0 : contractData.waterPrice);
+        } else {
+          formData.append(key, contractData[key]);
+        }
       });
 
       if (contractImages.length > 0) contractImages.forEach(image => formData.append('contractImages', image));
       if (conditionImages.length > 0) conditionImages.forEach(image => formData.append('conditionImages', image));
       if (conditionVideos.length > 0) conditionVideos.forEach(video => formData.append('conditionVideos', video));
+
+      // Gửi danh sách file cũ muốn giữ lại
+      formData.append('existingContractImages', JSON.stringify(existingContractImages));
+      formData.append('existingConditionImages', JSON.stringify(existingConditionImages));
+      formData.append('existingConditionVideos', JSON.stringify(existingConditionVideos));
 
       if (contractToEdit) {
         await contractApi.updateContract(contractToEdit.id, formData);
@@ -197,9 +286,61 @@ const ContractFormModal = ({
                         <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Ngày kết thúc:</label>
                         <input type="date" value={contractData.endDate} onChange={e => setContractData({...contractData, endDate: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
                       </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Ảnh hợp đồng (Có thể chọn nhiều):</label>
-                        <input type="file" multiple onChange={(e) => { setContractImages(Array.from(e.target.files)); }} className="w-full px-4 py-2 bg-white border border-dashed border-outline-variant rounded-xl text-sm font-bold outline-none file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-black file:bg-primary/10 file:text-primary" />
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Ảnh hợp đồng (Có thể chọn nhiều lần):</label>
+                        <div className="relative">
+                          <input 
+                            type="file" 
+                            id="contractImagesInput"
+                            multiple 
+                            accept="image/*" 
+                            onChange={(e) => handleFileChange(e, 'contract')} 
+                            className="hidden" 
+                          />
+                          <label 
+                            htmlFor="contractImagesInput" 
+                            className="w-full min-h-[56px] px-4 py-2 bg-white border-2 border-dashed border-outline-variant/50 rounded-2xl flex items-center gap-3 cursor-pointer hover:border-primary/50 hover:bg-primary/[0.02] transition-all overflow-hidden"
+                          >
+                            <span className="shrink-0 px-4 py-2 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm">Chọn tệp</span>
+                            
+                            <div className="flex-1 flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                                {/* HIỂN THỊ ẢNH CŨ TRÊN SERVER */}
+                                {existingContractImages.map((fileName, i) => {
+                                  const url = `http://localhost:5000/uploads/${fileName.replace(/uploads[\\\/]/, '')}`;
+                                  return (
+                                    <div key={`old-${i}`} className="relative shrink-0 w-12 h-12 rounded-lg overflow-hidden border border-outline-variant group/img shadow-sm cursor-zoom-in" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setViewingMedia({ url, type: 'image' }); }}>
+                                      <img src={url} className="w-full h-full object-cover grayscale-[0.6]" title="Ảnh cũ" />
+                                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFile(i, 'contract', true); }} className="absolute top-0.5 right-0.5 w-4 h-4 bg-error text-white rounded-full flex items-center justify-center hover:scale-125 transition-all z-10 shadow-md">
+                                        <span className="material-symbols-outlined text-[10px] font-black">close</span>
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+
+                                {/* HIỂN THỊ ẢNH MỚI CHỌN */}
+                                {contractPreviews.length > 0 ? (
+                                  contractPreviews.map((url, i) => (
+                                    <div 
+                                      key={`new-${i}`} 
+                                      className="relative shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 border-primary group/img shadow-sm cursor-zoom-in"
+                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setViewingMedia({ url, type: 'image' }); }}
+                                    >
+                                      <img src={url} className="w-full h-full object-cover transition-transform group-hover/img:scale-110" />
+                                      <button 
+                                        type="button" 
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFile(i, 'contract', false); }} 
+                                        className="absolute top-0.5 right-0.5 w-4 h-4 bg-error text-white rounded-full flex items-center justify-center hover:scale-125 transition-all z-10 shadow-md"
+                                      >
+                                        <span className="material-symbols-outlined text-[10px] font-black">close</span>
+                                      </button>
+                                    </div>
+                                  ))
+                                ) : (
+                                  existingContractImages.length === 0 && <span className="text-sm font-bold text-on-surface-variant opacity-40">Chưa có tệp nào được chọn</span>
+                                )}
+                              </div>
+                          </label>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -278,13 +419,99 @@ const ContractFormModal = ({
                         <textarea rows="3" value={contractData.conditionDescription} onChange={e => setContractData({...contractData, conditionDescription: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" placeholder="VD: Tường sạch, có 1 giường, 1 nệm cũ, tủ lạnh hoạt động bình thường..." />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                           <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Ảnh tình trạng phòng:</label>
-                          <input type="file" multiple accept="image/*" onChange={(e) => setConditionImages(Array.from(e.target.files))} className="w-full px-4 py-2 bg-white border border-dashed border-outline-variant rounded-xl text-sm font-bold outline-none file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-black file:bg-primary/10 file:text-primary" />
+                          <div className="relative">
+                            <input type="file" id="condImgInput" multiple accept="image/*" onChange={(e) => handleFileChange(e, 'conditionImage')} className="hidden" />
+                            <label htmlFor="condImgInput" className="w-full min-h-[50px] px-3 py-1.5 bg-white border border-dashed border-outline-variant rounded-xl flex items-center gap-2 cursor-pointer hover:border-primary/50 transition-all overflow-hidden shadow-sm">
+                              <span className="shrink-0 px-2 py-1 bg-primary text-white rounded-lg text-[10px] font-black uppercase shadow-sm">Chọn ảnh</span>
+                              <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                                  {/* HIỂN THỊ ẢNH TÌNH TRẠNG CŨ */}
+                                  {existingConditionImages.map((fileName, i) => {
+                                    const url = `http://localhost:5000/uploads/${fileName.replace(/uploads[\\\/]/, '')}`;
+                                    return (
+                                      <div key={`old-cond-${i}`} className="relative shrink-0 w-10 h-10 rounded-md overflow-hidden border border-outline-variant group/img shadow-sm cursor-zoom-in" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setViewingMedia({ url, type: 'image' }); }}>
+                                        <img src={url} className="w-full h-full object-cover grayscale-[0.6]" title="Ảnh cũ" />
+                                        <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFile(i, 'conditionImage', true); }} className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-error text-white rounded-full flex items-center justify-center hover:scale-125 transition-all z-10 shadow-md">
+                                          <span className="material-symbols-outlined text-[8px] font-black">close</span>
+                                        </button>
+                                      </div>
+                                    );
+                                  })}
+
+                                  {/* HIỂN THỊ ẢNH MỚI */}
+                                  {conditionImagesPreviews.length > 0 ? (
+                                    conditionImagesPreviews.map((url, i) => (
+                                      <div 
+                                        key={`new-cond-${i}`} 
+                                        className="relative shrink-0 w-10 h-10 rounded-md overflow-hidden border-2 border-primary group/img shadow-sm cursor-zoom-in"
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setViewingMedia({ url, type: 'image' }); }}
+                                      >
+                                        <img src={url} className="w-full h-full object-cover transition-transform group-hover/img:scale-110" />
+                                        <button 
+                                          type="button" 
+                                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFile(i, 'conditionImage', false); }} 
+                                          className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-error text-white rounded-full flex items-center justify-center hover:scale-125 transition-all z-10 shadow-md"
+                                        >
+                                          <span className="material-symbols-outlined text-[8px] font-black">close</span>
+                                        </button>
+                                      </div>
+                                    ))
+                                  ) : (
+                                    existingConditionImages.length === 0 && <span className="text-[11px] font-bold text-on-surface-variant opacity-40">Chưa có ảnh</span>
+                                  )}
+                              </div>
+                            </label>
+                          </div>
                         </div>
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                           <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Video tình trạng phòng (nếu có):</label>
-                          <input type="file" multiple accept="video/*" onChange={(e) => setConditionVideos(Array.from(e.target.files))} className="w-full px-4 py-2 bg-white border border-dashed border-outline-variant rounded-xl text-sm font-bold outline-none file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-black file:bg-primary/10 file:text-primary" />
+                          <div className="relative">
+                            <input type="file" id="condVidInput" multiple accept="video/*" onChange={(e) => handleFileChange(e, 'conditionVideo')} className="hidden" />
+                            <label htmlFor="condVidInput" className="w-full min-h-[50px] px-3 py-1.5 bg-white border border-dashed border-outline-variant rounded-xl flex items-center gap-2 cursor-pointer hover:border-primary/50 transition-all overflow-hidden shadow-sm">
+                              <span className="shrink-0 px-2 py-1 bg-primary text-white rounded-lg text-[10px] font-black uppercase shadow-sm">Chọn video</span>
+                              <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                                {/* HIỂN THỊ VIDEO CŨ */}
+                                {existingConditionVideos.map((fileName, i) => {
+                                  const url = `http://localhost:5000/uploads/${fileName.replace(/uploads[\\\/]/, '')}`;
+                                  return (
+                                    <div key={`old-vid-${i}`} className="relative shrink-0 w-10 h-10 rounded-md overflow-hidden border border-outline-variant bg-black group/img shadow-sm cursor-zoom-in" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setViewingMedia({ url, type: 'video' }); }}>
+                                      <video src={url} className="w-full h-full object-cover opacity-50 grayscale-[0.6]" />
+                                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFile(i, 'conditionVideo', true); }} className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-error text-white rounded-full flex items-center justify-center hover:scale-125 transition-all z-10 shadow-md">
+                                        <span className="material-symbols-outlined text-[8px] font-black">close</span>
+                                      </button>
+                                      <span className="absolute inset-0 flex items-center justify-center text-white/30"><span className="material-symbols-outlined text-xs">play_circle</span></span>
+                                    </div>
+                                  );
+                                })}
+
+                                {/* HIỂN THỊ VIDEO MỚI */}
+                                {conditionVideosPreviews.length > 0 ? (
+                                  conditionVideosPreviews.map((url, i) => (
+                                    <div 
+                                      key={`new-vid-${i}`} 
+                                      className="relative shrink-0 w-10 h-10 rounded-md overflow-hidden border-2 border-primary bg-black group/img shadow-sm cursor-zoom-in"
+                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setViewingMedia({ url, type: 'video' }); }}
+                                    >
+                                      <video src={url} className="w-full h-full object-cover opacity-80 group-hover/img:opacity-100" />
+                                      <button 
+                                        type="button" 
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFile(i, 'conditionVideo', false); }} 
+                                        className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-error text-white rounded-full flex items-center justify-center hover:scale-125 transition-all z-10 shadow-md"
+                                      >
+                                        <span className="material-symbols-outlined text-[8px] font-black">close</span>
+                                      </button>
+                                      <span className="absolute inset-0 flex items-center justify-center text-white/50 group-hover/img:text-white transition-colors">
+                                        <span className="material-symbols-outlined text-xs">play_circle</span>
+                                      </span>
+                                    </div>
+                                  ))
+                                ) : (
+                                  existingConditionVideos.length === 0 && <span className="text-[11px] font-bold text-on-surface-variant opacity-40">Chưa có video</span>
+                                )}
+                              </div>
+                            </label>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -298,6 +525,22 @@ const ContractFormModal = ({
                     </button>
                   </div>
                 </div>
+
+                {/* MODAL XEM PHÓNG TO ẢNH/VIDEO */}
+                {viewingMedia && (
+                  <div className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={() => setViewingMedia(null)}>
+                    <button className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-full transition-all">
+                      <span className="material-symbols-outlined text-3xl">close</span>
+                    </button>
+                    <div className="max-w-5xl max-h-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
+                      {viewingMedia.type === 'image' ? (
+                        <img src={viewingMedia.url} className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-300" />
+                      ) : (
+                        <video src={viewingMedia.url} controls autoPlay className="max-w-full max-h-[90vh] rounded-lg shadow-2xl animate-in zoom-in-95 duration-300" />
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
   );
 };

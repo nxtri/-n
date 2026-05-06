@@ -25,6 +25,33 @@ const serviceBillController = {
         });
       }
 
+      // 🚨 CHẶN TẠO HÓA ĐƠN CHO THÁNG CŨ HƠN THÁNG ĐÃ CÓ (Chỉ áp dụng cho UTILITY)
+      if (billType === 'UTILITY') {
+        const { Op } = require('sequelize');
+        const newBillPeriod = year * 12 + month; // Chuyển tháng/năm thành số tuyến tính để so sánh
+
+        // Tìm xem có hóa đơn UTILITY nào của hợp đồng này có kỳ MỚI HƠN không
+        const newerBill = await ServiceBill.findOne({
+          where: {
+            contractId: contractId,
+            billType: 'UTILITY',
+            [Op.or]: [
+              { year: { [Op.gt]: year } }, // Cùng hợp đồng, năm lớn hơn
+              {
+                year: year,                // Cùng năm nhưng tháng lớn hơn
+                month: { [Op.gt]: month }
+              }
+            ]
+          }
+        });
+
+        if (newerBill) {
+          return res.status(400).json({
+            message: `❌ Không thể tạo hóa đơn Tháng ${month}/${year} vì đã tồn tại hóa đơn điện nước Tháng ${newerBill.month}/${newerBill.year} (tháng mới hơn) cho phòng này. Vui lòng xóa hóa đơn tháng ${newerBill.month}/${newerBill.year} trước, rồi tạo lại theo thứ tự từ cũ đến mới.`
+          });
+        }
+      }
+
       // Tìm hợp đồng, kèm theo thông tin Phòng và Khách thuê
       const contract = await RentalContract.findByPk(contractId, {
         include: [
@@ -216,6 +243,115 @@ const serviceBillController = {
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'Lỗi khi lấy danh sách hóa đơn!' });
+    }
+  },
+
+  // Cập nhật hóa đơn điện nước (UTILITY)
+  updateBill: async (req, res) => {
+    try {
+      const billId = req.params.id;
+      const { newElectricity, newWater } = req.body;
+
+      const bill = await ServiceBill.findByPk(billId, {
+        include: [{
+          model: RentalContract,
+          as: 'contract',
+          include: [{ model: Room, as: 'room' }]
+        }]
+      });
+
+      if (!bill) {
+        return res.status(404).json({ message: 'Không tìm thấy hóa đơn!' });
+      }
+
+      if (bill.billType !== 'UTILITY') {
+        return res.status(400).json({ message: 'Chỉ có thể sửa hóa đơn loại ĐIỆN NƯỚC!' });
+      }
+
+      if (bill.status !== 'UNPAID') {
+        return res.status(400).json({ message: 'Chỉ có thể sửa hóa đơn ở trạng thái CHỜ THANH TOÁN!' });
+      }
+
+      const oldElectricity = bill.oldElectricity || 0;
+      const oldWater = bill.oldWater || 0;
+
+      if (Number(newElectricity) < oldElectricity) {
+        return res.status(400).json({ message: `Chỉ số điện MỚI (${newElectricity}) không được nhỏ hơn chỉ số CŨ (${oldElectricity})!` });
+      }
+      if (Number(newWater) < oldWater) {
+        return res.status(400).json({ message: `Chỉ số nước MỚI (${newWater}) không được nhỏ hơn chỉ số CŨ (${oldWater})!` });
+      }
+
+      const electricityUsage = Number(newElectricity) - oldElectricity;
+      const waterUsage = Number(newWater) - oldWater;
+
+      const room = bill.contract.room;
+      const isWholeHouse = room.roomType === 'WHOLE_HOUSE';
+
+      const totalElectricity = isWholeHouse ? 0 : electricityUsage * room.electricityPrice;
+      const totalWater = waterUsage * room.waterPrice;
+      const totalAmount = totalElectricity + totalWater;
+
+      // Cập nhật Hóa đơn
+      await bill.update({
+        newElectricity: Number(newElectricity),
+        newWater: Number(newWater),
+        electricityUsage,
+        waterUsage,
+        totalAmount
+      });
+
+      // Cập nhật lại chỉ số mới nhất vào Hợp đồng
+      await RentalContract.update(
+        { 
+          currentElectricity: Number(newElectricity), 
+          currentWater: Number(newWater) 
+        },
+        { where: { id: bill.contractId } }
+      );
+
+      res.status(200).json({ message: 'Cập nhật hóa đơn điện nước thành công!', bill });
+    } catch (error) {
+      console.error("Lỗi khi cập nhật hóa đơn:", error);
+      res.status(500).json({ message: 'Lỗi server khi cập nhật hóa đơn!' });
+    }
+  },
+
+  // Xóa hóa đơn điện nước (UTILITY)
+  deleteBill: async (req, res) => {
+    try {
+      const billId = req.params.id;
+
+      const bill = await ServiceBill.findByPk(billId);
+
+      if (!bill) {
+        return res.status(404).json({ message: 'Không tìm thấy hóa đơn!' });
+      }
+
+      if (bill.billType !== 'UTILITY') {
+        return res.status(400).json({ message: 'Chỉ có thể xóa hóa đơn loại ĐIỆN NƯỚC!' });
+      }
+
+      if (bill.status !== 'UNPAID') {
+        return res.status(400).json({ message: 'Chỉ có thể xóa hóa đơn ở trạng thái CHỜ THANH TOÁN!' });
+      }
+
+      // Hoàn tác chỉ số vào hợp đồng
+      await RentalContract.update(
+        { 
+          currentElectricity: bill.oldElectricity || 0, 
+          currentWater: bill.oldWater || 0 
+        },
+        { where: { id: bill.contractId } }
+      );
+
+      // Xóa hóa đơn
+      await bill.destroy();
+
+      res.status(200).json({ message: 'Xóa hóa đơn điện nước thành công và hoàn tác chỉ số hợp đồng!' });
+    } catch (error) {
+      console.error("Lỗi khi xóa hóa đơn:", error);
+      res.status(500).json({ message: 'Lỗi server khi xóa hóa đơn!' });
     }
   },
 

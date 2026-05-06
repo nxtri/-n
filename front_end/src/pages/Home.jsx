@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import roomApi from '../api/roomApi';
 import Header from '../components/Header';
@@ -12,6 +12,7 @@ const Home = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
   const navigate = useNavigate();
+  const location = useLocation();
   const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
   
   const renderStars = (rating, idPrefix = 'home') => {
@@ -50,16 +51,24 @@ const Home = () => {
     return stars;
   };
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeLocation, setActiveLocation] = useState('Tất cả');
-  const [activeType, setActiveType] = useState('all');
+  const savedState = JSON.parse(sessionStorage.getItem('homeSearchState') || '{}');
+
+  const [searchTerm, setSearchTerm] = useState(savedState.searchTerm || '');
+  const [activeLocation, setActiveLocation] = useState(savedState.activeLocation || 'Tất cả');
+  const [activeType, setActiveType] = useState(location.state?.activeType || savedState.activeType || 'all');
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   
-  const [tempLocation, setTempLocation] = useState({ province: '', district: '', ward: '' });
-  const [tempPrice, setTempPrice] = useState('all');
-  const [tempArea, setTempArea] = useState('all');
-  const [tempAmenities, setTempAmenities] = useState([]);
+  const [tempLocation, setTempLocation] = useState(savedState.tempLocation || { province: '', district: '', ward: '' });
+  const [tempPrice, setTempPrice] = useState(savedState.tempPrice || 'all');
+  const [tempArea, setTempArea] = useState(savedState.tempArea || 'all');
+  const [tempAmenities, setTempAmenities] = useState(savedState.tempAmenities || []);
+
+  useEffect(() => {
+    sessionStorage.setItem('homeSearchState', JSON.stringify({
+      searchTerm, activeLocation, activeType, tempLocation, tempPrice, tempArea, tempAmenities
+    }));
+  }, [searchTerm, activeLocation, activeType, tempLocation, tempPrice, tempArea, tempAmenities]);
 
   const [provinces, setProvinces] = useState([]);
   const [wards, setWards] = useState([]);
@@ -77,7 +86,6 @@ const Home = () => {
         // 🚨 CHỈ HIỂN THỊ PHÒNG CHƯA CÓ CỌC (depositNote trống)
         const activeRooms = (response.rooms || []).filter(r => !r.depositNote || r.depositNote.trim() === '');
         setRooms(activeRooms);
-        setFilteredRooms(activeRooms);
       } catch (error) {
         console.error('Lỗi tải phòng', error);
       }
@@ -133,7 +141,7 @@ const Home = () => {
     setShowFilterModal(false);
   };
 
-  useEffect(() => { applyFilters(); }, [activeLocation, activeType, searchTerm]);
+  useEffect(() => { applyFilters(); }, [rooms, activeLocation, activeType, searchTerm]);
 
   const PRICE_RANGES = [
     { label: 'Tất cả', val: 'all' }, { label: 'Dưới 1 triệu', val: '<1' }, { label: '1 - 2 triệu', val: '1-2' },
@@ -260,7 +268,16 @@ const Home = () => {
         setActiveType={setActiveType} 
         onProfileClick={() => setShowProfileModal(true)} 
         handleLogout={handleLogout}
-        onLogoClick={() => { setActiveType('all'); setActiveLocation('Tất cả'); setSearchTerm(''); }}
+        onLogoClick={() => { 
+          setActiveType('all'); 
+          setActiveLocation('Tất cả'); 
+          setSearchTerm(''); 
+          setTempLocation({ province: '', district: '', ward: '' });
+          setTempPrice('all');
+          setTempArea('all');
+          setTempAmenities([]);
+          sessionStorage.removeItem('homeSearchState');
+        }}
       />
 
       <main className="mt-20 flex-grow">
@@ -407,11 +424,7 @@ const Home = () => {
                         </div>
                       )}
                     </div>
-                    {!planBadge && (
-                      <button className="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center text-on-surface-variant hover:text-error transition-all hover:bg-white active:scale-90">
-                        <span className="material-symbols-outlined text-xl">favorite</span>
-                      </button>
-                    )}
+
                     {/* Price Overlay */}
                     <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg border border-white/20">
                       <p className="text-primary font-price-tag text-lg leading-none">
@@ -422,9 +435,24 @@ const Home = () => {
 
                   <div className="p-6 flex flex-col flex-grow">
                     <div className="mb-6">
-                      <h3 className="font-headline-md text-headline-md text-on-surface line-clamp-1 group-hover:text-primary transition-colors">
-                        {room.roomType === 'WHOLE_HOUSE' ? 'NHÀ NGUYÊN CĂN' : 'PHÒNG TRỌ'} {room.roomNumber}
-                      </h3>
+                      {(() => {
+                        const roomName = `${room.roomType === 'WHOLE_HOUSE' ? 'NHÀ NGUYÊN CĂN' : 'PHÒNG TRỌ'} ${room.roomNumber}`;
+                        const isLong = roomName.length > 25;
+                        return (
+                          <div className="marquee-container">
+                            <div className={isLong ? "marquee-content" : ""}>
+                              <span className="font-headline-md text-headline-md text-on-surface group-hover:text-primary transition-colors inline-block">
+                                {roomName}
+                              </span>
+                              {isLong && (
+                                <span className="ml-8 font-headline-md text-headline-md text-on-surface group-hover:text-primary transition-colors inline-block">
+                                  {roomName}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
                       {room.roomCode && (
                         <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-50 mt-0.5">
                           Mã: {room.roomCode}

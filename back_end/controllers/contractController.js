@@ -110,7 +110,7 @@ const contractController = {
         isDirectUtilityPayment: isDirectUtilityPayment === 'true' || isDirectUtilityPayment === true,
 
         // Nhóm Thành viên
-        members: members,
+        members: typeof members === 'string' ? JSON.parse(members) : (members || []),
         
         // Tạm trú mặc định
         residenceStatus: 'UNREGISTERED',
@@ -260,6 +260,11 @@ const contractController = {
 
       if (!contract) return res.status(404).json({ message: 'Không tìm thấy hợp đồng!' });
 
+      // Xử lý ảnh/video cũ muốn giữ lại
+      const existingContractImages = req.body.existingContractImages ? JSON.parse(req.body.existingContractImages) : [];
+      const existingConditionImages = req.body.existingConditionImages ? JSON.parse(req.body.existingConditionImages) : [];
+      const existingConditionVideos = req.body.existingConditionVideos ? JSON.parse(req.body.existingConditionVideos) : [];
+
       // Cập nhật các trường thông tin từ body
       const updateData = {
         landlordName: req.body.landlordName, landlordDob: req.body.landlordDob, landlordPhone: req.body.landlordPhone, landlordIdentityNumber: req.body.landlordIdentityNumber, landlordHometown: req.body.landlordHometown,
@@ -268,22 +273,30 @@ const contractController = {
         price: Number(req.body.price) || 0, electricityPrice: Number(req.body.electricityPrice) || 0, waterPrice: Number(req.body.waterPrice) || 0, internetPrice: Number(req.body.internetPrice) || 0, parkingPrice: Number(req.body.parkingPrice) || 0, servicePrice: Number(req.body.servicePrice) || 0,
         vehicleCount: Number(req.body.vehicleCount) || 0,
         isDirectUtilityPayment: req.body.isDirectUtilityPayment === 'true' || req.body.isDirectUtilityPayment === true,
-        members: req.body.members,
+        members: typeof req.body.members === 'string' ? JSON.parse(req.body.members) : (req.body.members || []),
         conditionDescription: req.body.conditionDescription || ''
       };
 
-      // Nếu có up file mới thì ghi đè
+      // Gộp ảnh/video cũ và mới
+      let finalContractImages = [...existingContractImages];
+      let finalConditionImages = [...existingConditionImages];
+      let finalConditionVideos = [...existingConditionVideos];
+
       if (req.files) {
         if (req.files.contractImages && req.files.contractImages.length > 0) {
-          updateData.contractImage = req.files.contractImages.map(file => file.filename);
+          finalContractImages = [...finalContractImages, ...req.files.contractImages.map(file => file.filename)];
         }
         if (req.files.conditionImages && req.files.conditionImages.length > 0) {
-          updateData.conditionImages = JSON.stringify(req.files.conditionImages.map(file => file.filename));
+          finalConditionImages = [...finalConditionImages, ...req.files.conditionImages.map(file => file.filename)];
         }
         if (req.files.conditionVideos && req.files.conditionVideos.length > 0) {
-          updateData.conditionVideos = JSON.stringify(req.files.conditionVideos.map(file => file.filename));
+          finalConditionVideos = [...finalConditionVideos, ...req.files.conditionVideos.map(file => file.filename)];
         }
       }
+
+      updateData.contractImage = finalContractImages;
+      updateData.conditionImages = JSON.stringify(finalConditionImages);
+      updateData.conditionVideos = JSON.stringify(finalConditionVideos);
 
       await contract.update(updateData);
 
@@ -519,8 +532,9 @@ const contractController = {
       const tenantId = req.user.id;
       const contractId = req.params.id;
 
-      // Hứng thêm thông tin ngày và nơi đăng ký từ Frontend
-      const { residenceDate, residencePlace } = req.body;
+      // Hứng thông tin ngày, nơi đăng ký và danh sách ảnh cũ muốn giữ lại
+      const { residenceDate, residencePlace, existingImages } = req.body;
+      const imagesToKeep = existingImages ? JSON.parse(existingImages) : [];
 
       const contract = await RentalContract.findOne({
         where: { id: contractId, tenantId: tenantId, status: 'ACTIVE' }
@@ -528,18 +542,22 @@ const contractController = {
 
       if (!contract) return res.status(404).json({ message: 'Không tìm thấy hợp đồng hợp lệ!' });
 
-      // Hứng mảng file ảnh
-      const residenceFiles = req.files ? req.files.map(file => file.filename) : [];
+      // Hứng mảng file ảnh mới
+      const newResidenceFiles = req.files ? req.files.map(file => file.filename) : [];
+      
+      // Gộp ảnh cũ muốn giữ và ảnh mới chọn
+      const finalImages = [...imagesToKeep, ...newResidenceFiles];
 
-      if (residenceFiles.length === 0) {
+      // Nếu tổng cộng không có ảnh nào (cả cũ lẫn mới) thì báo lỗi
+      if (finalImages.length === 0) {
         return res.status(400).json({ message: 'Vui lòng đính kèm ít nhất 1 ảnh minh chứng!' });
       }
 
       await contract.update({
         residenceStatus: 'REGISTERED',
-        residenceImage: residenceFiles, // Lưu mảng tên file
-        residenceDate: residenceDate,   // Lưu ngày đăng ký
-        residencePlace: residencePlace  // Lưu nơi đăng ký
+        residenceImage: finalImages, 
+        residenceDate: residenceDate,
+        residencePlace: residencePlace
       });
 
       res.status(200).json({ message: 'Cập nhật minh chứng tạm trú thành công!', contract });

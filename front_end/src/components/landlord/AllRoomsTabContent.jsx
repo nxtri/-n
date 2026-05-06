@@ -79,7 +79,7 @@ const AllRoomsTabContent = ({
             <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors text-[22px]">search</span>
             <input 
               type="text" 
-              placeholder="Tìm mã phòng, địa chỉ hoặc tên khách thuê..." 
+              placeholder="Tìm mã phòng, tên/số phòng, số nhà hoặc địa chỉ..." 
               value={roomSearchTerm}
               onChange={(e) => setRoomSearchTerm(e.target.value)}
               className="w-full pl-14 pr-12 py-4 bg-surface-container-low border border-outline-variant/50 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all outline-none placeholder:opacity-50"
@@ -169,12 +169,28 @@ const AllRoomsTabContent = ({
                 <div className="p-6 flex flex-col flex-1 space-y-6">
                   {/* Tên và Mã phòng */}
                   <div>
-                    <h3 
-                      className="font-headline-md text-headline-md text-on-surface line-clamp-1 group-hover:text-primary transition-colors cursor-pointer"
-                      onClick={() => handleViewRoomDetails(room)}
-                    >
-                      {(room.roomType === 'WHOLE_HOUSE' || /nhà|căn/i.test(room.roomNumber)) ? 'Nhà ' : 'Phòng '}{room.roomNumber}
-                    </h3>
+                    {(() => {
+                      const roomPrefix = (room.roomType === 'WHOLE_HOUSE' || /nhà|căn/i.test(room.roomNumber)) ? 'Nhà ' : 'Phòng ';
+                      const roomName = `${roomPrefix}${room.roomNumber}`;
+                      const isLong = roomName.length > 22;
+                      return (
+                        <div className="marquee-container">
+                          <div className={isLong ? "marquee-content" : ""}>
+                            <span 
+                              className="font-headline-md text-headline-md text-on-surface group-hover:text-primary transition-colors cursor-pointer inline-block"
+                              onClick={() => handleViewRoomDetails(room)}
+                            >
+                              {roomName}
+                            </span>
+                            {isLong && (
+                              <span className="ml-8 font-headline-md text-headline-md text-on-surface group-hover:text-primary transition-colors inline-block">
+                                {roomName}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
                     {room.roomCode && (
                       <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-50 mt-0.5">
                         Mã: {room.roomCode}

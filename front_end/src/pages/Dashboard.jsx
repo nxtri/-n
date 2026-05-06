@@ -36,6 +36,8 @@ import {
   LimitModal
 } from '../components/landlord';
 
+import EditBillModal from '../components/landlord/EditBillModal';
+
 import {
   TenantSidebar,
   TenantRoomsTab,
@@ -124,6 +126,7 @@ const Dashboard = () => {
   const [viewIncidentCostDetails, setViewIncidentCostDetails] = useState(null);
   const [viewContract, setViewContract] = useState(null);
   const [contractForBill, setContractForBill] = useState(null);
+  const [billToEdit, setBillToEdit] = useState(null);
   const [proofFiles, setProofFiles] = useState([]);
 
   const notificationRef = useRef(null);
@@ -389,22 +392,54 @@ const Dashboard = () => {
     }
   };
 
-  const handleUploadResidence = async (e, contractId) => {
+  const handleDeleteBill = async (billId) => {
+    if(window.confirm('Bạn có chắc chắn muốn XÓA hóa đơn này?\nHành động này sẽ khôi phục lại chỉ số điện nước trong hợp đồng về kỳ trước đó.')) {
+      try { 
+        await billApi.deleteBill(billId); 
+        alert('Đã xóa hóa đơn thành công!'); 
+        fetchBills(); 
+        fetchContracts();
+      }
+      catch (error) { 
+        alert(error.response?.data?.message || 'Lỗi khi xóa hóa đơn!'); 
+      }
+    }
+  };
+
+  const handleUploadResidence = async (e, contractId, existingImages = []) => {
     e.preventDefault();
+    const contract = contracts.find(c => c.id === contractId);
     const currentFiles = residenceFiles[contractId] || [];
     const currentData = residenceData[contractId] || { date: '', place: '' };
-    if (currentFiles.length === 0 || !currentData.date || !currentData.place) return alert("Vui lòng nhập đủ thông tin!");
+    
+    // Kiểm tra xem tổng cộng có ảnh nào không (cũ hoặc mới)
+    const hasAnyProof = existingImages.length > 0 || currentFiles.length > 0;
+
+    // Bắt buộc nhập ngày và nơi tiếp nhận
+    if (!currentData.date || !currentData.place) {
+      return alert("Vui lòng nhập đầy đủ ngày và nơi tiếp nhận!");
+    }
+
+    // Nếu không có bất kỳ ảnh nào (cả cũ lẫn mới) thì báo lỗi
+    if (!hasAnyProof) {
+      return alert("Vui lòng chọn ít nhất một ảnh minh chứng!");
+    }
+
     try {
       const formData = new FormData();
       formData.append('residenceDate', currentData.date);
       formData.append('residencePlace', currentData.place);
+      formData.append('existingImages', JSON.stringify(existingImages));
       currentFiles.forEach(file => formData.append('residenceImages', file));
       await contractApi.updateResidenceProof(contractId, formData);
-      alert("Nộp minh chứng tạm trú thành công!");
+      alert("Cập nhật minh chứng tạm trú thành công!");
       setResidenceFiles(prev => ({ ...prev, [contractId]: [] })); 
       setResidenceData(prev => ({ ...prev, [contractId]: { date: '', place: '' } }));
-      setEditingResidenceId(null); fetchContracts(); 
-    } catch (error) { alert("Lỗi khi nộp ảnh!"); }
+      setEditingResidenceId(null); 
+      fetchContracts(); 
+    } catch (error) { 
+      alert(error.response?.data?.message || "Lỗi khi nộp ảnh!"); 
+    }
   };
 
   // --- LOGIC TÍNH TOÁN (DÙNG CHO SIDEBAR & TABS) ---
@@ -527,7 +562,7 @@ const Dashboard = () => {
   if (!user) return <div className="flex items-center justify-center h-screen font-black text-primary">Đang xác thực...</div>;
 
   return (
-    <DashboardProvider value={{ contracts, user, rooms, bills, landlordIncidents, transactions, fetchLandlordRooms: fetchRooms }}>
+    <DashboardProvider value={{ contracts, user, rooms, bills, landlordIncidents, transactions, fetchLandlordRooms: fetchRooms, fetchLandlordContracts: fetchContracts, fetchLandlordBills: fetchBills }}>
       <div className="flex flex-col h-screen font-['Inter'] bg-surface-container-lowest text-on-surface">
         {/* 1. HEADER */}
         <div className="bg-surface-container-lowest text-on-surface px-6 py-3 flex justify-between items-center shadow-sm border-b border-outline-variant/30 z-[100] sticky top-0">
@@ -666,8 +701,8 @@ const Dashboard = () => {
               fetchRooms={fetchRooms}
             />
 
-            <TenantsTabContent activeTab={activeTab} setViewContract={setViewContract} handleViewRoomDetails={handleViewRoomDetails} />
-            <LandlordBillsTabContent activeTab={activeTab} bills={bills} setViewBillDetails={setViewBillDetails} />
+            <TenantsTabContent activeTab={activeTab} setViewContract={setViewContract} handleViewRoomDetails={handleViewRoomDetails} handleEditContractClick={handleEditContractClick} />
+            <LandlordBillsTabContent activeTab={activeTab} bills={bills} setViewBillDetails={setViewBillDetails} setEditBill={setBillToEdit} handleDeleteBill={handleDeleteBill} />
             <LandlordRevenueTabContent activeTab={activeTab} setViewBillDetails={setViewBillDetails} setViewIncidentCostDetails={setViewIncidentCostDetails} />
 
             {/* TENANT TABS */}
@@ -756,8 +791,9 @@ const Dashboard = () => {
         <ProfileModal showProfileModal={showProfileModal} setShowProfileModal={setShowProfileModal} isEditingProfile={isEditingProfile} setIsEditingProfile={setIsEditingProfile} isChangingPassword={isChangingPassword} setIsChangingPassword={setIsChangingPassword} profileData={profileData} setProfileData={setProfileData} passwordData={passwordData} setPasswordData={setPasswordData} showOldPwd={showOldPwd} setShowOldPwd={setShowOldPwd} showNewPwd={showNewPwd} setShowNewPwd={setShowNewPwd} showConfirmPwd={showConfirmPwd} setShowConfirmPwd={setShowConfirmPwd} handleSaveProfile={handleSaveProfile} handleSavePassword={handleSavePassword} user={user} />
         <RulesModal showRuleModal={showRuleModal} setShowRuleModal={setShowRuleModal} systemRules={systemRules} />
         <ViewIncidentCostModal viewIncidentCostDetails={viewIncidentCostDetails} onClose={() => setViewIncidentCostDetails(null)} />
-        <ViewContractModal viewContract={viewContract} onClose={() => setViewContract(null)} />
+        <ViewContractModal viewContract={viewContract} onClose={() => setViewContract(null)} handleEditContractClick={handleEditContractClick} />
         <BillFormModal contractForBill={contractForBill} onClose={() => setContractForBill(null)} />
+        <EditBillModal billToEdit={billToEdit} onClose={() => setBillToEdit(null)} />
         <ContractFormModal roomForNewContract={roomForNewContract} contractToEdit={contractToEdit} onClose={() => { setRoomForNewContract(null); setContractToEdit(null); }} />
         <RoomFormModal showModal={showRoomFormModal} setShowModal={setShowRoomFormModal} roomToEdit={roomToEdit} />
         

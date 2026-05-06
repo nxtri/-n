@@ -514,6 +514,31 @@ const RoomDetail = () => {
             </div>
             
             <form onSubmit={handleReportSubmit} className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <p className="text-xs font-black text-outline uppercase tracking-widest px-1">Họ và tên</p>
+                  <input 
+                    type="text" 
+                    required 
+                    value={reportData.fullName}
+                    onChange={e => setReportData({...reportData, fullName: e.target.value})}
+                    className="w-full p-4 bg-surface-container-low border border-outline-variant rounded-2xl text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                    placeholder="Họ và tên..."
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-xs font-black text-outline uppercase tracking-widest px-1">Số điện thoại</p>
+                  <input 
+                    type="tel" 
+                    required 
+                    value={reportData.phoneNumber}
+                    onChange={e => setReportData({...reportData, phoneNumber: e.target.value})}
+                    className="w-full p-4 bg-surface-container-low border border-outline-variant rounded-2xl text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+                    placeholder="Số điện thoại..."
+                  />
+                </div>
+              </div>
+
               <div className="space-y-3">
                 <p className="text-xs font-black text-outline uppercase tracking-widest px-1">Lý do báo cáo</p>
                 <div className="space-y-2">

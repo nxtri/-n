@@ -64,7 +64,7 @@ const AdminSubscriptionTab = () => {
     try {
       const planConfigs = {};
       Object.entries(editPlans).forEach(([key, val]) => {
-        planConfigs[key] = { price: val.price, limit: val.limit };
+        planConfigs[key] = { price: val.price, limit: val.limit, retailPrice: val.retailPrice };
       });
       await walletApi.updatePlanConfig({ planConfigs });
       alert('Cập nhật cấu hình gói thành công!');
@@ -156,6 +156,10 @@ const AdminSubscriptionTab = () => {
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-on-surface-variant">Giá / tháng (VNĐ)</label>
                   <input type="number" value={plan.price} onChange={e => setEditPlans({...editPlans, [key]: {...plan, price: parseInt(e.target.value)||0}})} className="w-full p-3 border border-outline-variant/30 rounded-xl font-bold focus:ring-2 focus:ring-primary/20 outline-none"/>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-secondary">Giá bán lẻ / phòng (đ/phòng/tháng)</label>
+                  <input type="number" value={plan.retailPrice || 0} onChange={e => setEditPlans({...editPlans, [key]: {...plan, retailPrice: parseInt(e.target.value)||0}})} className="w-full p-3 border border-secondary/30 rounded-xl font-bold focus:ring-2 focus:ring-secondary/20 outline-none text-secondary"/>
                 </div>
                 {key !== 'DIAMOND' && (
                   <div className="space-y-2">

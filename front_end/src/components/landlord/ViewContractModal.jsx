@@ -12,321 +12,353 @@ import React from 'react';
  */
 const ViewContractModal = ({ 
   viewContract, // Đối tượng dữ liệu hợp đồng cần hiển thị
-  onClose      // Hàm để đóng modal
+  onClose,      // Hàm để đóng modal
+  handleEditContractClick // Hàm mở form sửa hợp đồng
 }) => {
   if (!viewContract) return null;
 
+  const statusBadge = viewContract.status === 'ACTIVE' 
+    ? <span className="px-3 py-1 bg-secondary/10 text-secondary text-[10px] font-black rounded-full uppercase tracking-widest border border-secondary/20">Đang hiệu lực</span>
+    : <span className="px-3 py-1 bg-error/10 text-error text-[10px] font-black rounded-full uppercase tracking-widest border border-error/20">Đã kết thúc</span>;
+
   return (      
-        <div 
-          style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}
-          onClick={() => onClose()} // Bấm ra ngoài để đóng
-        >
-          <div 
-            style={{ 
-              background: '#fff', 
-              width: '800px', 
-              maxHeight: '90vh', 
-              overflowY: 'auto', 
-              borderRadius: '12px', 
-              padding: '30px', 
-              position: 'relative', 
-              boxSizing: 'border-box',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
-            }}
-            onClick={(e) => e.stopPropagation()} 
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-on-surface/40 backdrop-blur-md animate-in fade-in duration-300"
+      onClick={() => onClose()} 
+    >
+      <div 
+        className="w-full max-w-4xl max-h-[95vh] overflow-y-auto bg-surface-container-lowest p-8 rounded-[2.5rem] border-t-8 border-primary shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 space-y-8 no-scrollbar"
+        onClick={(e) => e.stopPropagation()} 
+      >
+        {/* HEADER */}
+        <div className="flex items-center justify-between pb-6 border-b border-outline-variant/30">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+              <span className="material-symbols-outlined text-3xl">contract</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-3">
+                <h3 className="text-2xl font-black text-on-surface tracking-tight">Chi tiết Hợp Đồng</h3>
+                {statusBadge}
+              </div>
+              <p className="text-sm text-on-surface-variant font-bold opacity-60">Xem lại các điều khoản và thông tin pháp lý</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => onClose()}
+            className="w-12 h-12 flex items-center justify-center hover:bg-error/10 hover:text-error rounded-full transition-all group"
           >
-            {/* Nút Đóng */}
-            <button 
-              onClick={() => onClose()}
-              style={{ position: 'absolute', top: '15px', right: '20px', background: 'transparent', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#64748b' }}
-            >✖</button>
+            <span className="material-symbols-outlined group-hover:rotate-90 transition-transform">close</span>
+          </button>
+        </div>
 
-            <h2 style={{ marginTop: 0, color: '#0f172a', borderBottom: '2px solid #e2e8f0', paddingBottom: '10px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              📄 Chi tiết Hợp Đồng
-              <span style={{ fontSize: '14px', background: viewContract.status === 'ACTIVE' ? '#10b981' : '#ef4444', color: '#ffffff', padding: '4px 10px', borderRadius: '20px', fontWeight: 'normal' }}>
-                {viewContract.status === 'ACTIVE' ? 'Đang hiệu lực' : 'Đã kết thúc'}
-              </span>
-            </h2>
-
-            <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
-              {/* BÊN A */}
-              <div style={{ flex: 1, background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                <h4 style={{ color: '#0f172a', marginTop: 0 }}>1. Bên A (Chủ nhà)</h4>
-                <p style={{ margin: '5px 0', fontSize: '14px', color: '#475569' }}><strong>Họ tên:</strong> {viewContract.landlordName || 'Chưa cập nhật'}</p>
-                <p style={{ margin: '5px 0', fontSize: '14px', color: '#475569' }}><strong>SĐT:</strong> {viewContract.landlordPhone || 'Chưa cập nhật'}</p>
-                <p style={{ margin: '5px 0', fontSize: '14px', color: '#475569' }}><strong>CCCD:</strong> {viewContract.landlordIdentityNumber || 'Chưa cập nhật'}</p>
-                <p style={{ margin: '5px 0', fontSize: '14px', color: '#475569' }}><strong>Ngày sinh:</strong> {viewContract.landlordDob || 'Chưa cập nhật'}</p>
-                <p style={{ margin: '5px 0', fontSize: '14px', color: '#475569' }}><strong>Quê quán:</strong> {viewContract.landlordHometown || 'Chưa cập nhật'}</p>
-              </div>
-
-              {/* BÊN B */}
-              <div style={{ flex: 1, background: '#f0f9ff', padding: '15px', borderRadius: '8px', border: '1px solid #bae6fd' }}>
-                <h4 style={{ color: '#0f172a', marginTop: 0 }}>2. Bên B (Đại diện thuê)</h4>
-                <p style={{ margin: '5px 0', fontSize: '14px', color: '#475569' }}><strong>Họ tên:</strong> {viewContract.tenantName || 'Chưa cập nhật'}</p>
-                <p style={{ margin: '5px 0', fontSize: '14px', color: '#475569' }}><strong>Ngày sinh:</strong> {viewContract.tenantDob || 'Chưa cập nhật'}</p>
-                <p style={{ margin: '5px 0', fontSize: '14px', color: '#475569' }}><strong>Email:</strong> {viewContract.tenantEmail}</p>
-                <p style={{ margin: '5px 0', fontSize: '14px', color: '#475569' }}><strong>SĐT:</strong> {viewContract.tenantPhone || 'Chưa cập nhật'}</p>
-                <p style={{ margin: '5px 0', fontSize: '14px', color: '#475569' }}><strong>CCCD:</strong> {viewContract.tenantIdentityNumber || 'Chưa cập nhật'}</p>
-                <p style={{ margin: '5px 0', fontSize: '14px', color: '#475569' }}><strong>Quê quán:</strong> {viewContract.tenantHometown || 'Chưa cập nhật'}</p>
-              </div>
+        {/* 1. THÔNG TIN CHỦ NHÀ & KHÁCH THUÊ */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* BÊN A */}
+          <div className="bg-surface-container-low p-6 rounded-3xl border border-outline-variant/30 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+              <span className="material-symbols-outlined text-6xl">person</span>
             </div>
-
-            {/* THỜI HẠN & TẠM TRÚ */}
-            {/* THỜI HẠN & TẠM TRÚ */}
-            <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
-              <div style={{ flex: 1, background: '#ffffff', padding: '15px', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
-                <h4 style={{ color: '#0f172a', marginTop: 0 }}>3. Thời hạn thuê</h4>
-                <p style={{ margin: '5px 0', fontSize: '14px', color: '#475569' }}><strong>Bắt đầu:</strong> <span style={{ color: '#10b981', fontWeight: 'bold' }}>{viewContract.startDate || '...'}</span></p>
-                <p style={{ margin: '5px 0', fontSize: '14px', color: '#475569' }}><strong>Kết thúc:</strong> <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{viewContract.endDate || '...'}</span></p>
-              </div>
-              <div style={{ flex: 1, background: '#ffffff', padding: '15px', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
-                <h4 style={{ color: '#0f172a', marginTop: 0 }}>4. Tình trạng Tạm trú</h4>
-                <p style={{ margin: '5px 0', fontSize: '14px', color: '#475569' }}>
-                  <strong>Trạng thái: </strong> 
-                  {viewContract.residenceStatus === 'REGISTERED' 
-                    ? <span style={{ color: '#10b981', fontWeight: 'bold' }}>Đã đăng ký</span> 
-                    : <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>Chưa đăng ký</span>}
-                </p>
-                {viewContract.residenceStatus === 'REGISTERED' && (
-                  <>
-                    <p style={{ margin: '5px 0', fontSize: '14px', color: '#475569' }}><strong>Ngày ĐK:</strong> {viewContract.residenceDate}</p>
-                    <p style={{ margin: '5px 0', fontSize: '14px', color: '#475569' }}><strong>Nơi ĐK:</strong> {viewContract.residencePlace}</p>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* CHI PHÍ ĐÀM PHÁN */}
-            <h4 style={{ color: '#0f172a', marginBottom: '10px' }}>5. Chi phí đàm phán (Gốc tính hóa đơn)</h4>
-            
-            {viewContract.isDirectUtilityPayment && (
-              <div style={{ background: '#ecfdf5', color: '#065f46', padding: '10px 15px', borderRadius: '8px', border: '1px solid #6ee7b7', marginBottom: '15px', fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                ✅ Khách thuê tự thanh toán trực tiếp cho bên điện lực.
-              </div>
-            )}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', background: '#fef3c7', padding: '15px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #fde68a' }}>
-              <div style={{ fontSize: '14px', color: '#475569' }}><strong>Giá phòng:</strong> <span style={{ color: '#ef4444', fontWeight: 'bold' }}>{Number(viewContract.price || 0).toLocaleString('vi-VN')} đ/tháng</span></div>
-              {!viewContract.isDirectUtilityPayment ? (
-                <>
-                  <div style={{ fontSize: '14px', color: '#475569' }}><strong>Điện:</strong> {Number(viewContract.electricityPrice || 0).toLocaleString('vi-VN')} đ/ký</div>
-                  <div style={{ fontSize: '14px', color: '#475569' }}><strong>Nước:</strong> {Number(viewContract.waterPrice || 0).toLocaleString('vi-VN')} đ/khối</div>
-                </>
-              ) : (
-                <div style={{ gridColumn: 'span 2', fontSize: '14px', color: '#64748b', fontStyle: 'italic' }}>
-                  (Điện/Nước thanh toán trực tiếp cho nhà cung cấp)
-                </div>
-              )}
-              <div style={{ fontSize: '14px', color: '#475569' }}><strong>Internet:</strong> {Number(viewContract.internetPrice || 0).toLocaleString('vi-VN')} đ/tháng</div>
-              <div style={{ fontSize: '14px', color: '#475569' }}><strong>Số điện đầu:</strong> <span style={{ color: '#0f172a', fontWeight: 'bold' }}>{viewContract.startElectricity || 0} ký</span></div>
-              <div style={{ fontSize: '14px', color: '#475569' }}><strong>Số nước đầu:</strong> <span style={{ color: '#0f172a', fontWeight: 'bold' }}>{viewContract.startWater || 0} khối</span></div>
-              <div style={{ fontSize: '14px', gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '10px', color: '#475569' }}>
-                <strong>Số lượng xe:</strong> 
-                <span style={{ color: '#2563eb', fontWeight: 'bold', fontSize: '16px' }}>{viewContract.vehicleCount} chiếc</span>
-                (x {Number(viewContract.parkingPrice || 0).toLocaleString('vi-VN')} đ/xe)
-                
-                
-                
-              </div>
-            
-              <div style={{ fontSize: '14px', gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '10px', color: '#475569' }}>
-                <strong>Phí vệ sinh/dịch vụ chung:</strong> 
-                <span style={{ color: '#2563eb', fontWeight: 'bold', fontSize: '16px' }}>{Number(viewContract.servicePrice || 0).toLocaleString('vi-VN')} đ/tháng</span>
-                
-              
-              </div>
-            </div>
-
-            {/* THÀNH VIÊN Ở GHÉP */}
-            <h4 style={{ color: '#0f172a', marginBottom: '10px' }}>6. Người ở cùng ({viewContract.members ? (typeof viewContract.members === 'string' ? JSON.parse(viewContract.members).length : viewContract.members.length) : 0} người)</h4>
-            <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              {viewContract.members && (typeof viewContract.members === 'string' ? JSON.parse(viewContract.members) : viewContract.members).length > 0 ? (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '2px solid #cbd5e1', textAlign: 'left' }}>
-                      <th style={{ padding: '8px 0', color: '#0f172a' }}>Họ tên</th>
-                      <th style={{ color: '#0f172a' }}>Ngày sinh</th>
-                      <th style={{ color: '#0f172a' }}>CCCD</th>
-                      <th style={{ color: '#0f172a' }}>SĐT</th>
-                      <th style={{ color: '#0f172a' }}>Quê quán</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(typeof viewContract.members === 'string' ? JSON.parse(viewContract.members) : viewContract.members).map((member, idx) => (
-                      <tr key={idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                        <td style={{ padding: '8px 0', fontWeight: 'bold', color: '#0f172a' }}>{member.fullName}</td>
-                        <td style={{ color: '#475569' }}>{member.dob}</td>
-                        <td style={{ color: '#475569' }}>{member.identityNumber}</td>
-                        <td style={{ color: '#475569' }}>{member.phone}</td>
-                        <td style={{ color: '#475569' }}>{member.hometown}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p style={{ margin: 0, fontSize: '14px', color: '#64748b', fontStyle: 'italic' }}>Không có người ở cùng.</p>
-              )}
-            </div>
-{/* PHẦN 7: ẢNH HỢP ĐỒNG (Bản "Chống đạn" ép kiểu dữ liệu an toàn) */}
-            <h4 style={{ color: '#0f172a', marginBottom: '10px' }}>
-              7. Ảnh chụp hợp đồng bản cứng
+            <h4 className="text-[11px] font-black text-primary uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+              Bên A (Chủ nhà)
             </h4>
-            <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-              {(() => {
-                // Xử lý an toàn: Ép kiểu dữ liệu về mảng Array
-                let images = [];
-                try {
-                  if (Array.isArray(viewContract.contractImage)) {
-                    images = viewContract.contractImage;
-                  } else if (typeof viewContract.contractImage === 'string') {
-                    images = JSON.parse(viewContract.contractImage);
-                  }
-                } catch (error) {
-                  images = []; // Nếu lỗi parse thì cho mảng rỗng
-                }
-
-                // Hiển thị giao diện dựa trên mảng images đã xử lý
-                return images && images.length > 0 ? (
-                  <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '10px' }}>
-                    {images.map((fileName, idx) => (
-                      <div key={idx} style={{ flex: '0 0 150px' }}>
-                        {/* CHÚ Ý: Đảm bảo thêm /uploads/ vào đường dẫn URL nếu server của bạn lưu ảnh ở thư mục uploads */}
-                        <img 
-                          src={`http://localhost:5000/uploads/${fileName}`} 
-                          alt={`Ảnh hợp đồng ${idx + 1}`} 
-                          style={{ width: '100%', height: '100px', objectFit: 'cover', borderRadius: '6px', border: '2px solid #cbd5e1', cursor: 'pointer' }}
-                          onClick={() => window.open(`http://localhost:5000/uploads/${fileName}`)} 
-                          onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/150x100?text=Khong+tim+thay+anh'; }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p style={{ margin: 0, fontSize: '13px', color: '#64748b', fontStyle: 'italic', textAlign: 'center' }}>
-                    * Hợp đồng này chưa được đính kèm ảnh bản cứng (Hoặc ảnh bị lỗi).
-                  </p>
-                );
-              })()}
+            <div className="space-y-3 relative z-10">
+              <div className="flex justify-between items-center"><span className="text-xs font-bold text-on-surface-variant opacity-60">Họ tên:</span> <span className="text-sm font-black text-on-surface">{viewContract.landlordName || '---'}</span></div>
+              <div className="flex justify-between items-center"><span className="text-xs font-bold text-on-surface-variant opacity-60">CCCD:</span> <span className="text-sm font-black text-on-surface">{viewContract.landlordIdentityNumber || '---'}</span></div>
+              <div className="flex justify-between items-center"><span className="text-xs font-bold text-on-surface-variant opacity-60">Ngày sinh:</span> <span className="text-sm font-black text-on-surface">{viewContract.landlordDob || '---'}</span></div>
+              <div className="flex justify-between items-center"><span className="text-xs font-bold text-on-surface-variant opacity-60">SĐT:</span> <span className="text-sm font-black text-primary">{viewContract.landlordPhone || '---'}</span></div>
+              <div className="flex justify-between items-center"><span className="text-xs font-bold text-on-surface-variant opacity-60">Quê quán:</span> <span className="text-sm font-bold text-on-surface opacity-80">{viewContract.landlordHometown || '---'}</span></div>
             </div>
-            {/* 8. Ảnh chụp đăng ký tạm trú */}
-            <div style={{ background: '#ffffff', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '20px', marginTop: '20px' }}>
-              <h4 style={{ color: '#0f172a', marginTop: 0, textAlign: 'center' }}>8. Ảnh đăng ký tạm trú</h4>
-              <div style={{ textAlign: 'center', background: '#f8fafc', padding: '10px', borderRadius: '6px' }}>
-                {(() => {
-                  // Xử lý an toàn giống Mục 7: Ép kiểu dữ liệu về mảng Array
-                  let residenceImages = [];
-                  try {
-                    if (Array.isArray(viewContract.residenceImage)) {
-                      residenceImages = viewContract.residenceImage;
-                    } else if (typeof viewContract.residenceImage === 'string') {
-                      // Nếu chuỗi rỗng hoặc không hợp lệ thì bỏ qua
-                      if(viewContract.residenceImage.trim() !== '') {
-                        // Thử parse JSON, nếu lỗi thì coi như nó là tên file đơn lẻ
-                        try {
-                           residenceImages = JSON.parse(viewContract.residenceImage);
-                        } catch(e) {
-                           residenceImages = [viewContract.residenceImage];
-                        }
-                      }
-                    }
-                  } catch (error) {
-                    residenceImages = [];
-                  }
+          </div>
 
-                  // Render ảnh nếu có
-                  return residenceImages && residenceImages.length > 0 ? (
-                    <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', paddingBottom: '10px', justifyContent: 'center' }}>
-                      {residenceImages.map((fileName, idx) => {
-                         // Xử lý tên file phòng trường hợp backend lưu kèm cả chữ uploads/ rồi
-                         const cleanFileName = fileName.replace('uploads/', '').replace('uploads\\', '');
-                         return (
-                          <div key={idx} style={{ flex: '0 0 auto' }}>
-                            <img 
-                              src={`http://localhost:5000/uploads/${cleanFileName}`} 
-                              alt={`Ảnh đăng ký tạm trú ${idx + 1}`} 
-                              style={{ maxWidth: '100%', maxHeight: '300px', objectFit: 'contain', borderRadius: '4px', border: '1px solid #cbd5e1', cursor: 'pointer' }}
-                              onClick={() => window.open(`http://localhost:5000/uploads/${cleanFileName}`)}
-                              onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/300x200?text=Khong+tim+thay+anh'; }}
-                            />
-                          </div>
-                         )
-                      })}
-                    </div>
-                  ) : (
-                    <p style={{ color: '#64748b', fontStyle: 'italic', margin: '20px 0' }}>Không có ảnh đăng ký tạm trú đính kèm.</p>
-                  );
-                })()}
-              </div>
+          {/* BÊN B */}
+          <div className="bg-secondary-container/5 p-6 rounded-3xl border border-secondary/20 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-secondary">
+              <span className="material-symbols-outlined text-6xl">account_circle</span>
             </div>
-
-            {/* 9. Tình trạng phòng bàn giao */}
-            <h4 style={{ color: '#0f172a', marginBottom: '10px' }}>9. Tình trạng phòng bàn giao</h4>
-            <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '8px', border: '1px solid #e2e8f0', marginBottom: '20px' }}>
-              <p style={{ margin: '0 0 10px 0', fontSize: '14px', whiteSpace: 'pre-wrap', color: '#475569' }}>
-                <strong style={{ color: '#0f172a'}}>Mô tả chi tiết:</strong> {viewContract.conditionDescription || <span style={{ color: '#64748b', fontStyle: 'italic' }}>Không có mô tả.</span>}
-              </p>
-              
-              {/* Ảnh tình trạng phòng */}
-              <div style={{ marginBottom: '15px', color: '#475569' }}>
-                <strong style={{ color: '#0f172a'}}>Ảnh đính kèm:</strong>
-                {(() => {
-                  let cImages = [];
-                  try {
-                    if (Array.isArray(viewContract.conditionImages)) cImages = viewContract.conditionImages;
-                    else if (typeof viewContract.conditionImages === 'string') {
-                      cImages = JSON.parse(viewContract.conditionImages);
-                    }
-                  } catch(e) {}
-                  
-                  return cImages && cImages.length > 0 ? (
-                    <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', marginTop: '10px' }}>
-                      {cImages.map((fileName, idx) => {
-                        const cleanName = fileName.replace('uploads/', '').replace('uploads\\', '');
-                        return (
-                          <img key={idx} src={`http://localhost:5000/uploads/${cleanName}`} alt="Ảnh bàn giao" 
-                               style={{ height: '100px', borderRadius: '4px', cursor: 'pointer', border: '1px solid #cbd5e1' }} 
-                               onClick={() => window.open(`http://localhost:5000/uploads/${cleanName}`)} />
-                        )
-                      })}
-                    </div>
-                  ) : <span style={{ marginLeft: '10px', color: '#64748b', fontStyle: 'italic', fontSize: '13px' }}>Không có ảnh</span>
-                })()}
-              </div>
-
-              {/* Video tình trạng phòng */}
-              <div style={{ color: '#475569' }}>
-                <strong style={{ color: '#0f172a'}}>Video đính kèm:</strong>
-                {(() => {
-                  let cVideos = [];
-                  try {
-                    if (Array.isArray(viewContract.conditionVideos)) cVideos = viewContract.conditionVideos;
-                    else if (typeof viewContract.conditionVideos === 'string') {
-                      cVideos = JSON.parse(viewContract.conditionVideos);
-                    }
-                  } catch(e) {}
-
-                  return cVideos && cVideos.length > 0 ? (
-                    <div style={{ display: 'flex', gap: '10px', overflowX: 'auto', marginTop: '10px' }}>
-                      {cVideos.map((fileName, idx) => {
-                        const cleanName = fileName.replace('uploads/', '').replace('uploads\\', '');
-                        return (
-                          <video key={idx} src={`http://localhost:5000/uploads/${cleanName}`} controls
-                                 style={{ height: '150px', borderRadius: '4px', border: '1px solid #cbd5e1' }} />
-                        )
-                      })}
-                    </div>
-                  ) : <span style={{ marginLeft: '10px', color: '#64748b', fontStyle: 'italic', fontSize: '13px' }}>Không có video</span>
-                })()}
-              </div>
-            </div>
-            {/* Nút Đóng */}
-            <div style={{ textAlign: 'right', marginTop: '20px' }}>
-              <button onClick={() => onClose()} style={{ padding: '10px 25px', background: '#64748b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
-                Đóng
-              </button>
+            <h4 className="text-[11px] font-black text-secondary uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-secondary animate-pulse"></span>
+              Bên B (Đại diện thuê)
+            </h4>
+            <div className="space-y-3 relative z-10">
+              <div className="flex justify-between items-center"><span className="text-xs font-bold text-on-surface-variant opacity-60">Họ tên:</span> <span className="text-sm font-black text-on-surface">{viewContract.tenantName || '---'}</span></div>
+              <div className="flex justify-between items-center"><span className="text-xs font-bold text-on-surface-variant opacity-60">CCCD:</span> <span className="text-sm font-black text-on-surface">{viewContract.tenantIdentityNumber || '---'}</span></div>
+              <div className="flex justify-between items-center"><span className="text-xs font-bold text-on-surface-variant opacity-60">Ngày sinh:</span> <span className="text-sm font-black text-on-surface">{viewContract.tenantDob || '---'}</span></div>
+              <div className="flex justify-between items-center"><span className="text-xs font-bold text-on-surface-variant opacity-60">SĐT:</span> <span className="text-sm font-black text-on-surface">{viewContract.tenantPhone || '---'}</span></div>
+              <div className="flex justify-between items-center"><span className="text-xs font-bold text-on-surface-variant opacity-60">Quê quán:</span> <span className="text-sm font-bold text-on-surface opacity-80">{viewContract.tenantHometown || '---'}</span></div>
+              <div className="flex justify-between items-center"><span className="text-xs font-bold text-on-surface-variant opacity-60">Email:</span> <span className="text-sm font-black text-secondary">{viewContract.tenantEmail}</span></div>
             </div>
           </div>
         </div>
-      
+
+        {/* 2. THỜI HẠN & TẠM TRÚ */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white p-6 rounded-3xl border-2 border-dashed border-outline-variant/50">
+            <h4 className="text-[11px] font-black text-on-surface-variant uppercase tracking-[0.2em] mb-4">Thời hạn thuê</h4>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1 text-center p-3 bg-secondary/5 rounded-2xl border border-secondary/10">
+                <p className="text-[10px] font-black text-secondary uppercase mb-1">Bắt đầu</p>
+                <p className="text-sm font-black text-on-surface">{viewContract.startDate || '---'}</p>
+              </div>
+              <div className="material-symbols-outlined text-outline-variant opacity-30">trending_flat</div>
+              <div className="flex-1 text-center p-3 bg-error/5 rounded-2xl border border-error/10">
+                <p className="text-[10px] font-black text-error uppercase mb-1">Kết thúc</p>
+                <p className="text-sm font-black text-on-surface">{viewContract.endDate || '---'}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-3xl border-2 border-dashed border-outline-variant/50">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-[11px] font-black text-on-surface-variant uppercase tracking-[0.2em]">Tình trạng Tạm trú</h4>
+              <div className={`px-4 py-1.5 rounded-2xl font-black text-[10px] uppercase tracking-widest ${viewContract.residenceStatus === 'REGISTERED' ? 'bg-secondary/10 text-secondary border border-secondary/20' : 'bg-tertiary/10 text-tertiary border border-tertiary/20'}`}>
+                {viewContract.residenceStatus === 'REGISTERED' ? 'Đã đăng ký' : 'Chưa đăng ký'}
+              </div>
+            </div>
+            <div className="flex flex-col gap-3">
+              {viewContract.residenceStatus === 'REGISTERED' && (
+                <div className="space-y-1 bg-surface-container-low/50 p-3 rounded-xl border border-outline-variant/20">
+                  <p className="text-xs font-bold text-on-surface-variant flex items-center gap-2">
+                    <span className="material-symbols-outlined text-xs">calendar_today</span>
+                    Ngày ĐK: {viewContract.residenceDate}
+                  </p>
+                  <p className="text-xs font-bold text-on-surface-variant flex items-center gap-2">
+                    <span className="material-symbols-outlined text-xs">location_on</span>
+                    Nơi ĐK: {viewContract.residencePlace}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* 3. CHI PHÍ ĐÀM PHÁN */}
+        <div className="space-y-4">
+          <h4 className="text-[11px] font-black text-on-surface-variant uppercase tracking-[0.2em] flex items-center gap-2">
+            <span className="material-symbols-outlined text-lg">payments</span>
+            Chi phí đàm phán (Gốc tính hóa đơn)
+          </h4>
+          
+          {viewContract.isDirectUtilityPayment && (
+            <div className="bg-secondary/10 text-secondary p-4 rounded-2xl border border-secondary/20 text-xs font-black flex items-center gap-3">
+              <span className="material-symbols-outlined text-xl">bolt</span>
+              Khách thuê tự thanh toán trực tiếp cho bên điện lực.
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: 'Giá phòng', val: `${Number(viewContract.price || 0).toLocaleString()} đ`, color: 'text-primary' },
+              { label: 'Internet', val: `${Number(viewContract.internetPrice || 0).toLocaleString()} đ`, color: 'text-on-surface' },
+              { label: 'Gửi xe', val: `${Number(viewContract.vehicleCount || 0)} xe (x ${Number(viewContract.parkingPrice || 0).toLocaleString()} đ/xe)`, color: 'text-on-surface' },
+              { label: 'Dịch vụ/Vệ sinh', val: `${Number(viewContract.servicePrice || 0).toLocaleString()} đ`, color: 'text-on-surface' },
+            ].map((item, i) => (
+              <div key={i} className="bg-surface-container-low p-4 rounded-2xl border border-outline-variant/20">
+                <p className="text-[10px] font-black text-on-surface-variant uppercase opacity-50 mb-1">{item.label}</p>
+                <p className={`text-sm font-black ${item.color}`}>{item.val}</p>
+              </div>
+            ))}
+          </div>
+
+          {!viewContract.isDirectUtilityPayment && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+               {[
+                { label: 'Giá Điện', val: `${Number(viewContract.electricityPrice || 0).toLocaleString()} đ/ký`, color: 'text-error' },
+                { label: 'Giá Nước', val: `${Number(viewContract.waterPrice || 0).toLocaleString()} đ/khối`, color: 'text-primary' },
+                { label: 'Điện đầu kỳ', val: `${viewContract.startElectricity || 0} ký`, color: 'text-on-surface' },
+                { label: 'Nước đầu kỳ', val: `${viewContract.startWater || 0} khối`, color: 'text-on-surface' },
+              ].map((item, i) => (
+                <div key={i} className="bg-white p-4 rounded-2xl border border-outline-variant/30">
+                  <p className="text-[10px] font-black text-on-surface-variant uppercase opacity-50 mb-1">{item.label}</p>
+                  <p className={`text-sm font-black ${item.color}`}>{item.val}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 4. THÀNH VIÊN Ở CÙNG */}
+        <div className="space-y-4">
+          <h4 className="text-[11px] font-black text-on-surface-variant uppercase tracking-[0.2em] flex items-center gap-2">
+            <span className="material-symbols-outlined text-lg">groups</span>
+            Người ở cùng ({viewContract.members ? (typeof viewContract.members === 'string' ? JSON.parse(viewContract.members).length : viewContract.members.length) : 0} người)
+          </h4>
+          <div className="bg-white rounded-3xl border border-outline-variant/30 overflow-hidden shadow-sm">
+            {viewContract.members && (typeof viewContract.members === 'string' ? JSON.parse(viewContract.members) : viewContract.members).length > 0 ? (
+              <table className="w-full text-left text-xs">
+                <thead className="bg-surface-container-low border-b border-outline-variant/30">
+                  <tr>
+                    <th className="px-6 py-4 font-black text-on-surface uppercase tracking-widest">Họ tên</th>
+                    <th className="px-6 py-4 font-black text-on-surface uppercase tracking-widest">Ngày sinh</th>
+                    <th className="px-6 py-4 font-black text-on-surface uppercase tracking-widest">CCCD</th>
+                    <th className="px-6 py-4 font-black text-on-surface uppercase tracking-widest">SĐT</th>
+                    <th className="px-6 py-4 font-black text-on-surface uppercase tracking-widest">Quê quán</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant/10">
+                  {(typeof viewContract.members === 'string' ? JSON.parse(viewContract.members) : viewContract.members).map((member, idx) => (
+                    <tr key={idx} className="hover:bg-surface-container-lowest transition-colors">
+                      <td className="px-6 py-4 font-black text-on-surface">{member.fullName}</td>
+                      <td className="px-6 py-4 font-bold text-on-surface-variant opacity-70">{member.dob}</td>
+                      <td className="px-6 py-4 font-bold text-on-surface-variant opacity-70">{member.identityNumber}</td>
+                      <td className="px-6 py-4 font-bold text-primary">{member.phone}</td>
+                      <td className="px-6 py-4 font-bold text-on-surface-variant opacity-70">{member.hometown}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="p-12 text-center text-on-surface-variant opacity-40 font-bold italic">Không có người ở cùng</div>
+            )}
+          </div>
+        </div>
+
+        {/* 5. ẢNH HỢP ĐỒNG & MINH CHỨNG */}
+        <div className="space-y-6">
+          {/* Ảnh hợp đồng */}
+          <div className="space-y-3">
+             <h4 className="text-[11px] font-black text-on-surface-variant uppercase tracking-[0.2em] flex items-center gap-2">
+              <span className="material-symbols-outlined text-lg">photo_library</span>
+              7. Ảnh chụp hợp đồng bản cứng
+            </h4>
+            <div className="bg-surface-container-low p-4 rounded-3xl border border-outline-variant/30">
+              {(() => {
+                let images = [];
+                try {
+                  if (Array.isArray(viewContract.contractImage)) images = viewContract.contractImage;
+                  else if (typeof viewContract.contractImage === 'string') images = JSON.parse(viewContract.contractImage);
+                } catch (error) { images = []; }
+
+                return images.length > 0 ? (
+                  <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
+                    {images.map((fileName, idx) => (
+                      <div key={idx} className="shrink-0 w-32 h-44 rounded-2xl overflow-hidden border-2 border-white shadow-md hover:scale-105 transition-transform cursor-pointer" onClick={() => window.open(`http://localhost:5000/uploads/${fileName}`)}>
+                        <img src={`http://localhost:5000/uploads/${fileName}`} className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                ) : <div className="py-4 text-center text-xs font-bold text-on-surface-variant opacity-40 italic">Hợp đồng này chưa được đính kèm ảnh bản cứng (Hoặc ảnh bị lỗi).</div>;
+              })()}
+            </div>
+          </div>
+
+          {/* Ảnh đăng ký tạm trú */}
+          <div className="space-y-3">
+             <h4 className="text-[11px] font-black text-on-surface-variant uppercase tracking-[0.2em] flex items-center gap-2">
+              <span className="material-symbols-outlined text-lg">fact_check</span>
+              8. Ảnh đăng ký tạm trú
+            </h4>
+            <div className="bg-white p-4 rounded-3xl border border-outline-variant/30">
+              {(() => {
+                let residenceImages = [];
+                try {
+                  if (Array.isArray(viewContract.residenceImage)) residenceImages = viewContract.residenceImage;
+                  else if (typeof viewContract.residenceImage === 'string' && viewContract.residenceImage.trim() !== '') {
+                    try { residenceImages = JSON.parse(viewContract.residenceImage); } 
+                    catch(e) { residenceImages = [viewContract.residenceImage]; }
+                  }
+                } catch (error) { residenceImages = []; }
+
+                return residenceImages.length > 0 ? (
+                  <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
+                    {residenceImages.map((fileName, idx) => {
+                      const cleanFileName = fileName.replace('uploads/', '').replace('uploads\\', '');
+                      return (
+                        <div key={idx} className="shrink-0 max-w-[300px] h-48 rounded-2xl overflow-hidden border-2 border-white shadow-md hover:scale-105 transition-transform cursor-pointer" onClick={() => window.open(`http://localhost:5000/uploads/${cleanFileName}`)}>
+                          <img src={`http://localhost:5000/uploads/${cleanFileName}`} className="w-full h-full object-contain bg-surface-container-low" />
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : <div className="py-4 text-center text-xs font-bold text-on-surface-variant opacity-40 italic">Không có ảnh đăng ký tạm trú đính kèm.</div>;
+              })()}
+            </div>
+          </div>
+
+          {/* Tình trạng bàn giao */}
+          <div className="space-y-3">
+             <h4 className="text-[11px] font-black text-on-surface-variant uppercase tracking-[0.2em] flex items-center gap-2">
+              <span className="material-symbols-outlined text-lg">house_siding</span>
+              9. Tình trạng phòng bàn giao
+            </h4>
+            <div className="bg-white p-6 rounded-3xl border border-outline-variant/30 space-y-6">
+              <div className="p-4 bg-surface-container-low rounded-2xl text-sm font-bold text-on-surface-variant leading-relaxed border-l-4 border-primary">
+                <strong className="text-on-surface block mb-1">Mô tả chi tiết:</strong>
+                {viewContract.conditionDescription || <span className="italic opacity-40">Không có mô tả chi tiết.</span>}
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                   <p className="text-[10px] font-black text-on-surface-variant uppercase opacity-50 mb-3 ml-1">Ảnh đính kèm</p>
+                   {(() => {
+                    let cImages = [];
+                    try {
+                      if (Array.isArray(viewContract.conditionImages)) cImages = viewContract.conditionImages;
+                      else if (typeof viewContract.conditionImages === 'string') cImages = JSON.parse(viewContract.conditionImages);
+                    } catch(e) {}
+                    
+                    return cImages.length > 0 ? (
+                      <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                        {cImages.map((fileName, idx) => {
+                          const cleanName = fileName.replace('uploads/', '').replace('uploads\\', '');
+                          return (
+                            <img key={idx} src={`http://localhost:5000/uploads/${cleanName}`} className="w-20 h-20 rounded-xl object-cover border border-outline-variant/30 cursor-pointer hover:opacity-80 shadow-sm" onClick={() => window.open(`http://localhost:5000/uploads/${cleanName}`)} />
+                          )
+                        })}
+                      </div>
+                    ) : <span className="text-[10px] font-bold text-on-surface-variant opacity-30 italic ml-1">Không có ảnh</span>
+                  })()}
+                </div>
+                <div>
+                   <p className="text-[10px] font-black text-on-surface-variant uppercase opacity-50 mb-3 ml-1">Video đính kèm</p>
+                   {(() => {
+                    let cVideos = [];
+                    try {
+                      if (Array.isArray(viewContract.conditionVideos)) cVideos = viewContract.conditionVideos;
+                      else if (typeof viewContract.conditionVideos === 'string') cVideos = JSON.parse(viewContract.conditionVideos);
+                    } catch(e) {}
+
+                    return cVideos.length > 0 ? (
+                      <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                        {cVideos.map((fileName, idx) => {
+                          const cleanName = fileName.replace('uploads/', '').replace('uploads\\', '');
+                          return (
+                            <video key={idx} src={`http://localhost:5000/uploads/${cleanName}`} className="h-20 w-32 rounded-xl object-cover bg-black border border-outline-variant/30 shadow-sm" controls />
+                          )
+                        })}
+                      </div>
+                    ) : <span className="text-[10px] font-bold text-on-surface-variant opacity-30 italic ml-1">Không có video</span>
+                  })()}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ACTION FOOTER */}
+        <div className="flex justify-end gap-4 pt-6 border-t border-outline-variant/30">
+          {viewContract.status === 'ACTIVE' && handleEditContractClick && (
+            <button 
+              onClick={() => {
+                onClose();
+                handleEditContractClick(viewContract);
+              }} 
+              className="px-10 py-4 bg-secondary/10 text-secondary border border-secondary/20 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-secondary hover:text-white transition-all shadow-sm flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[18px]">edit</span>
+              Sửa Hợp Đồng
+            </button>
+          )}
+          <button 
+            onClick={() => onClose()} 
+            className="px-12 py-4 bg-on-surface text-surface-container-lowest rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-105 active:scale-95 transition-all shadow-lg"
+          >
+            Đóng cửa sổ
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

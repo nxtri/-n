@@ -51,19 +51,19 @@ const Header = ({
             <nav className="hidden md:flex items-center gap-8">
               <button 
                 onClick={() => handleTypeClick('all')}
-                className={`${activeType === 'all' || !activeType ? 'text-blue-600 border-blue-600' : 'text-gray-600 border-transparent'} font-bold border-b-2 pb-1 text-label-md transition-all`}
+                className={`${activeType === 'all' || !activeType ? 'text-blue-600 border-blue-600' : 'text-gray-600 border-transparent'} hover:text-blue-600 font-bold border-b-2 pb-1 text-label-md transition-all`}
               >
                 Tất cả
               </button>
               <button 
                 onClick={() => handleTypeClick('SINGLE')}
-                className={`${activeType === 'SINGLE' ? 'text-blue-600 border-blue-600' : 'text-gray-600 border-transparent'} hover:text-blue-600 font-label-md text-label-md transition-all`}
+                className={`${activeType === 'SINGLE' ? 'text-blue-600 border-blue-600' : 'text-gray-600 border-transparent'} hover:text-blue-600 font-bold border-b-2 pb-1 text-label-md transition-all`}
               >
                 Phòng trọ
               </button>
               <button 
                 onClick={() => handleTypeClick('WHOLE_HOUSE')}
-                className={`${activeType === 'WHOLE_HOUSE' ? 'text-blue-600 border-blue-600' : 'text-gray-600 border-transparent'} hover:text-blue-600 font-label-md text-label-md transition-all`}
+                className={`${activeType === 'WHOLE_HOUSE' ? 'text-blue-600 border-blue-600' : 'text-gray-600 border-transparent'} hover:text-blue-600 font-bold border-b-2 pb-1 text-label-md transition-all`}
               >
                 Nhà nguyên căn
               </button>

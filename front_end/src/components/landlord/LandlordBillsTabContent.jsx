@@ -9,7 +9,9 @@ import React from 'react';
 const LandlordBillsTabContent = ({ 
   activeTab,          // Tab hiện tại đang được chọn trong Sidebar
   bills,              // Danh sách tất cả hóa đơn của chủ nhà
-  setViewBillDetails  // Hàm để mở modal xem chi tiết hóa đơn
+  setViewBillDetails, // Hàm để mở modal xem chi tiết hóa đơn
+  setEditBill,        // Hàm để mở modal sửa hóa đơn
+  handleDeleteBill    // Hàm để xử lý xóa hóa đơn
 }) => {
   if (activeTab !== 'LANDLORD_BILLS') return null;
 
@@ -113,13 +115,36 @@ const LandlordBillsTabContent = ({
                           </td>
 
                           <td className="py-4 px-8 text-center">
-                            <button 
-                              onClick={() => setViewBillDetails(bill)} 
-                              className="bg-primary/10 text-primary hover:bg-primary hover:text-white font-label-md text-[12px] px-4 py-2 rounded-xl transition-all font-bold flex items-center justify-center gap-2 mx-auto"
-                            >
-                              <span className="material-symbols-outlined text-[16px]">visibility</span>
-                              Xem
-                            </button>
+                            <div className="flex items-center justify-center gap-2">
+                              <button 
+                                onClick={() => setViewBillDetails(bill)} 
+                                className="bg-primary/10 text-primary hover:bg-primary hover:text-white font-label-md text-[12px] px-3 py-1.5 rounded-xl transition-all font-bold flex items-center justify-center gap-1.5"
+                                title="Xem chi tiết"
+                              >
+                                <span className="material-symbols-outlined text-[16px]">visibility</span>
+                                Xem
+                              </button>
+                              
+                              {bill.billType === 'UTILITY' && bill.status === 'UNPAID' && (
+                                <>
+                                  <button 
+                                    onClick={() => setEditBill && setEditBill(bill)} 
+                                    className="bg-secondary/10 text-secondary hover:bg-secondary hover:text-white font-label-md text-[12px] px-3 py-1.5 rounded-xl transition-all font-bold flex items-center justify-center gap-1.5"
+                                    title="Sửa hóa đơn"
+                                  >
+                                    <span className="material-symbols-outlined text-[16px]">edit</span>
+                                  </button>
+                                  
+                                  <button 
+                                    onClick={() => handleDeleteBill && handleDeleteBill(bill.id)} 
+                                    className="bg-error/10 text-error hover:bg-error hover:text-white font-label-md text-[12px] px-3 py-1.5 rounded-xl transition-all font-bold flex items-center justify-center gap-1.5"
+                                    title="Xóa hóa đơn"
+                                  >
+                                    <span className="material-symbols-outlined text-[16px]">delete</span>
+                                  </button>
+                                </>
+                              )}
+                            </div>
                           </td>
 
                         </tr>

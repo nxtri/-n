@@ -30,6 +30,58 @@ const TenantRoomsTab = ({
   setEditingResidenceId,    // Hàm cập nhật ID đang sửa tạm trú
   setViewContract           // Hàm mở xem hợp đồng điện tử
 }) => {
+  const [residencePreviews, setResidencePreviews] = React.useState({});
+  const [viewingMedia, setViewingMedia] = React.useState(null);
+
+  const handleResidenceFileChange = (e, contractId) => {
+    const existingCount = residenceFiles[contractId]?.length || 0;
+    const files = Array.from(e.target.files);
+    
+    if (existingCount + files.length > 5) {
+      alert(`Bạn chỉ có thể tải lên tối đa 5 ảnh minh chứng! (Hiện tại bạn đã chọn ${existingCount} ảnh).`);
+      e.target.value = null;
+      return;
+    }
+
+    const newPreviews = files.map(file => URL.createObjectURL(file));
+
+    setResidenceFiles(prev => ({
+      ...prev,
+      [contractId]: [...(prev[contractId] || []), ...files]
+    }));
+
+    setResidencePreviews(prev => ({
+      ...prev,
+      [contractId]: [...(prev[contractId] || []), ...newPreviews]
+    }));
+
+    e.target.value = null;
+  };
+
+  const [existingImagesToKeep, setExistingImagesToKeep] = React.useState({});
+
+  const removeResidenceFile = (index, contractId, isExisting = false) => {
+    if (isExisting) {
+      setExistingImagesToKeep(prev => {
+        const current = [...(prev[contractId] || [])];
+        current.splice(index, 1);
+        return { ...prev, [contractId]: current };
+      });
+    } else {
+      setResidenceFiles(prev => {
+        const updated = [...(prev[contractId] || [])];
+        updated.splice(index, 1);
+        return { ...prev, [contractId]: updated };
+      });
+
+      setResidencePreviews(prev => {
+        const updated = [...(prev[contractId] || [])];
+        updated.splice(index, 1);
+        return { ...prev, [contractId]: updated };
+      });
+    }
+  };
+
   // Lọc lấy các hợp đồng của khách thuê này
   const tenantContracts = contracts.filter(c => c.tenantId === user.id);
   // Sắp xếp: Hợp đồng đang hiệu lực (ACTIVE) lên đầu
@@ -88,13 +140,28 @@ const TenantRoomsTab = ({
                     
                     {/* Thông tin hiển thị trên ảnh */}
                     <div className="absolute bottom-0 left-0 w-full p-8 flex justify-between items-end">
-                      <div className="text-white">
-                        <h2 
-                            className="text-3xl font-black text-white tracking-tight cursor-pointer hover:text-primary-fixed-dim transition-colors mb-3"
-                            onClick={() => c.room && handleViewRoomDetails(c.room)}
-                          >
-                            Phòng {c.room?.roomNumber}
-                          </h2>
+                      <div className="text-white min-w-0 flex-1">
+                        {(() => {
+                          const roomName = `Phòng ${c.room?.roomNumber}`;
+                          const isLong = roomName.length > 25;
+                          return (
+                            <div className="marquee-container">
+                              <div className={isLong ? "marquee-content" : ""}>
+                                <span 
+                                    className="text-3xl font-black text-white tracking-tight cursor-pointer hover:text-primary-fixed-dim transition-colors mb-3 inline-block"
+                                    onClick={() => c.room && handleViewRoomDetails(c.room)}
+                                  >
+                                    {roomName}
+                                  </span>
+                                  {isLong && (
+                                    <span className="ml-8 text-3xl font-black text-white tracking-tight inline-block">
+                                      {roomName}
+                                    </span>
+                                  )}
+                              </div>
+                            </div>
+                          );
+                        })()}
                         <p className="text-base flex items-center gap-2 opacity-90 font-medium">
                           <span className="material-symbols-outlined text-[20px] text-primary-fixed-dim">location_on</span>
                           {c.room?.houseNumber ? `${c.room.houseNumber}, ` : ''}{c.room?.address}
@@ -109,23 +176,23 @@ const TenantRoomsTab = ({
 
                   {/* Phần thông tin chi tiết hợp đồng và các nút hành động */}
                   <div className="p-8 bg-surface-container-lowest flex-1 flex flex-col justify-between">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-on-surface-variant/60"><span className="material-symbols-outlined text-[18px]">calendar_month</span><p className="text-[11px] font-bold uppercase tracking-wider">Bắt đầu</p></div>
-                        <p className="text-base text-on-surface font-bold pl-6">{c.startDate}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-on-surface-variant/60"><span className="material-symbols-outlined text-[18px]">event_available</span><p className="text-[11px] font-bold uppercase tracking-wider">Kết thúc</p></div>
-                        <p className="text-base text-on-surface font-bold pl-6">{c.endDate}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-on-surface-variant/60"><span className="material-symbols-outlined text-[18px]">bed</span><p className="text-[11px] font-bold uppercase tracking-wider">Loại phòng</p></div>
-                        <p className="text-base text-on-surface font-bold pl-6">{c.room?.roomType === 'WHOLE_HOUSE' ? 'Nhà nguyên căn' : 'Phòng trọ'}</p>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-on-surface-variant/60"><span className="material-symbols-outlined text-[18px]">fingerprint</span><p className="text-[11px] font-bold uppercase tracking-wider">Mã phòng</p></div>
-                        <p className="text-base text-on-surface font-bold pl-6">{c.room?.roomCode || 'N/A'}</p>
-                      </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 mb-10">
+                      {[
+                        { label: 'Bắt đầu', val: c.startDate, icon: 'calendar_month' },
+                        { label: 'Kết thúc', val: c.endDate, icon: 'event_available' },
+                        { label: 'Loại phòng', val: c.room?.roomType === 'WHOLE_HOUSE' ? 'Nhà nguyên căn' : 'Phòng trọ', icon: 'bed' },
+                        { label: 'Mã phòng', val: c.room?.roomCode || 'N/A', icon: 'fingerprint' }
+                      ].map((item, i) => (
+                        <div key={i} className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center shrink-0 border border-outline-variant/30">
+                            <span className="material-symbols-outlined text-[20px] text-on-surface-variant/70">{item.icon}</span>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[10px] font-black text-on-surface-variant/50 uppercase tracking-[0.15em] mb-0.5 truncate">{item.label}</p>
+                            <p className="text-[15px] font-black text-on-surface tracking-tight truncate">{item.val}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
 
                     {/* Các nút bấm thao tác */}
@@ -273,7 +340,11 @@ const TenantRoomsTab = ({
                         </div>
                         {editingResidenceId === c.id && (
                           <button 
-                            onClick={() => { setEditingResidenceId(null); setResidenceFiles(prev => ({ ...prev, [c.id]: [] })); }} 
+                            onClick={() => { 
+                              setEditingResidenceId(null); 
+                              setResidenceFiles(prev => ({ ...prev, [c.id]: [] })); 
+                              setResidencePreviews(prev => ({ ...prev, [c.id]: [] }));
+                            }} 
                             className="text-[11px] font-bold text-error hover:underline"
                           >
                             Hủy bỏ
@@ -289,25 +360,36 @@ const TenantRoomsTab = ({
                             <p className="text-sm font-bold text-on-surface">{c.residencePlace || 'Đã đăng ký'}</p>
                           </div>
                           {/* Hiển thị danh sách ảnh minh chứng */}
-                          <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                          <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
                             {(() => {
                               let resImages = [];
                               try { resImages = Array.isArray(c.residenceImage) ? c.residenceImage : JSON.parse(c.residenceImage || '[]'); } catch (e) { resImages = []; }
-                              return resImages.map((img, idx) => (
-                                <img 
-                                  key={idx} 
-                                  src={`http://localhost:5000/uploads/${img.replace(/uploads[\\\/]/, '')}`} 
-                                  alt="MC" 
-                                  className="w-14 h-14 rounded-lg object-cover border border-outline-variant/30 hover:scale-105 transition-transform cursor-pointer shadow-sm"
-                                  onClick={() => window.open(`http://localhost:5000/uploads/${img.replace(/uploads[\\\/]/, '')}`)}
-                                />
-                              ));
+                              return resImages.map((img, idx) => {
+                                const imageUrl = `http://localhost:5000/uploads/${img.replace(/uploads[\\\/]/, '')}`;
+                                return (
+                                  <img 
+                                    key={idx} 
+                                    src={imageUrl} 
+                                    alt="MC" 
+                                    className="w-14 h-14 shrink-0 rounded-lg object-cover border border-outline-variant/30 hover:scale-105 transition-transform cursor-pointer shadow-sm"
+                                    onClick={() => setViewingMedia({ url: imageUrl, type: 'image' })}
+                                  />
+                                );
+                              });
                             })()}
                           </div>
                           <button 
                             onClick={() => {
                               setEditingResidenceId(c.id);
+                              // Dọn dẹp rác từ lần thao tác trước (nếu có)
+                              setResidenceFiles(prev => ({ ...prev, [c.id]: [] }));
+                              setResidencePreviews(prev => ({ ...prev, [c.id]: [] }));
+                              
                               setResidenceData(prev => ({ ...prev, [c.id]: { date: c.residenceDate || '', place: c.residencePlace || '' } }));
+                              // Khởi tạo danh sách ảnh cũ muốn giữ lại
+                              let resImages = [];
+                              try { resImages = Array.isArray(c.residenceImage) ? c.residenceImage : JSON.parse(c.residenceImage || '[]'); } catch (e) { resImages = []; }
+                              setExistingImagesToKeep(prev => ({ ...prev, [c.id]: resImages }));
                             }}
                             className="w-full py-2.5 bg-secondary text-on-secondary text-xs font-bold rounded-xl shadow-md shadow-secondary/10 hover:bg-secondary/90 transition-all"
                           >
@@ -316,7 +398,7 @@ const TenantRoomsTab = ({
                         </div>
                       ) : (
                         /* Form khai báo tạm trú mới hoặc cập nhật */
-                        <form onSubmit={(e) => handleUploadResidence(e, c.id)} className="space-y-3">
+                        <form onSubmit={(e) => handleUploadResidence(e, c.id, existingImagesToKeep[c.id])} className="space-y-3">
                           <input 
                             type="date" 
                             required
@@ -332,12 +414,62 @@ const TenantRoomsTab = ({
                             onChange={e => setResidenceData(prev => ({...prev, [c.id]: {...(prev[c.id] || {}), place: e.target.value}}))} 
                             className="w-full p-3 rounded-xl border border-outline-variant/30 bg-white text-xs outline-none focus:ring-2 focus:ring-primary/20"
                           />
-                          <div className="relative group">
-                            <input 
-                              type="file" multiple accept="image/*" 
-                              onChange={(e) => setResidenceFiles(prev => ({ ...prev, [c.id]: Array.from(e.target.files) }))} 
-                              className="w-full p-3 bg-white rounded-xl border border-dashed border-outline-variant group-hover:border-primary transition-all cursor-pointer text-[10px]"
-                            />
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Ảnh minh chứng khai báo:</label>
+                            <div className="relative">
+                              <input 
+                                type="file" 
+                                id={`resFile-${c.id}`}
+                                multiple 
+                                accept="image/*" 
+                                onChange={(e) => handleResidenceFileChange(e, c.id)} 
+                                className="hidden" 
+                              />
+                              <label 
+                                htmlFor={`resFile-${c.id}`} 
+                                className="w-full min-h-[50px] px-3 py-1.5 bg-white border border-dashed border-outline-variant rounded-xl flex items-center gap-2 cursor-pointer hover:border-primary/50 transition-all overflow-hidden"
+                              >
+                                <span className="shrink-0 px-2 py-1 bg-primary text-white rounded-lg text-[10px] font-black uppercase shadow-sm">Chọn ảnh</span>
+                                <div className="flex-1 flex items-center gap-1.5 overflow-x-auto py-0.5 custom-scrollbar">
+                                  {/* HIỂN THỊ ẢNH CŨ (TRÊN SERVER) */}
+                                  {(existingImagesToKeep[c.id] || []).map((img, i) => {
+                                    const imageUrl = `http://localhost:5000/uploads/${img.replace(/uploads[\\\/]/, '')}`;
+                                    return (
+                                      <div key={`old-${i}`} className="relative shrink-0 w-9 h-9 rounded-md overflow-hidden border border-outline-variant group/img cursor-zoom-in" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setViewingMedia({ url: imageUrl, type: 'image' }); }}>
+                                        <img src={imageUrl} className="w-full h-full object-cover grayscale-[0.5]" title="Ảnh cũ" />
+                                        <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeResidenceFile(i, c.id, true); }} className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-error text-white rounded-full flex items-center justify-center hover:scale-125 transition-all z-10 shadow-md">
+                                          <span className="material-symbols-outlined text-[8px] font-black">close</span>
+                                        </button>
+                                      </div>
+                                    );
+                                  })}
+
+                                  {/* HIỂN THỊ ẢNH MỚI CHỌN */}
+                                  {residencePreviews[c.id]?.length > 0 && (
+                                    residencePreviews[c.id].map((url, i) => (
+                                      <div 
+                                        key={`new-${i}`} 
+                                        className="relative shrink-0 w-9 h-9 rounded-md overflow-hidden border-2 border-primary group/img cursor-zoom-in"
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setViewingMedia({ url, type: 'image' }); }}
+                                      >
+                                        <img src={url} className="w-full h-full object-cover transition-transform group-hover/img:scale-110" />
+                                        <button 
+                                          type="button" 
+                                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeResidenceFile(i, c.id, false); }} 
+                                          className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-error text-white rounded-full flex items-center justify-center hover:scale-125 transition-all z-10 shadow-md"
+                                        >
+                                          <span className="material-symbols-outlined text-[8px] font-black">close</span>
+                                        </button>
+                                      </div>
+                                    ))
+                                  )}
+                                  
+                                  {!(existingImagesToKeep[c.id]?.length > 0) && !(residencePreviews[c.id]?.length > 0) && (
+                                    <span className="text-[11px] font-bold text-on-surface-variant opacity-40">Chưa có tệp chọn</span>
+                                  )}
+                                </div>
+                              </label>
+                            </div>
                           </div>
                           <button 
                             type="submit" 
@@ -365,6 +497,22 @@ const TenantRoomsTab = ({
           ))
         )}
       </div>
+
+      {/* MODAL XEM PHÓNG TO ẢNH/VIDEO */}
+      {viewingMedia && (
+        <div className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={() => setViewingMedia(null)}>
+          <button className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-full transition-all">
+            <span className="material-symbols-outlined text-3xl">close</span>
+          </button>
+          <div className="max-w-5xl max-h-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
+            {viewingMedia.type === 'image' ? (
+              <img src={viewingMedia.url} className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-300" />
+            ) : (
+              <video src={viewingMedia.url} controls autoPlay className="max-w-full max-h-[90vh] rounded-lg shadow-2xl animate-in zoom-in-95 duration-300" />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

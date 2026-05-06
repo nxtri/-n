@@ -9,6 +9,12 @@ const billApi = {
   },
   payBill: (id) => {
     return axiosClient.put(`/bills/${id}/pay`);
+  },
+  updateBill: (id, data) => {
+    return axiosClient.put(`/bills/${id}`, data);
+  },
+  deleteBill: (id) => {
+    return axiosClient.delete(`/bills/${id}`);
   }
 };
 

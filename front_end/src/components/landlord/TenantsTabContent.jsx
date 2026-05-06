@@ -11,10 +11,12 @@ import { useDashboardContext } from '../../context/DashboardContext';
 const TenantsTabContent = ({ 
   activeTab,       // Tab hiện tại đang được chọn (phải là 'TENANTS')
   setViewContract, // Hàm để mở modal xem chi tiết một hợp đồng cụ thể
-  handleViewRoomDetails // Hàm để mở modal xem chi tiết phòng
+  handleViewRoomDetails, // Hàm để mở modal xem chi tiết phòng
+  handleEditContractClick // Hàm để mở modal sửa hợp đồng
 }) => {
   const { contracts, rooms } = useDashboardContext();
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('ALL');
   const [expandedTenantRooms, setExpandedTenantRooms] = useState({});
 
   if (activeTab !== 'TENANTS') return null;
@@ -28,11 +30,89 @@ const TenantsTabContent = ({
                 </div>
               </div>
 
+              {/* Toolbar: Tìm kiếm và Lọc */}
+              <div className="flex flex-col gap-6 bg-surface-container-lowest p-6 rounded-[2rem] border border-outline-variant/30 shadow-sm mb-6">
+                
+                {/* Bộ lọc trạng thái */}
+                <div className="flex flex-wrap items-center gap-3">
+                  {[
+                    { id: 'ALL', label: 'Tất cả hợp đồng', icon: 'list_alt' },
+                    { id: 'ACTIVE', label: 'Đang hiệu lực', icon: 'check_circle' },
+                    { id: 'EXPIRED', label: 'Sắp / Đã hết hạn', icon: 'schedule' },
+                    { id: 'TERMINATED', label: 'Đã chấm dứt', icon: 'cancel' }
+                  ].map(filter => (
+                    <button 
+                      key={filter.id}
+                      onClick={() => setFilterStatus(filter.id)}
+                      className={`px-5 py-3 rounded-2xl text-[13px] font-black flex items-center gap-2.5 transition-all duration-300 ${
+                        filterStatus === filter.id 
+                        ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105 ring-2 ring-primary/20' 
+                        : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest hover:translate-y-[-2px]'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-[20px]">{filter.icon}</span>
+                      <span>{filter.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Tìm kiếm */}
+                <div className="relative w-full group">
+                  <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-outline group-focus-within:text-primary transition-colors text-[22px]">search</span>
+                  <input 
+                    type="text" 
+                    placeholder="Tìm tên khách, số điện thoại, email hoặc mã phòng..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-14 pr-12 py-4 bg-surface-container-low border border-outline-variant/50 rounded-2xl text-sm font-bold focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all outline-none placeholder:opacity-50"
+                  />
+                  {searchTerm && (
+                    <button onClick={() => setSearchTerm('')} className="absolute right-5 top-1/2 -translate-y-1/2 text-outline hover:text-error transition-colors p-1">
+                      <span className="material-symbols-outlined text-[20px]">close</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className="flex flex-col gap-6">
 
                 {(() => {
+                  // Lọc hợp đồng theo tìm kiếm và trạng thái
+                  let filteredContracts = contracts;
+                  
+                  if (filterStatus !== 'ALL') {
+                    if (filterStatus === 'EXPIRED') {
+                      // Tính luôn những hợp đồng 'ACTIVE' nhưng endDate còn < 30 ngày là "Sắp hết hạn"
+                      const now = new Date();
+                      filteredContracts = filteredContracts.filter(c => {
+                        if (c.status === 'EXPIRED') return true;
+                        if (c.status === 'ACTIVE' && c.endDate) {
+                          const end = new Date(c.endDate);
+                          const diffTime = end - now;
+                          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                          return diffDays <= 30; // Sắp hết hạn trong vòng 30 ngày
+                        }
+                        return false;
+                      });
+                    } else {
+                      filteredContracts = filteredContracts.filter(c => c.status === filterStatus);
+                    }
+                  }
+
+                  if (searchTerm) {
+                    const lowerSearch = searchTerm.toLowerCase();
+                    filteredContracts = filteredContracts.filter(c => {
+                      const tName = (c.tenantName || c.tenant?.fullName || '').toLowerCase();
+                      const tEmail = (c.tenantEmail || c.tenant?.email || '').toLowerCase();
+                      const tPhone = (c.tenantPhone || c.tenant?.phone || '').toLowerCase();
+                      const rNum = (c.room?.roomNumber || '').toLowerCase();
+                      const rCode = (c.room?.roomCode || '').toLowerCase();
+                      return tName.includes(lowerSearch) || tEmail.includes(lowerSearch) || tPhone.includes(lowerSearch) || rNum.includes(lowerSearch) || rCode.includes(lowerSearch);
+                    });
+                  }
+
                   // 1. Nhóm hợp đồng theo Tenant (Dùng email hoặc ID người thuê làm khóa)
-                  const grouped = contracts.reduce((acc, c) => {
+                  const grouped = filteredContracts.reduce((acc, c) => {
                     const tKey = c.tenantId || c.tenantEmail || 'DELETED';
                     if (!acc[tKey]) {
                       acc[tKey] = {
@@ -51,8 +131,12 @@ const TenantsTabContent = ({
                   if (tenantKeys.length === 0) {
                     return (
                       <div className="text-center py-20 bg-surface-container-lowest rounded-3xl border border-dashed border-outline-variant">
-                        <span className="material-symbols-outlined text-5xl text-outline mb-4 opacity-30">person_off</span>
-                        <p className="text-on-surface-variant italic font-medium">Chưa có người thuê (Chưa có hợp đồng nào). Vui lòng tạo Hợp đồng ở mục Danh sách phòng!</p>
+                        <span className="material-symbols-outlined text-5xl text-outline mb-4 opacity-30">{searchTerm || filterStatus !== 'ALL' ? 'search_off' : 'person_off'}</span>
+                        <p className="text-on-surface-variant italic font-medium">
+                          {searchTerm || filterStatus !== 'ALL' 
+                            ? 'Không tìm thấy hợp đồng hoặc người thuê nào phù hợp với bộ lọc.'
+                            : 'Chưa có người thuê (Chưa có hợp đồng nào). Vui lòng tạo Hợp đồng ở mục Danh sách phòng!'}
+                        </p>
                       </div>
                     );
                   }
@@ -101,13 +185,14 @@ const TenantsTabContent = ({
                         {/* Danh sách các lần thuê / phòng thuê của người này */}
                         {isExpanded && (
                           <div className="overflow-x-auto border-t border-outline-variant/30">
-                            <table className="w-full text-left border-collapse">
+                            <table className="w-full text-left border-collapse table-fixed min-w-[800px]">
                               <thead>
                                 <tr className="border-b border-outline-variant bg-surface-container-low/50">
-                                  <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold">Phòng / Căn hộ</th>
-                                  <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold">Thời hạn</th>
-                                  <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold">Kết thúc thực tế</th>
-                                  <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold text-center">Trạng thái</th>
+                                  <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold w-[35%]">Phòng / Căn hộ</th>
+                                  <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold w-[20%]">Thời hạn</th>
+                                  <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold w-[15%]">Kết thúc thực tế</th>
+                                  <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold text-center w-[15%]">Trạng thái</th>
+                                  <th className="py-4 px-8 font-label-md text-on-surface-variant font-semibold text-center w-[15%]">Hợp đồng</th>
                                 </tr>
                               </thead>
 
@@ -125,7 +210,8 @@ const TenantsTabContent = ({
                                     <tr key={c.id} className="hover:bg-surface-container-low/30 transition-colors group border-b border-outline-variant/30 last:border-0">
                                       <td className="py-4 px-8">
                                         <div 
-                                          className="font-bold text-primary group-hover:text-surface-tint cursor-pointer hover:underline"
+                                          className="font-bold text-primary group-hover:text-surface-tint cursor-pointer hover:underline truncate"
+                                          title={(c.room?.roomType === 'WHOLE_HOUSE' || /nhà|căn/i.test(c.room?.roomNumber)) ? 'Nhà nguyên căn ' + (c.room?.roomNumber || 'Đã xóa') : 'Phòng trọ ' + (c.room?.roomNumber || 'Đã xóa')}
                                           onClick={() => c.room && handleViewRoomDetails(c.room)}
                                         >
                                           {(c.room?.roomType === 'WHOLE_HOUSE' || /nhà|căn/i.test(c.room?.roomNumber)) ? 'Nhà nguyên căn ' : 'Phòng trọ '}{c.room?.roomNumber || 'Đã xóa'}
@@ -163,8 +249,15 @@ const TenantsTabContent = ({
                                           </span>
                                         );
                                       })()}
-                                    </td>
-
+                                      </td>
+                                      <td className="py-4 px-8 text-center">
+                                        <div className="flex items-center justify-center gap-2">
+                                          <button onClick={() => setViewContract(c)} className="px-4 py-2 bg-surface-container hover:bg-primary/10 text-primary rounded-xl transition-all font-bold text-[11px] uppercase tracking-widest flex items-center gap-2" title="Xem Hợp đồng">
+                                            <span className="material-symbols-outlined text-[16px]">visibility</span>
+                                            Xem chi tiết
+                                          </button>
+                                        </div>
+                                      </td>
                                     </tr>
                                   ));
                                 })()}
