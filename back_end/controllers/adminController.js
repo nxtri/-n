@@ -17,7 +17,7 @@ const adminController = {
       const usersData = users.map(user => {
         const userData = user.toJSON();
         if (userData.role === 'LANDLORD') {
-           userData.violationsCount = (userData.rooms || []).filter(r => r.isHidden).length;
+           userData.violationsCount = (userData.rooms || []).filter(r => r.isHidden && r.hiddenReason === 'VIOLATION').length;
         } else {
            userData.violationsCount = 0;
         }
@@ -181,6 +181,7 @@ const adminController = {
       if (!room) return res.status(404).json({ message: 'Không tìm thấy phòng!' });
 
       room.isHidden = !room.isHidden;
+      room.hiddenReason = room.isHidden ? 'VIOLATION' : 'NONE';
       await room.save();
       
       // LOGIC TỰ ĐỘNG CẢNH BÁO VÀ KHÓA TÀI KHOẢN
@@ -189,9 +190,9 @@ const adminController = {
         const landlord = await User.findByPk(room.landlordId);
         
         if (landlord) {
-          // 1. Đếm số phòng đang bị ẩn của chủ nhà này
+          // 1. Đếm số phòng đang bị ẩn do VI PHẠM của chủ nhà này
           const hiddenCount = await RoomModel.count({
-            where: { landlordId: room.landlordId, isHidden: true }
+            where: { landlordId: room.landlordId, isHidden: true, hiddenReason: 'VIOLATION' }
           });
 
           // 2. Xử lý khi ẩn phòng
@@ -207,14 +208,14 @@ const adminController = {
               await notificationHelper.send(
                 landlord.id,
                 '⚠️ CẢNH BÁO NGUY CƠ KHÓA TÀI KHOẢN',
-                'Bạn đã bị ẩn 3 phòng và sẽ bị khóa tài khoản trong vòng 30 ngày tới, hãy liên hệ với quản trị viên để khiếu nại (nếu có), sau 30 ngày nếu không được xử lý chúng tôi sẽ phải khóa tài khoản của bạn, chúc bạn một ngày tốt lành!'
+                'Bạn đã bị khóa 3 phòng do vi phạm và sẽ bị khóa tài khoản trong vòng 30 ngày tới, hãy liên hệ với quản trị viên để khiếu nại (nếu có), sau 30 ngày nếu không được xử lý chúng tôi sẽ phải khóa tài khoản của bạn, chúc bạn một ngày tốt lành!'
               );
             } else {
               // Thông báo bình thường (Web + Email)
               await notificationHelper.send(
                 landlord.id,
-                'Phòng bị ẩn',
-                `Phòng ${room.roomNumber} của bạn đã bị quản trị viên ẩn do phát hiện sự cố hoặc có nhiều báo cáo vi phạm. Lưu ý nếu bị ẩn từ 3 phòng trở lên bạn sẽ vào diện chờ khóa tài khoản.`
+                'Phòng bị khóa do vi phạm',
+                `Phòng ${room.roomNumber} của bạn đã bị quản trị viên khóa do phát hiện sự cố hoặc có nhiều báo cáo vi phạm. Lưu ý nếu bị khóa từ 3 phòng trở lên bạn sẽ vào diện chờ khóa tài khoản.`
               );
             }
           } 

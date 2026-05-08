@@ -224,9 +224,9 @@ const startCronJobs = () => {
         const daysPassed = Math.floor((today - graceStart) / (1000 * 60 * 60 * 24));
 
         if (daysPassed >= 30) {
-          // Kiểm tra lại số phòng đang bị ẩn
+          // Kiểm tra lại số phòng đang bị khóa do vi phạm
           const hiddenCount = await RoomModel.count({
-            where: { landlordId: landlord.id, isHidden: true }
+            where: { landlordId: landlord.id, isHidden: true, hiddenReason: 'VIOLATION' }
           });
 
           if (hiddenCount >= 3) {
@@ -239,12 +239,12 @@ const startCronJobs = () => {
             await notificationHelper.send(
               landlord.id,
               '🚫 TÀI KHOẢN ĐÃ BỊ KHÓA',
-              `Tài khoản của bạn đã bị khóa tự động sau 30 ngày cảnh báo do vẫn còn ${hiddenCount} phòng bị ẩn chưa được xử lý. Vui lòng liên hệ Quản trị viên để biết thêm chi tiết.`
+              `Tài khoản của bạn đã bị khóa tự động sau 30 ngày cảnh báo do vẫn còn ${hiddenCount} phòng bị khóa vi phạm chưa được xử lý. Vui lòng liên hệ Quản trị viên để biết thêm chi tiết.`
             );
 
             console.log(`🔒 [Cron] Đã khóa tài khoản chủ nhà ID: ${landlord.id} do vi phạm quá hạn.`);
           } else {
-            // Nếu họ đã xử lý gỡ ẩn phòng -> Hủy bỏ giai đoạn chờ
+            // Nếu họ đã xử lý gỡ phòng vi phạm -> Hủy bỏ giai đoạn chờ
             landlord.lockGracePeriodStart = null;
             await landlord.save();
             console.log(`✅ [Cron] Chủ nhà ID: ${landlord.id} đã khắc phục vi phạm, hủy bỏ lệnh chờ khóa.`);

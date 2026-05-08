@@ -100,13 +100,27 @@ const AdminRoomsTab = ({
                     )}
                   </td>
                   <td className="p-4 text-center">
-                    <button 
-                      onClick={() => handleToggleRoomVisibility(r.id, r.isHidden)}
-                      className={`px-3 py-1.5 rounded-lg border cursor-pointer font-bold transition-all hover:scale-105 flex items-center gap-1.5 mx-auto ${r.isHidden ? 'border-error/20 bg-error/10 text-error hover:bg-error hover:text-white' : 'border-outline-variant/30 bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'}`}
-                    >
-                      <span className="material-symbols-outlined text-[18px]">{r.isHidden ? 'visibility' : 'visibility_off'}</span>
-                      {r.isHidden ? 'Mở ẩn' : 'Ẩn phòng'}
-                    </button>
+                    {r.isHidden ? (
+                      r.hiddenReason === 'VIOLATION' ? (
+                        <button 
+                          onClick={() => handleToggleRoomVisibility(r.id, r.isHidden)}
+                          className="px-3 py-1.5 rounded-lg border cursor-pointer font-bold transition-all hover:scale-105 flex items-center gap-1.5 mx-auto border-error/20 bg-error/10 text-error hover:bg-error hover:text-white"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">visibility</span> Mở ẩn
+                        </button>
+                      ) : (
+                        <div className="text-on-surface-variant font-bold text-[12px] flex items-center justify-center gap-1">
+                          <span className="material-symbols-outlined text-[16px]">visibility_off</span> Ẩn do chủ nhà
+                        </div>
+                      )
+                    ) : (
+                      <button 
+                        onClick={() => handleToggleRoomVisibility(r.id, r.isHidden)}
+                        className="px-3 py-1.5 rounded-lg border cursor-pointer font-bold transition-all hover:scale-105 flex items-center gap-1.5 mx-auto border-outline-variant/30 bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">visibility_off</span> Ẩn phòng
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

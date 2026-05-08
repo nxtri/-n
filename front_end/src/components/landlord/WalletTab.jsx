@@ -179,7 +179,7 @@ const WalletTab = ({ onPurchaseSuccess }) => {
                 {/* Giá gói chính */}
                 <div className="text-center mb-2">
                   <p className="text-2xl font-black text-primary">{plan.price.toLocaleString('vi-VN')} <span className="text-xs font-bold text-on-surface-variant">đ/tháng</span></p>
-                  <p className="text-[10px] font-bold text-on-surface-variant bg-surface-container-low px-2 py-1 rounded mt-1 inline-block">Gói cơ bản ({plan.limit === -1 ? 'Không giới hạn' : plan.limit} phòng)</p>
+                  <p className="text-[10px] font-bold text-on-surface-variant bg-surface-container-low px-2 py-1 rounded mt-1 inline-block">Gói {info.name} ({plan.limit === -1 ? 'Không giới hạn phòng' : plan.limit + ' phòng'})</p>
                 </div>
                 
                 {/* Giá gói lẻ */}

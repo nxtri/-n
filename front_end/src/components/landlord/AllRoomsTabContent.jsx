@@ -149,13 +149,17 @@ const AllRoomsTabContent = ({
                     <span className="material-symbols-outlined text-[14px] font-black">{config.icon}</span>
                     {config.label}
                   </div>
-                  {/* Hiển thị điểm đánh giá trung bình */}
-                  {room.reviewCount > 0 && (
+                  {/* Hiển thị điểm đánh giá trung bình hoặc Nhãn bị ẩn */}
+                  {room.isHidden ? (
+                    <div className={`absolute top-4 right-4 ${room.hiddenReason === 'VIOLATION' ? 'bg-error text-white' : 'bg-outline-variant text-white'} px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm flex items-center gap-1`}>
+                      {room.hiddenReason === 'VIOLATION' ? '🚫 Bị khóa' : '👁️ Bị Ẩn'}
+                    </div>
+                  ) : room.reviewCount > 0 ? (
                     <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl text-[10px] font-black text-primary shadow-sm flex items-center gap-1">
                       <span className="material-symbols-outlined text-[14px] fill-1">star</span>
                       {room.avgRating}
                     </div>
-                  )}
+                  ) : null}
 
                   {/* Price Overlay */}
                   <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg border border-white/20">
@@ -313,7 +317,22 @@ const AllRoomsTabContent = ({
 
                     {/* HÀNG CÁC NÚT ĐIỀU KHIỂN (Thay đổi tùy theo trạng thái phòng) */}
                     <div className="grid grid-cols-2 gap-3">
-                      {room.status === 'AVAILABLE' ? (
+                      {room.isHidden ? (
+                        room.hiddenReason === 'VIOLATION' ? (
+                          <button onClick={() => alert('Vui lòng liên hệ số hotline Admin hoặc email admin@xyz.com để khiếu nại')} className="col-span-2 py-3.5 bg-error text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                            🚨 Khiếu nại
+                          </button>
+                        ) : (
+                          <>
+                            <button onClick={() => handleToggleRoomVisibility(room.id)} className="col-span-2 py-3.5 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all flex items-center justify-center gap-2">
+                              <span className="material-symbols-outlined text-[18px]">visibility</span> Hiện lại phòng
+                            </button>
+                            <button onClick={() => handleDeleteRoom(room.id)} className="col-span-2 py-3 bg-error/10 text-error rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-error hover:text-white transition-all flex items-center justify-center gap-2">
+                              <span className="material-symbols-outlined text-[18px]">delete</span> Xóa phòng
+                            </button>
+                          </>
+                        )
+                      ) : room.status === 'AVAILABLE' ? (
                         <>
                           <button onClick={() => handleNewContractClick(room)} className="col-span-2 py-3.5 bg-secondary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-secondary/20 hover:scale-[1.02] active:scale-95 transition-all">
                             ✍️ Ký Hợp Đồng

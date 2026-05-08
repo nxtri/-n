@@ -73,7 +73,7 @@ const AdminDashboard = () => {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [navigate, user]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchNotifications = async () => {
     try {
@@ -138,9 +138,19 @@ const AdminDashboard = () => {
     if(window.confirm(`Bạn có chắc muốn ${currentIsHidden ? 'HIỂN THỊ' : 'ẨN'} phòng này?`)){
       try {
         await adminApi.toggleRoomVisibility(id);
-        const res = await adminApi.getAllRooms();
-        setRooms(res.rooms || []);
-      } catch (error) { alert('Lỗi khi đổi trạng thái phòng'); }
+      } catch (error) { 
+        alert('Lỗi khi đổi trạng thái phòng'); 
+      }
+      // Luôn tải lại danh sách phòng, người dùng và thông báo dù thành công hay thất bại
+      try {
+        const [resRooms, resUsers] = await Promise.all([
+          adminApi.getAllRooms(),
+          adminApi.getAllUsers()
+        ]);
+        setRooms(resRooms.rooms || []);
+        setUsers(resUsers.users || []);
+        fetchNotifications();
+      } catch (e) { console.error('Lỗi khi tải lại dữ liệu', e); }
     }
   };
 
