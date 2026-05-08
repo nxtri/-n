@@ -223,7 +223,7 @@ const Home = () => {
             }}
             className={`w-10 h-10 border rounded transition-colors font-bold text-sm ${
               currentPage === number 
-                ? 'bg-[#ff5722] text-white border-[#ff5722]' 
+                ? 'bg-[#006494] text-white border-[#006494]' 
                 : 'bg-white hover:bg-surface-container text-on-surface border-outline-variant/30'
             }`}
           >
@@ -278,93 +278,22 @@ const Home = () => {
           setTempAmenities([]);
           sessionStorage.removeItem('homeSearchState');
         }}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        onFilterClick={() => setShowFilterModal(true)}
+        onSearch={applyFilters}
+        activeLocation={activeLocation}
+        setActiveLocation={setActiveLocation}
+        filteredRoomsCount={filteredRooms.length}
       />
 
-      <main className="mt-20 flex-grow">
-        {/* Hero Section */}
-        <section className="relative bg-surface-container-low py-16 overflow-hidden">
-          <div className="max-w-[1280px] mx-auto px-8 relative z-10 text-center py-12">
-            <h1 className="font-display-xl text-display-xl text-on-surface mb-8 max-w-2xl mx-auto tracking-tight">
-              Tìm kiếm phòng trọ sinh viên lý tưởng
-            </h1>
-            
-            {/* Advanced Search Bar */}
-            <div className="max-w-4xl mx-auto bg-white p-2 rounded-full shadow-2xl flex flex-col md:flex-row items-center gap-2 border border-outline-variant/30">
-              <div className="flex-1 flex items-center gap-3 px-6 md:border-r border-outline-variant/30 w-full md:w-auto">
-                <span className="material-symbols-outlined text-primary">location_on</span>
-                <input 
-                  type="text" 
-                  placeholder="Bạn muốn tìm ở đâu?" 
-                  className="w-full bg-transparent border-none focus:ring-0 text-body-md text-on-surface"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <div className="flex-1 flex items-center gap-3 px-6 md:border-r border-outline-variant/30 w-full md:w-auto">
-                <span className="material-symbols-outlined text-primary">home</span>
-                <select 
-                  className="w-full bg-transparent border-none focus:ring-0 text-body-md text-on-surface cursor-pointer"
-                  value={activeType}
-                  onChange={(e) => setActiveType(e.target.value)}
-                >
-                  <option value="all">Loại bất động sản</option>
-                  <option value="SINGLE">Phòng trọ</option>
-                  <option value="WHOLE_HOUSE">Nhà nguyên căn</option>
-                </select>
-              </div>
-              <div className="flex items-center gap-2 pr-2 w-full md:w-auto justify-end">
-                <button 
-                  onClick={() => setShowFilterModal(true)}
-                  className="flex items-center gap-2 px-6 py-3 rounded-full hover:bg-surface-container transition-colors font-label-md text-label-md text-on-surface-variant"
-                >
-                  <span className="material-symbols-outlined text-xl">tune</span>
-                  Lọc
-                </button>
-                <button 
-                  onClick={applyFilters}
-                  className="bg-primary text-on-primary px-10 py-3 rounded-full font-label-md text-label-md font-bold hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-primary/20"
-                >
-                  Tìm kiếm
-                </button>
-              </div>
-            </div>
-          </div>
-          <div className="absolute top-0 right-0 w-1/3 h-full bg-primary/5 rounded-l-full blur-3xl -z-0"></div>
-          <div className="absolute bottom-0 left-0 w-1/4 h-1/2 bg-secondary/5 rounded-r-full blur-3xl -z-0"></div>
-        </section>
-
-        {/* Quick Filters */}
-        <section className="max-w-[1280px] mx-auto px-8 py-8">
-          <div className="flex flex-wrap items-center gap-3">
-            {['Tất cả', 'Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Bình Dương'].map(loc => (
-              <button 
-                key={loc}
-                onClick={() => setActiveLocation(loc)}
-                className={`px-6 py-2 rounded-full transition-all text-label-md font-semibold ${
-                  activeLocation === loc 
-                    ? 'bg-primary text-on-primary shadow-lg shadow-primary/20' 
-                    : 'bg-white border border-outline-variant text-on-surface-variant hover:border-primary hover:text-primary'
-                }`}
-              >
-                {loc}
-              </button>
-            ))}
-          </div>
-        </section>
+      <main className="mt-[240px] flex-grow">
 
         {/* Listing Section */}
-        <section className="max-w-[1280px] mx-auto px-8 pb-20">
-          <div className="flex justify-between items-end mb-10">
-            <div>
-              <h2 className="font-headline-lg text-headline-lg text-on-surface">Kết quả tìm kiếm</h2>
-              <p className="text-on-surface-variant font-body-md mt-1">
-                Có {filteredRooms.length} tin đăng phù hợp với yêu cầu của bạn
-              </p>
-            </div>
-          </div>
+        <section className="w-full px-6 md:px-10 pb-20 mt-4">
 
           {/* Grid */}
-          <div id="search-results" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div id="search-results" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
             {currentRooms.length === 0 ? (
               <div className="col-span-full py-20 text-center">
                 <span className="material-symbols-outlined text-6xl text-outline-variant mb-4">search_off</span>
@@ -393,32 +322,32 @@ const Home = () => {
               return (
                 <article 
                   key={room.id}
-                  className={`bg-white rounded-2xl overflow-hidden custom-shadow card-hover transition-all duration-300 ${borderStyle} ${glowStyle} flex flex-col group cursor-pointer`}
+                  className={`bg-white rounded-lg overflow-hidden custom-shadow card-hover transition-all duration-300 ${borderStyle} ${glowStyle} flex flex-col group cursor-pointer`}
                   onClick={() => navigate(`/room/${room.id}`)}
                 >
-                  <div className="relative h-60 overflow-hidden">
+                  <div className="relative h-32 overflow-hidden">
                     <img 
                       src={firstImage} 
                       alt={room.roomNumber} 
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                     {planBadge}
-                    <div className="absolute top-4 left-4 flex flex-col items-start gap-1.5">
+                    <div className="absolute top-2 left-2 flex flex-col items-start gap-0.5">
                       <div className="flex items-center gap-2">
                         {room.status === 'AVAILABLE' ? (
-                          <div className="px-3 py-1 bg-secondary text-on-secondary text-[10px] font-bold rounded-full uppercase tracking-wider shadow-sm">Trống</div>
+                          <div className="px-2 py-0.5 bg-secondary text-on-secondary text-[8px] font-bold rounded-full uppercase tracking-wider shadow-sm">Trống</div>
                         ) : (
-                          <div className="px-3 py-1 bg-tertiary text-on-tertiary text-[10px] font-bold rounded-full uppercase tracking-wider shadow-sm">Sắp trống</div>
+                          <div className="px-2 py-0.5 bg-tertiary text-on-tertiary text-[8px] font-bold rounded-full uppercase tracking-wider shadow-sm">Sắp trống</div>
                         )}
                         {room.reviewCount > 0 && (
-                          <div className="flex items-center gap-1 text-[#f59e0b] bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full shadow-sm text-[10px] font-bold">
+                          <div className="flex items-center gap-0.5 text-[#f59e0b] bg-white/90 backdrop-blur-sm px-1.5 py-0.5 rounded-full shadow-sm text-[8px] font-bold">
                             <span className="material-symbols-outlined text-sm fill-current">star</span>
                             <span>{room.avgRating}</span>
                           </div>
                         )}
                       </div>
                       {room.status === 'RENTED' && room.intendedMoveOutDate && (
-                        <div className="px-2.5 py-1 bg-white/90 backdrop-blur-sm text-tertiary text-[9px] font-black rounded-lg shadow-sm border border-tertiary/20 flex items-center gap-1 animate-in slide-in-from-left-2 duration-500">
+                        <div className="px-2 py-0.5 bg-white/90 backdrop-blur-sm text-tertiary text-[8px] font-black rounded-md shadow-sm border border-tertiary/20 flex items-center gap-0.5 animate-in slide-in-from-left-2 duration-500">
                           <span className="material-symbols-outlined text-[12px]">calendar_today</span>
                           Trống từ: {new Date(room.intendedMoveOutDate).toLocaleDateString('vi-VN')}
                         </div>
@@ -426,26 +355,26 @@ const Home = () => {
                     </div>
 
                     {/* Price Overlay */}
-                    <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg border border-white/20">
-                      <p className="text-primary font-price-tag text-lg leading-none">
-                        {room.price?.toLocaleString()} đ<span className="text-xs font-normal text-on-surface-variant ml-1">/tháng</span>
+                    <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-md px-2 py-1 rounded-lg shadow-lg border border-white/20">
+                      <p className="text-primary font-price-tag text-xs leading-none">
+                        {room.price?.toLocaleString()} đ<span className="text-[8px] font-normal text-on-surface-variant ml-0.5">/tháng</span>
                       </p>
                     </div>
                   </div>
 
-                  <div className="p-6 flex flex-col flex-grow">
-                    <div className="mb-6">
+                  <div className="p-3 flex flex-col flex-grow">
+                    <div className="mb-2">
                       {(() => {
                         const roomName = `${room.roomType === 'WHOLE_HOUSE' ? 'NHÀ NGUYÊN CĂN' : 'PHÒNG TRỌ'} ${room.roomNumber}`;
                         const isLong = roomName.length > 25;
                         return (
                           <div className="marquee-container">
                             <div className={isLong ? "marquee-content" : ""}>
-                              <span className="font-headline-md text-headline-md text-on-surface group-hover:text-primary transition-colors inline-block">
+                              <span className="font-bold text-xs text-on-surface group-hover:text-primary transition-colors inline-block">
                                 {roomName}
                               </span>
                               {isLong && (
-                                <span className="ml-8 font-headline-md text-headline-md text-on-surface group-hover:text-primary transition-colors inline-block">
+                                <span className="ml-6 font-bold text-xs text-on-surface group-hover:text-primary transition-colors inline-block">
                                   {roomName}
                                 </span>
                               )}
@@ -454,25 +383,25 @@ const Home = () => {
                         );
                       })()}
                       {room.roomCode && (
-                        <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-50 mt-0.5">
+                        <p className="text-[8px] font-black text-on-surface-variant uppercase tracking-widest opacity-50 mt-0.5">
                           Mã: {room.roomCode}
                         </p>
                       )}
                     </div>
 
-                    <div className="space-y-3 mb-6 pb-6 border-b border-outline-variant/20">
-                      <div className="flex items-center gap-4 text-on-surface-variant text-sm">
-                        <div className="flex items-center gap-1.5">
-                          <span className="material-symbols-outlined text-lg text-primary">square_foot</span>
+                    <div className="space-y-1.5 mb-2 pb-2 border-b border-outline-variant/20">
+                      <div className="flex items-center gap-2 text-on-surface-variant text-[11px]">
+                        <div className="flex items-center gap-1">
+                          <span className="material-symbols-outlined text-sm text-primary">square_foot</span>
                           {room.area} m²
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <span className="material-symbols-outlined text-lg text-primary">group</span>
+                        <div className="flex items-center gap-1">
+                          <span className="material-symbols-outlined text-sm text-primary">group</span>
                           {room.maxOccupants} người
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5 text-on-surface-variant text-sm marquee-container">
-                        <span className="material-symbols-outlined text-lg text-primary flex-shrink-0">location_on</span>
+                      <div className="flex items-center gap-1 text-on-surface-variant text-[11px] marquee-container">
+                        <span className="material-symbols-outlined text-sm text-primary flex-shrink-0">location_on</span>
                         <div className="marquee-content">
                           <span>{room.houseNumber ? `${room.houseNumber}, ` : ''}{room.address}</span>
                           {(room.address?.length > 20 || room.houseNumber) && (
@@ -483,21 +412,21 @@ const Home = () => {
                     </div>
 
                     {/* Description Preview */}
-                    <p className="text-xs text-on-surface-variant leading-relaxed line-clamp-2 mb-6">
+                    <p className="text-[10px] text-on-surface-variant leading-relaxed line-clamp-1 mb-2">
                       {room.description || <span className="italic opacity-40">Chưa có mô tả chi tiết.</span>}
                     </p>
 
                     <div className="mt-auto flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-secondary-fixed-dim flex items-center justify-center font-bold text-on-secondary-fixed shadow-inner">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-secondary-fixed-dim flex items-center justify-center font-bold text-on-secondary-fixed shadow-inner text-[10px]">
                           {room.landlord?.fullName?.charAt(0) || 'L'}
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-on-surface">{room.landlord?.fullName}</p>
-                          <p className="text-[10px] text-on-surface-variant uppercase tracking-tight">Chủ sở hữu</p>
+                          <p className="text-[10px] font-bold text-on-surface truncate max-w-[80px]">{room.landlord?.fullName}</p>
+                          <p className="text-[8px] text-on-surface-variant uppercase tracking-tight">Chủ sở hữu</p>
                         </div>
                       </div>
-                      <button className="bg-surface-container text-primary font-bold px-5 py-2.5 rounded-xl text-sm border border-primary/10 hover:bg-primary hover:text-on-primary transition-all shadow-sm">
+                      <button className="bg-surface-container text-primary font-bold px-3 py-1.5 rounded-md text-[10px] border border-primary/10 hover:bg-primary hover:text-on-primary transition-all shadow-sm">
                         Chi tiết
                       </button>
                     </div>

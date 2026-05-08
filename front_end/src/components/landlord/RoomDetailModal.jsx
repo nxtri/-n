@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const RoomDetailModal = ({
   room,
@@ -20,9 +20,11 @@ const RoomDetailModal = ({
   handleEditRoomClick,
   handleDeleteRoom
 }) => {
+  const [showImageViewer, setShowImageViewer] = useState(false);
   if (!room) return null;
 
   return (
+    <>
     <div 
       className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-on-surface/40 backdrop-blur-md animate-in fade-in duration-300"
       onClick={onClose}
@@ -80,33 +82,34 @@ const RoomDetailModal = ({
 
                   return (
                     <>
-                      <div className="lg:col-span-2 relative group overflow-hidden rounded-[2.5rem] shadow-lg">
+                      <div className="lg:col-span-2 relative group overflow-hidden rounded-[2.5rem] shadow-lg cursor-zoom-in"
+                        onClick={() => { setShowImageViewer(true); }}
+                      >
                         <img 
                           src={`http://localhost:5000/uploads/${images[currentImageIndex]}`} 
                           alt="Main Room View" 
-                          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105 cursor-zoom-in"
-                          onClick={() => setSelectedImage(`http://localhost:5000/uploads/${images[currentImageIndex]}`)}
+                          className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-8">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-8 pointer-events-none">
                           <p className="text-white text-xs font-bold uppercase tracking-widest">Xem ảnh phóng lớn</p>
                         </div>
                         
                         {/* Navigation Arrows */}
                         <button 
-                          onClick={() => setCurrentImageIndex(prev => (prev === 0 ? images.length - 1 : prev - 1))}
-                          className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 flex items-center justify-center hover:bg-white/40 transition-all opacity-0 group-hover:opacity-100"
+                          onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev === 0 ? images.length - 1 : prev - 1)); }}
+                          className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 flex items-center justify-center hover:bg-white/40 transition-all opacity-0 group-hover:opacity-100 z-10"
                         >
                           <span className="material-symbols-outlined font-black">chevron_left</span>
                         </button>
                         <button 
-                          onClick={() => setCurrentImageIndex(prev => (prev === images.length - 1 ? 0 : prev + 1))}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 flex items-center justify-center hover:bg-white/40 transition-all opacity-0 group-hover:opacity-100"
+                          onClick={(e) => { e.stopPropagation(); setCurrentImageIndex(prev => (prev === images.length - 1 ? 0 : prev + 1)); }}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 flex items-center justify-center hover:bg-white/40 transition-all opacity-0 group-hover:opacity-100 z-10"
                         >
                           <span className="material-symbols-outlined font-black">chevron_right</span>
                         </button>
                         
                         {/* Image Count Badge */}
-                        <div className="absolute top-4 left-4 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-xl text-[10px] font-black text-white tracking-widest uppercase">
+                        <div className="absolute top-4 left-4 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-xl text-[10px] font-black text-white tracking-widest uppercase pointer-events-none">
                           {currentImageIndex + 1} / {images.length}
                         </div>
                       </div>
@@ -118,12 +121,12 @@ const RoomDetailModal = ({
                               src={`http://localhost:5000/uploads/${img}`} 
                               alt={`View ${idx + 1}`} 
                               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 cursor-pointer"
-                              onClick={() => setCurrentImageIndex(idx + 1)}
+                              onClick={() => { setCurrentImageIndex(idx + 1); setShowImageViewer(true); }}
                             />
                             {idx === 1 && images.length > 3 && (
                               <div 
                                 className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white cursor-pointer group-hover:bg-black/60 transition-all"
-                                onClick={() => setSelectedImage(`http://localhost:5000/uploads/${images[2]}`)}
+                                onClick={() => { setCurrentImageIndex(2); setShowImageViewer(true); }}
                               >
                                 <span className="text-xl font-black">+{images.length - 3}</span>
                                 <span className="text-[10px] font-black uppercase tracking-widest">Ảnh khác</span>
@@ -177,6 +180,39 @@ const RoomDetailModal = ({
                     </div>
                   </div>
 
+                  {/* Whole House extra info */}
+                  {room.roomType === 'WHOLE_HOUSE' && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-y-6 gap-x-8 mt-6 pt-6 border-t border-outline-variant/30">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
+                          <span className="material-symbols-outlined text-2xl">stairs</span>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-40">Số tầng</p>
+                          <p className="text-lg font-black text-on-surface">{room.numFloors || '—'} <span className="text-xs">tầng</span></p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
+                          <span className="material-symbols-outlined text-2xl">bed</span>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-40">Phòng ngủ</p>
+                          <p className="text-lg font-black text-on-surface">{room.numBedrooms || '—'} <span className="text-xs">phòng</span></p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
+                          <span className="material-symbols-outlined text-2xl">bathtub</span>
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-40">Nhà vệ sinh</p>
+                          <p className="text-lg font-black text-on-surface">{room.numBathrooms || '—'} <span className="text-xs">phòng</span></p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="mt-8 pt-8 border-t border-outline-variant/30 flex items-center gap-4">
                     <div className="w-12 h-12 rounded-2xl bg-surface-container-highest flex items-center justify-center text-on-surface-variant">
                       <span className="material-symbols-outlined text-2xl">location_on</span>
@@ -212,16 +248,6 @@ const RoomDetailModal = ({
                   </div>
                 </div>
 
-                {/* Description Section */}
-                <div className="bg-surface-container-low rounded-[2rem] p-8 border border-outline-variant/30">
-                  <h3 className="text-sm font-black uppercase tracking-widest text-primary mb-6 flex items-center gap-2">
-                    <span className="w-1.5 h-4 bg-primary rounded-full"></span>
-                   Thông tin mô tả phòng
-                  </h3>
-                  <div className="text-sm font-bold text-on-surface-variant leading-relaxed bg-white/50 p-6 rounded-2xl border border-outline-variant/10">
-                    {room.description ? room.description : <span className="italic opacity-40">Chưa có mô tả chi tiết cho phòng này.</span>}
-                  </div>
-                </div>
               </div>
 
               {/* Sidebar Info: Bills & Fees */}
@@ -281,6 +307,24 @@ const RoomDetailModal = ({
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Description Section (Full Width) */}
+            <div className="bg-surface-container-low rounded-[2rem] p-8 border border-outline-variant/30">
+              <h3 className="text-sm font-black uppercase tracking-widest text-primary mb-6 flex items-center gap-2">
+                <span className="w-1.5 h-4 bg-primary rounded-full"></span>
+                Thông tin mô tả phòng
+              </h3>
+              <div className="bg-surface-container-lowest/50 rounded-2xl p-6 border border-outline-variant/20">
+                {room.description ? (
+                  <div 
+                    className="text-on-surface-variant leading-relaxed text-sm whitespace-pre-line"
+                    dangerouslySetInnerHTML={{ __html: room.description }}
+                  />
+                ) : (
+                  <p className="text-on-surface-variant/40 italic text-sm text-center py-4">Chưa có mô tả chi tiết cho phòng này.</p>
+                )}
               </div>
             </div>
 
@@ -466,6 +510,57 @@ const RoomDetailModal = ({
         </div>
       </div>
     </div>
+
+    {/* Airbnb-style Fullscreen Image Viewer */}
+    {showImageViewer && room.images && (() => {
+      let viewerImages = [];
+      try { viewerImages = Array.isArray(room.images) ? room.images : JSON.parse(room.images || '[]'); } catch(e) { viewerImages = []; }
+      if (viewerImages.length === 0) return null;
+      return (
+        <div className="fixed inset-0 bg-black/95 z-[99999] flex flex-col" onClick={(e) => e.stopPropagation()}>
+          {/* Top bar */}
+          <div className="flex items-center justify-between px-6 py-4">
+            <button onClick={() => setShowImageViewer(false)} className="flex items-center gap-2 text-white/80 hover:text-white transition-colors text-sm font-bold">
+              <span className="material-symbols-outlined">close</span> Đóng
+            </button>
+            <span className="text-white/80 text-sm font-bold">{currentImageIndex + 1} / {viewerImages.length}</span>
+          </div>
+          {/* Main image */}
+          <div className="flex-1 flex items-center justify-center px-16 relative">
+            <button
+              onClick={() => setCurrentImageIndex(prev => (prev === 0 ? viewerImages.length - 1 : prev - 1))}
+              className="absolute left-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all"
+            >
+              <span className="material-symbols-outlined text-2xl">chevron_left</span>
+            </button>
+            <img
+              src={`http://localhost:5000/uploads/${viewerImages[currentImageIndex]}`}
+              alt={`Photo ${currentImageIndex + 1}`}
+              className="max-w-full max-h-[70vh] object-contain rounded-lg"
+            />
+            <button
+              onClick={() => setCurrentImageIndex(prev => (prev === viewerImages.length - 1 ? 0 : prev + 1))}
+              className="absolute right-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all"
+            >
+              <span className="material-symbols-outlined text-2xl">chevron_right</span>
+            </button>
+          </div>
+          {/* Thumbnail strip */}
+          <div className="flex justify-center gap-2 px-6 py-4 overflow-x-auto no-scrollbar">
+            {viewerImages.map((img, idx) => (
+              <button
+                key={idx}
+                onClick={() => setCurrentImageIndex(idx)}
+                className={`flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-all ${currentImageIndex === idx ? 'border-white opacity-100 scale-105' : 'border-transparent opacity-40 hover:opacity-70'}`}
+              >
+                <img src={`http://localhost:5000/uploads/${img}`} className="w-full h-full object-cover" alt="thumb" />
+              </button>
+            ))}
+          </div>
+        </div>
+      );
+    })()}
+    </>
   );
 };
 

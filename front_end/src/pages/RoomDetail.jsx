@@ -12,7 +12,7 @@ const RoomDetail = () => {
   const navigate = useNavigate();
   const [room, setRoom] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [showImageViewer, setShowImageViewer] = useState(false);
   const [activeReviewFilter, setActiveReviewFilter] = useState('ALL');
   const [reviews, setReviews] = useState([]);
   const [replyingTo, setReplyingTo] = useState(null);
@@ -161,162 +161,219 @@ const RoomDetail = () => {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-            {/* Left: Images & Description */}
-            <div className="lg:col-span-2 space-y-10">
-              {/* Image Gallery */}
-              <div className="space-y-4">
-                <div className="relative aspect-[16/10] rounded-3xl overflow-hidden shadow-2xl border border-outline-variant/10 group bg-surface-container-low">
-                  {images.length > 0 ? (
-                    <>
-                      <img 
-                        src={`http://localhost:5000/uploads/${images[currentImageIndex]}`} 
-                        alt="Room" 
-                        className="w-full h-full object-cover cursor-zoom-in transition-transform duration-700 group-hover:scale-105"
-                        onClick={() => setSelectedImage(`http://localhost:5000/uploads/${images[currentImageIndex]}`)}
-                      />
-                      {images.length > 1 && (
-                        <>
-                          <button 
-                            onClick={() => setCurrentImageIndex(prev => (prev === 0 ? images.length - 1 : prev - 1))}
-                            className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-white/40"
-                          >
-                            <span className="material-symbols-outlined">chevron_left</span>
-                          </button>
-                          <button 
-                            onClick={() => setCurrentImageIndex(prev => (prev === images.length - 1 ? 0 : prev + 1))}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-white/40"
-                          >
-                            <span className="material-symbols-outlined">chevron_right</span>
-                          </button>
-                        </>
-                      )}
-                      <div className="absolute bottom-6 right-6 px-4 py-2 bg-black/50 backdrop-blur-md rounded-full text-white text-xs font-bold tracking-widest">
-                        {currentImageIndex + 1} / {images.length}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-outline-variant gap-4">
-                      <span className="material-symbols-outlined text-6xl">image_not_supported</span>
-                      <p className="font-bold">Chưa có hình ảnh</p>
-                    </div>
-                  )}
+          {/* Photo Grid (Airbnb-style) - Full Width */}
+          <div className="relative mb-10">
+            {images.length === 0 ? (
+              <div className="aspect-[16/10] rounded-2xl bg-surface-container-low flex flex-col items-center justify-center text-outline-variant gap-4 border border-outline-variant/10">
+                <span className="material-symbols-outlined text-6xl">image_not_supported</span>
+                <p className="font-bold">Chưa có hình ảnh</p>
+              </div>
+            ) : images.length === 1 ? (
+              <div className="aspect-[16/10] rounded-2xl overflow-hidden cursor-pointer group" onClick={() => { setCurrentImageIndex(0); setShowImageViewer(true); }}>
+                <img src={`http://localhost:5000/uploads/${images[0]}`} alt="Room" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-4 grid-rows-2 gap-2 h-[480px] rounded-2xl overflow-hidden">
+                {/* Large image - left half */}
+                <div className="col-span-2 row-span-2 relative cursor-pointer group" onClick={() => { setCurrentImageIndex(0); setShowImageViewer(true); }}>
+                  <img src={`http://localhost:5000/uploads/${images[0]}`} alt="Main" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 </div>
-
-                {images.length > 1 && (
-                  <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
-                    {images.map((img, idx) => (
-                      <button 
-                        key={idx}
-                        onClick={() => setCurrentImageIndex(idx)}
-                        className={`relative flex-shrink-0 w-28 aspect-video rounded-xl overflow-hidden border-2 transition-all ${currentImageIndex === idx ? 'border-primary shadow-lg scale-105' : 'border-transparent opacity-60 hover:opacity-100'}`}
-                      >
-                        <img src={`http://localhost:5000/uploads/${img}`} className="w-full h-full object-cover" alt="thumb" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Description */}
-              <div className="bg-white p-8 rounded-3xl border border-outline-variant/20 shadow-sm">
-                <h3 className="font-headline-md text-headline-md mb-6 flex items-center gap-3">
-                  <span className="w-2 h-8 bg-primary rounded-full"></span>
-                  Mô tả chi tiết
-                </h3>
-                <p className="text-on-surface-variant leading-relaxed whitespace-pre-wrap">
-                  {room.description || 'Chưa có mô tả chi tiết cho phòng này.'}
-                </p>
-              </div>
-            </div>
-
-            {/* Right: Room Info & Actions */}
-            <div className="space-y-8">
-              <div className="bg-white p-8 rounded-3xl border border-outline-variant/20 shadow-xl sticky top-28">
-                <div className="mb-6">
-                  <div className="space-y-3 mb-6">
-                    <div className="flex items-center gap-2">
-                      <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-widest">
-                        {room.roomType === 'WHOLE_HOUSE' ? 'Nhà nguyên căn' : 'Phòng trọ'}
-                      </span>
-                      {room.status === 'AVAILABLE' ? (
-                        <span className="px-3 py-1 bg-secondary/10 text-secondary rounded-full text-[10px] font-black uppercase tracking-widest">Trống</span>
-                      ) : (
-                        <span className="px-3 py-1 bg-tertiary/10 text-tertiary rounded-full text-[10px] font-black uppercase tracking-widest">Sắp trống</span>
-                      )}
-                    </div>
-                    {room.status !== 'AVAILABLE' && room.intendedMoveOutDate && (
-                      <div className="flex items-center gap-2 text-tertiary font-bold text-xs bg-tertiary/5 p-2 rounded-xl border border-tertiary/10 w-fit">
-                        <span className="material-symbols-outlined text-[16px]">calendar_today</span>
-                        <span>Trống từ ngày: {new Date(room.intendedMoveOutDate).toLocaleDateString('vi-VN')}</span>
+                {/* Small images - right half */}
+                {images.slice(1, 5).map((img, idx) => (
+                  <div key={idx} className="relative cursor-pointer group overflow-hidden" onClick={() => { setCurrentImageIndex(idx + 1); setShowImageViewer(true); }}>
+                    <img src={`http://localhost:5000/uploads/${img}`} alt={`Photo ${idx + 2}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    {idx === 3 && images.length > 5 && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <span className="text-white text-2xl font-black">+{images.length - 5} ảnh</span>
                       </div>
                     )}
                   </div>
-                  <h1 className="font-display-md text-display-md text-on-surface mb-4">
-                    {room.roomType === 'WHOLE_HOUSE' ? '' : 'Phòng '}{room.roomNumber}
-                  </h1>
-                </div>
-
-                <div className="flex items-baseline gap-2 mb-8 p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                  <span className="text-3xl font-black text-primary">{room.price?.toLocaleString()}</span>
-                  <span className="text-primary/70 font-bold text-sm">đ/tháng</span>
-                </div>
-
-                {/* Quick Stats Grid */}
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div className="p-4 bg-surface-container-low rounded-2xl border border-outline-variant/10 flex flex-col items-center text-center">
-                    <span className="material-symbols-outlined text-primary mb-2">square_foot</span>
-                    <p className="text-xs text-on-surface-variant uppercase font-bold mb-1">Diện tích</p>
-                    <p className="font-black text-on-surface">{room.area || 0} m²</p>
+                ))}
+                {images.length < 5 && Array.from({ length: 5 - images.length }).map((_, idx) => (
+                  <div key={`empty-${idx}`} className="bg-surface-container-low flex items-center justify-center">
+                    <span className="material-symbols-outlined text-3xl text-outline-variant/30">image</span>
                   </div>
-                  <div className="p-4 bg-surface-container-low rounded-2xl border border-outline-variant/10 flex flex-col items-center text-center">
-                    <span className="material-symbols-outlined text-primary mb-2">group</span>
-                    <p className="text-xs text-on-surface-variant uppercase font-bold mb-1">Tối đa</p>
-                    <p className="font-black text-on-surface">{room.maxOccupants} người</p>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Title Section (Airbnb-style) */}
+          <div className="mb-8">
+            <h1 className="font-display-md text-display-md text-on-surface mb-3 font-black">
+              {room.roomType === 'WHOLE_HOUSE' ? '' : 'Phòng '}{room.roomNumber}
+            </h1>
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-[10px] font-black uppercase tracking-widest">
+                {room.roomType === 'WHOLE_HOUSE' ? 'Nhà nguyên căn' : 'Phòng trọ'}
+              </span>
+              {room.status === 'AVAILABLE' ? (
+                <span className="px-3 py-1 bg-secondary/10 text-secondary rounded-full text-[10px] font-black uppercase tracking-widest">Trống</span>
+              ) : (
+                <span className="px-3 py-1 bg-tertiary/10 text-tertiary rounded-full text-[10px] font-black uppercase tracking-widest">Sắp trống</span>
+              )}
+              {totalReviews > 0 && (
+                <span className="flex items-center gap-1 text-sm text-on-surface-variant">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" /></svg>
+                  <span className="font-bold">{avgRating}</span> · {totalReviews} đánh giá
+                </span>
+              )}
+              <span className="flex items-center gap-1 text-sm text-on-surface-variant font-bold">
+                <span className="material-symbols-outlined text-base">location_on</span>
+                {room.houseNumber ? `${room.houseNumber}, ` : ''}{room.address}
+              </span>
+            </div>
+            {room.status !== 'AVAILABLE' && room.intendedMoveOutDate && (
+              <div className="flex items-center gap-2 text-tertiary font-bold text-xs bg-tertiary/5 p-2 rounded-xl border border-tertiary/10 w-fit mt-3">
+                <span className="material-symbols-outlined text-[16px]">calendar_today</span>
+                <span>Trống từ ngày: {new Date(room.intendedMoveOutDate).toLocaleDateString('vi-VN')}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left: Room Details */}
+            <div className="lg:col-span-2 space-y-8">
+              <div className="bg-white p-8 rounded-3xl border border-outline-variant/20 shadow-sm">
+                <h3 className="font-headline-md text-headline-md mb-6 flex items-center gap-3">
+                  <span className="w-2 h-8 bg-primary rounded-full"></span>
+                  Thông tin chi tiết
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-surface-container-low flex items-center justify-center text-primary">
+                      <span className="material-symbols-outlined text-2xl">payments</span>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-50">Giá thuê</p>
+                      <p className="text-lg font-black text-error">{room.price?.toLocaleString()} <span className="text-xs">đ/tháng</span></p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-surface-container-low flex items-center justify-center text-primary">
+                      <span className="material-symbols-outlined text-2xl">aspect_ratio</span>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-50">Diện tích</p>
+                      <p className="text-lg font-black text-on-surface">{room.area || '—'} <span className="text-xs">m²</span></p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-surface-container-low flex items-center justify-center text-primary">
+                      <span className="material-symbols-outlined text-2xl">group</span>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-50">Sức chứa</p>
+                      <p className="text-lg font-black text-on-surface">{room.maxOccupants || '—'} <span className="text-xs">người</span></p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Full Address Block */}
-                <div className="mb-8 p-4 bg-surface-container-low rounded-2xl border border-outline-variant/10 flex items-center gap-3">
-                  <span className="material-symbols-outlined text-primary text-2xl">location_on</span>
-                  <p className="text-sm font-bold text-on-surface leading-tight">
-                    {room.houseNumber ? `${room.houseNumber}, ` : ''}{room.address}
-                  </p>
-                </div>
-
-                {/* Details List */}
-                <div className="space-y-6 mb-8 pb-8 border-b border-outline-variant/20">
-                  <div className="space-y-3">
-                    <h4 className="text-[10px] font-black text-outline uppercase tracking-widest">Chi phí dịch vụ</h4>
-                    <div className="grid grid-cols-1 gap-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-on-surface-variant">⚡ Điện</span>
-                        <span className="font-bold">{room.roomType === 'WHOLE_HOUSE' ? 'Giá nhà nước' : (room.electricityPrice ? `${room.electricityPrice.toLocaleString()}đ/ký` : 'Theo giá NN')}</span>
+                {/* Whole House extra info */}
+                {room.roomType === 'WHOLE_HOUSE' && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6 pt-6 border-t border-outline-variant/20">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-surface-container-low flex items-center justify-center text-primary">
+                        <span className="material-symbols-outlined text-2xl">stairs</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-on-surface-variant">💧 Nước</span>
-                        <span className="font-bold">{room.waterPrice ? `${room.waterPrice.toLocaleString()}đ/khối` : 'Theo giá NN'}</span>
+                      <div>
+                        <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-50">Số tầng</p>
+                        <p className="text-lg font-black text-on-surface">{room.numFloors || '—'} <span className="text-xs">tầng</span></p>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-on-surface-variant">🛵 Gửi xe</span>
-                        <span className="font-bold">{room.parkingPrice ? `${room.parkingPrice.toLocaleString()}đ/tháng` : 'Miễn phí'}</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-surface-container-low flex items-center justify-center text-primary">
+                        <span className="material-symbols-outlined text-2xl">bed</span>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-50">Phòng ngủ</p>
+                        <p className="text-lg font-black text-on-surface">{room.numBedrooms || '—'} <span className="text-xs">phòng</span></p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-surface-container-low flex items-center justify-center text-primary">
+                        <span className="material-symbols-outlined text-2xl">bathtub</span>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-50">Nhà vệ sinh</p>
+                        <p className="text-lg font-black text-on-surface">{room.numBathrooms || '—'} <span className="text-xs">phòng</span></p>
                       </div>
                     </div>
                   </div>
+                )}
 
+                <div className="mt-8 pt-8 border-t border-outline-variant/20">
+                  <h3 className="font-headline-md text-headline-md mb-6 flex items-center gap-3">
+                    <span className="w-2 h-8 bg-primary rounded-full"></span>
+                    Tiện ích & Dịch vụ
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {[
+                      { key: 'hasElevator', label: 'Thang máy', icon: 'elevator' },
+                      { key: 'hasWashingMachine', label: 'Máy giặt', icon: 'local_laundry_service' },
+                      { key: 'hasFridge', label: 'Tủ lạnh', icon: 'kitchen' },
+                      { key: 'hasKitchen', label: 'Bếp riêng', icon: 'countertops' },
+                      { key: 'hasHeater', label: 'Nóng lạnh', icon: 'water_heater' },
+                      { key: 'hasBalcony', label: 'Ban công', icon: 'balcony' }
+                    ].map(item => (
+                      <div key={item.key} className={`flex items-center gap-3 p-3 rounded-2xl border transition-all ${
+                        room[item.key] ? 'bg-secondary/5 border-secondary/20 text-secondary' : 'bg-surface-container opacity-30 border-transparent text-on-surface-variant'
+                      }`}>
+                        <span className="material-symbols-outlined text-xl">{item.icon}</span>
+                        <span className="text-xs font-black uppercase tracking-tight">{item.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Monthly Costs + Contact + Report */}
+            <div className="space-y-6">
+              <div className="bg-white p-8 rounded-3xl border border-outline-variant/20 shadow-xl">
+                {/* Monthly Costs */}
+                <div className="bg-primary/5 rounded-2xl p-6 border-2 border-dashed border-primary/20 space-y-5">
+                  <h3 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                    <span className="material-symbols-outlined text-xl">account_balance_wallet</span>
+                    Chi phí hàng tháng
+                  </h3>
                   <div className="space-y-3">
-                    <h4 className="text-[10px] font-black text-outline uppercase tracking-widest">Tiện ích</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {room.hasElevator && <span className="px-3 py-1.5 bg-surface-container rounded-lg text-xs font-bold border border-outline-variant/20 flex items-center gap-2"><span className="material-symbols-outlined text-sm">elevator</span> Thang máy</span>}
-                      {room.hasWashingMachine && <span className="px-3 py-1.5 bg-surface-container rounded-lg text-xs font-bold border border-outline-variant/20 flex items-center gap-2"><span className="material-symbols-outlined text-sm">local_laundry_service</span> Máy giặt</span>}
-                      {room.hasFridge && <span className="px-3 py-1.5 bg-surface-container rounded-lg text-xs font-bold border border-outline-variant/20 flex items-center gap-2"><span className="material-symbols-outlined text-sm">kitchen</span> Tủ lạnh</span>}
-                      {room.hasKitchen && <span className="px-3 py-1.5 bg-surface-container rounded-lg text-xs font-bold border border-outline-variant/20 flex items-center gap-2"><span className="material-symbols-outlined text-sm">cooking</span> Bếp nấu</span>}
-                      {room.hasHeater && <span className="px-3 py-1.5 bg-surface-container rounded-lg text-xs font-bold border border-outline-variant/20 flex items-center gap-2"><span className="material-symbols-outlined text-sm">hot_tub</span> Nóng lạnh</span>}
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-on-surface-variant">Tiền điện</span>
+                      <span className="text-sm font-black text-on-surface">
+                        {room.roomType === 'WHOLE_HOUSE' ? 'Giá nhà nước' : (room.electricityPrice ? `${room.electricityPrice.toLocaleString()}đ/ký` : 'Giá NN')}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-on-surface-variant">Tiền nước</span>
+                      <span className="text-sm font-black text-on-surface">
+                        {room.waterPrice ? `${room.waterPrice.toLocaleString()}đ/khối` : 'Giá NN'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-on-surface-variant">Internet</span>
+                      <span className="text-sm font-black text-on-surface">
+                        {room.internetPrice ? `${room.internetPrice.toLocaleString()}đ` : 'Tự túc'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-on-surface-variant">Gửi xe</span>
+                      <span className="text-sm font-black text-on-surface">
+                        {room.parkingPrice ? `${room.parkingPrice.toLocaleString()}đ/tháng` : 'Free'}
+                      </span>
+                    </div>
+                    <div className="pt-3 border-t border-primary/10 flex justify-between items-center">
+                      <span className="text-xs font-bold text-primary">Dịch vụ chung</span>
+                      <span className="text-sm font-black text-primary">
+                        {room.servicePrice ? `${room.servicePrice.toLocaleString()}đ` : 'Free'}
+                      </span>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Landlord & Contact */}
+              {/* Landlord & Contact */}
+              <div className="bg-white p-8 rounded-3xl border border-outline-variant/20 shadow-xl">
                 <div className="space-y-4">
                   <div className="flex items-center gap-4 p-4 bg-secondary-fixed-dim/20 rounded-2xl border border-secondary-fixed/20">
                     <div className="w-12 h-12 rounded-full bg-secondary-fixed-dim flex items-center justify-center font-black text-on-secondary-fixed shadow-inner">
@@ -346,6 +403,21 @@ const RoomDetail = () => {
                     Báo cáo tin đăng
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Description Section (Full Width) */}
+          <div className="mt-8">
+            <div className="bg-white p-8 rounded-3xl border border-outline-variant/20 shadow-sm">
+              <h3 className="font-headline-md text-headline-md mb-6 flex items-center gap-3">
+                <span className="w-2 h-8 bg-primary rounded-full"></span>
+                Thông tin mô tả phòng
+              </h3>
+              <div className="bg-surface-container-lowest/50 rounded-2xl p-6 border border-outline-variant/10">
+                <p className="text-on-surface-variant leading-relaxed whitespace-pre-wrap">
+                  {room.description || 'Chưa có mô tả chi tiết cho phòng này.'}
+                </p>
               </div>
             </div>
           </div>
@@ -484,21 +556,48 @@ const RoomDetail = () => {
         />
       )}
 
-      {/* Lightbox / Fullscreen Image */}
-      {selectedImage && (
-        <div 
-          className="fixed inset-0 bg-black/95 z-[99999] flex items-center justify-center p-4"
-          onClick={() => setSelectedImage(null)}
-        >
-          <button className="absolute top-8 right-8 text-white text-4xl hover:text-primary transition-colors">
-            <span className="material-symbols-outlined text-4xl">close</span>
-          </button>
-          <img 
-            src={selectedImage} 
-            alt="Full size" 
-            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-            onClick={e => e.stopPropagation()}
-          />
+      {/* Image Viewer (Airbnb-style) */}
+      {showImageViewer && images.length > 0 && (
+        <div className="fixed inset-0 bg-black/95 z-[99999] flex flex-col">
+          {/* Top bar */}
+          <div className="flex items-center justify-between px-6 py-4">
+            <button onClick={() => setShowImageViewer(false)} className="flex items-center gap-2 text-white/80 hover:text-white transition-colors text-sm font-bold">
+              <span className="material-symbols-outlined">close</span> Đóng
+            </button>
+            <span className="text-white/80 text-sm font-bold">{currentImageIndex + 1} / {images.length}</span>
+          </div>
+          {/* Main image */}
+          <div className="flex-1 flex items-center justify-center px-16 relative">
+            <button
+              onClick={() => setCurrentImageIndex(prev => (prev === 0 ? images.length - 1 : prev - 1))}
+              className="absolute left-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all"
+            >
+              <span className="material-symbols-outlined text-2xl">chevron_left</span>
+            </button>
+            <img
+              src={`http://localhost:5000/uploads/${images[currentImageIndex]}`}
+              alt={`Photo ${currentImageIndex + 1}`}
+              className="max-w-full max-h-[70vh] object-contain rounded-lg"
+            />
+            <button
+              onClick={() => setCurrentImageIndex(prev => (prev === images.length - 1 ? 0 : prev + 1))}
+              className="absolute right-4 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-all"
+            >
+              <span className="material-symbols-outlined text-2xl">chevron_right</span>
+            </button>
+          </div>
+          {/* Thumbnail strip */}
+          <div className="flex justify-center gap-2 px-6 py-4 overflow-x-auto no-scrollbar">
+            {images.map((img, idx) => (
+              <button
+                key={idx}
+                onClick={() => setCurrentImageIndex(idx)}
+                className={`flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-all ${currentImageIndex === idx ? 'border-white opacity-100 scale-105' : 'border-transparent opacity-40 hover:opacity-70'}`}
+              >
+                <img src={`http://localhost:5000/uploads/${img}`} className="w-full h-full object-cover" alt="thumb" />
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

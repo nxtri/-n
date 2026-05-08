@@ -8,7 +8,7 @@ const PLAN_INFO = {
   DIAMOND: { name: 'Kim Cương', icon: '💎', color: '#facc15', bg: 'from-yellow-300/10 to-amber-400/5', border: 'border-yellow-400/50', rank: 4 },
 };
 
-const WalletTab = () => {
+const WalletTab = ({ onPurchaseSuccess }) => {
   const [wallet, setWallet] = useState(null);
   const [plans, setPlans] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -77,6 +77,7 @@ const WalletTab = () => {
       }
       setShowBuyConfirm(false); setSelectedPlan(null); setMonths(1); setExtraRooms(1);
       fetchAll();
+      if (onPurchaseSuccess) onPurchaseSuccess();
     } catch (e) { alert(e.response?.data?.message || 'Lỗi!'); }
   };
 

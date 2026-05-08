@@ -80,6 +80,7 @@ const Dashboard = () => {
   const [replyText, setReplyText] = useState('');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [showImageViewer, setShowImageViewer] = useState(false);
 
   // --- STATE QUẢN LÝ DỮ LIỆU ---
   const [rooms, setRooms] = useState([]);
@@ -524,38 +525,39 @@ const Dashboard = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    const checkLimit = async () => {
-      if (user?.role === 'LANDLORD' && rooms.length > 0) {
-        try {
-          const walletRes = await axiosClient.get('/wallet/my-wallet');
-          const planRes = await axiosClient.get('/subscriptions/plans');
-          
-          const wallet = walletRes.wallet;
-          const plans = planRes.plans;
-          
-          let baseLimit = 0;
-          if (wallet.hasBasePlan && wallet.subscriptionPlan !== 'NONE') {
-            baseLimit = plans[wallet.subscriptionPlan]?.limit || 0;
-          }
-          
-          let limit = baseLimit === -1 ? -1 : baseLimit + (wallet.extraRoomLimit || 0);
-          
-          if (limit !== -1) {
-            const visibleCount = rooms.filter(r => !r.isHidden).length;
-            if (visibleCount > limit) {
-              setLimitInfo({ visibleCount, limit, excessCount: visibleCount - limit });
-            } else {
-              setLimitInfo(null);
-            }
+  const checkLimit = async () => {
+    if (user?.role === 'LANDLORD' && rooms.length > 0) {
+      try {
+        const walletRes = await axiosClient.get('/wallet/my-wallet');
+        const planRes = await axiosClient.get('/subscriptions/plans');
+        
+        const wallet = walletRes.wallet;
+        const plans = planRes.plans;
+        
+        let baseLimit = 0;
+        if (wallet.hasBasePlan && wallet.subscriptionPlan !== 'NONE') {
+          baseLimit = plans[wallet.subscriptionPlan]?.limit || 0;
+        }
+        
+        let limit = baseLimit === -1 ? -1 : baseLimit + (wallet.extraRoomLimit || 0);
+        
+        if (limit !== -1) {
+          const visibleCount = rooms.filter(r => !r.isHidden).length;
+          if (visibleCount > limit) {
+            setLimitInfo({ visibleCount, limit, excessCount: visibleCount - limit });
           } else {
             setLimitInfo(null);
           }
-        } catch (e) {
-          console.error("Lỗi kiểm tra giới hạn phòng:", e);
+        } else {
+          setLimitInfo(null);
         }
+      } catch (e) {
+        console.error("Lỗi kiểm tra giới hạn phòng:", e);
       }
-    };
+    }
+  };
+
+  useEffect(() => {
     checkLimit();
   }, [rooms, user?.role]);
 
@@ -608,7 +610,17 @@ const Dashboard = () => {
               )}
             </div>
             {user?.role === 'LANDLORD' && (
-              <button onClick={() => { setRoomToEdit(null); setShowRoomFormModal(true); }} className="hidden md:flex bg-primary text-on-primary px-6 py-2.5 rounded-2xl font-black shadow-lg hover:scale-105 transition-all items-center gap-2">
+              <button 
+                onClick={() => { 
+                  if (limitInfo) {
+                    alert('Bạn đã vượt quá giới hạn phòng, vui lòng nâng cấp gói hoặc ẩn phòng!');
+                    return;
+                  }
+                  setRoomToEdit(null); 
+                  setShowRoomFormModal(true); 
+                }} 
+                className="hidden md:flex bg-primary text-on-primary px-6 py-2.5 rounded-2xl font-black shadow-lg hover:scale-105 transition-all items-center gap-2"
+              >
                 <span className="material-symbols-outlined text-[20px]">add_circle</span> Đăng tin
               </button>
             )}
@@ -671,7 +683,7 @@ const Dashboard = () => {
             )}
 
             {activeTab === 'WALLET' && user?.role === 'LANDLORD' && (
-              <WalletTab />
+              <WalletTab onPurchaseSuccess={checkLimit} />
             )}
 
             {/* LANDLORD TABS */}
@@ -760,6 +772,7 @@ const Dashboard = () => {
           handleDeleteRoom={handleDeleteRoom}
         />
 
+
         {selectedImage && (
           <div className="fixed inset-0 z-[100000] bg-black/95 flex justify-center items-center" onClick={() => setSelectedImage(null)}>
             <button onClick={() => setSelectedImage(null)} className="absolute top-5 right-5 text-white text-4xl">✖</button>
@@ -804,6 +817,7 @@ const Dashboard = () => {
           rooms={rooms} 
           fetchRooms={fetchRooms} 
           setActiveTab={setActiveTab} 
+          activeTab={activeTab}
         />
 
       </div>
