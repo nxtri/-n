@@ -5,13 +5,13 @@ const sendEmail = async (to, subject, text) => {
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: 'xuantri6262@gmail.com', // Thay bằng Email thật của bạn
-        pass: 'aojk wmay uggt upzb'       // Mật khẩu ứng dụng (App Password) của Gmail
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
       }
     });
 
     await transporter.sendMail({
-      from: '"Hệ Thống Quản Lý Phòng Trọ" <email.cua.ban@gmail.com>',
+      from: `"Hệ Thống Quản Lý Phòng Trọ" <${process.env.EMAIL_USER}>`,
       to: to,
       subject: subject,
       text: text
