@@ -9,6 +9,8 @@ import axiosClient from '../api/axiosClient';
 import notificationApi from '../api/notificationApi';
 import authApi from '../api/authApi';
 import IncidentManagement from '../components/IncidentManagement';
+import socket from '../api/socket';
+import Toast from '../components/Toast';
 
 // ============================================================
 // IMPORT COMPONENT TÁCH THEO VAI TRÒ (ROLE-BASED)
@@ -54,6 +56,7 @@ const Dashboard = () => {
 
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [toastNoti, setToastNoti] = useState(null);
   const [selectedRoomId, setSelectedRoomId] = useState(null);
   const [isTenantBillsMenuOpen, setIsTenantBillsMenuOpen] = useState(true);
   const [roomSearchTerm, setRoomSearchTerm] = useState('');
@@ -152,6 +155,50 @@ const Dashboard = () => {
     }
   }, [navigate, location.state]);
 
+  // ===== SOCKET.IO: KẾT NỐI REAL-TIME =====
+  // Dùng ref để lưu hàm refresh mới nhất, tránh stale closure trong socket listener
+  const refreshDataRef = useRef(null);
+  refreshDataRef.current = () => {
+    fetchBills();
+    fetchContracts();
+    fetchRooms();
+    if (user?.role === 'LANDLORD') {
+      fetchLandlordIncidents();
+      fetchTransactions();
+    }
+  };
+
+  useEffect(() => {
+    if (!user || !user.id) return;
+
+    // 1. Kết nối tới Server
+    socket.connect();
+
+    // 2. Báo cho Server biết "Tôi đang online"
+    socket.emit('user_online', user.id);
+
+    // 3. Lắng nghe thông báo mới từ Server
+    socket.on('new_notification', (newNoti) => {
+      console.log('🔔 CÓ THÔNG BÁO MỚI:', newNoti);
+      // Thêm thông báo mới vào đầu danh sách (không cần F5)
+      setNotifications(prev => [newNoti, ...prev]);
+      // Hiện Toast popup
+      setToastNoti(newNoti);
+
+      // TỰ ĐỘNG CẬP NHẬT DỮ LIỆU trên trang (hóa đơn, hợp đồng, phòng,...)
+      // Delay 500ms để đảm bảo Backend đã lưu xong dữ liệu vào DB
+      setTimeout(() => {
+        if (refreshDataRef.current) refreshDataRef.current();
+      }, 500);
+    });
+
+    // 4. Cleanup: Ngắt kết nối khi rời Dashboard
+    return () => {
+      socket.off('new_notification');
+      socket.disconnect();
+    };
+  }, [user?.id]);
+
   const fetchAllData = async () => {
     try {
       await Promise.all([
@@ -229,6 +276,7 @@ const Dashboard = () => {
   };
 
   const handleLogout = () => {
+    socket.disconnect(); // Ngắt kết nối Socket khi đăng xuất
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     window.location.href = '/login';
@@ -819,6 +867,9 @@ const Dashboard = () => {
           setActiveTab={setActiveTab} 
           activeTab={activeTab}
         />
+
+        {/* TOAST NOTIFICATION (REAL-TIME) */}
+        <Toast notification={toastNoti} onClose={() => setToastNoti(null)} />
 
       </div>
     </DashboardProvider>

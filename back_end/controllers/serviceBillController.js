@@ -322,7 +322,13 @@ const serviceBillController = {
     try {
       const billId = req.params.id;
 
-      const bill = await ServiceBill.findByPk(billId);
+      const bill = await ServiceBill.findByPk(billId, {
+        include: [{
+          model: RentalContract,
+          as: 'contract',
+          include: [{ model: Room, as: 'room' }]
+        }]
+      });
 
       if (!bill) {
         return res.status(404).json({ message: 'Không tìm thấy hóa đơn!' });
@@ -345,8 +351,26 @@ const serviceBillController = {
         { where: { id: bill.contractId } }
       );
 
+      const month = bill.month;
+      const year = bill.year;
+      const tenantId = bill.contract?.tenantId;
+      const roomNumber = bill.contract?.room?.roomNumber || bill.roomNumberSnapshot;
+
       // Xóa hóa đơn
       await bill.destroy();
+
+      // 🔔 Bắn thông báo cho khách thuê để UI tự động cập nhật
+      if (tenantId) {
+        try {
+          await notificationHelper.send(
+            tenantId,
+            '❌ Hóa đơn bị hủy',
+            `Chủ nhà đã hủy hóa đơn điện nước tháng ${month}/${year} của phòng ${roomNumber}.`
+          );
+        } catch (notiError) {
+          console.error("Lỗi gửi thông báo khi xóa hóa đơn:", notiError);
+        }
+      }
 
       res.status(200).json({ message: 'Xóa hóa đơn điện nước thành công và hoàn tác chỉ số hợp đồng!' });
     } catch (error) {

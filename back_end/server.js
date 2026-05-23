@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path'); // Đảm bảo có dòng này ở đầu file server.js
+const http = require('http'); // Module HTTP để tạo Server cho Socket.io
+const socketManager = require('./socketManager'); // Module quản lý Socket.io
 
 // Cho phép Frontend truy cập trực tiếp vào các file trong thư mục 'uploads'
 
@@ -9,7 +11,11 @@ const path = require('path'); // Đảm bảo có dòng này ở đầu file ser
 const app = express();
 const startCronJobs = require('./cronJobs');
 
+// ===== TẠO HTTP SERVER BỌC NGOÀI EXPRESS =====
+const server = http.createServer(app);
 
+// ===== KHỞI TẠO SOCKET.IO =====
+socketManager.init(server);
 
 
 
@@ -52,19 +58,6 @@ const subscriptionRoutes = require('./routes/subscriptionRoutes');
 app.use('/api/subscriptions', subscriptionRoutes);
 // --------------------
 
-const { sequelize } = require('./models');
-sequelize.sync()
-  .then(() => {
-    console.log("Database & tables created!");
-    
-    startCronJobs(); // <--- 2. ĐÁNH THỨC ROBOT CHẠY NGẦM Ở ĐÂY
-
-    app.listen(5000, () => {
-      console.log('Server is running on port 5000');
-    });
-  })
-
-
 // --- THÊM 2 DÒNG NÀY VÀO ---
 const serviceBillRoutes = require('./routes/serviceBillRoutes');
 app.use('/api/bills', serviceBillRoutes);
@@ -73,7 +66,8 @@ const statisticRoutes = require('./routes/statisticRoutes');
 app.use('/api/statistics', statisticRoutes);
 require('./cron/billReminder'); // Khởi động Robot nhắc nhở hàng ngày
 
-// Kiểm tra kết nối và đồng bộ hóa (tự động tạo bảng)
+// ===== KHỞI ĐỘNG SERVER (CHỈ MỘT LẦN DUY NHẤT) =====
+const { sequelize } = require('./models');
 sequelize.authenticate()
   .then(() => {
     console.log('Kết nối đến PostgreSQL thành công!');
@@ -83,10 +77,13 @@ sequelize.authenticate()
   .then(() => {
     console.log('Đã đồng bộ hóa tất cả các bảng dữ liệu!');
     
-    // Khởi động server lắng nghe ở cổng 5000
+    startCronJobs(); // Đánh thức robot chạy ngầm
+
+    // THAY ĐỔI QUAN TRỌNG: Dùng server.listen() thay vì app.listen()
+    // để Socket.io có thể hoạt động trên cùng cổng
     const PORT = 5000;
-    app.listen(PORT, () => {
-      console.log(`Server đang chạy tại http://localhost:${PORT}`);
+    server.listen(PORT, () => {
+      console.log(`🚀 Server & Socket.io đang chạy tại http://localhost:${PORT}`);
     });
   })
   .catch((error) => {

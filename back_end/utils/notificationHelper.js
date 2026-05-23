@@ -1,26 +1,38 @@
 const { Notification, User } = require('../models');
 const sendEmail = require('./sendEmail');
+const socketManager = require('../socketManager'); // Import module Socket.io
 
 const notificationHelper = {
   /**
-   * Gửi thông báo đơn lẻ (Web + Email tùy chọn)
+   * Gửi thông báo đơn lẻ (Web + Real-time + Email tùy chọn)
    */
   send: async (userId, title, message, shouldSendEmail = true) => {
     try {
       // 1. Tạo thông báo trên Web (DB)
-      await Notification.create({
+      const newNoti = await Notification.create({
         userId,
         title,
         message,
         isRead: false
       });
 
-      // 2. Nếu có yêu cầu gửi Email
+      // 2. TÍNH NĂNG REAL-TIME: Đẩy thông báo xuống Frontend ngay lập tức
+      const io = socketManager.getIO();
+      const onlineUsers = socketManager.getOnlineUsers();
+      if (io) {
+        const socketId = onlineUsers.get(String(userId));
+        if (socketId) {
+          io.to(socketId).emit('new_notification', newNoti);
+          console.log(`📡 [Real-time] Đã bắn thông báo tới User ${userId} (socket: ${socketId})`);
+        }
+      }
+
+      // 3. Nếu có yêu cầu gửi Email
       if (shouldSendEmail) {
         // Tìm User để lấy Email
         const user = await User.findByPk(userId, { attributes: ['email'] });
         if (user && user.email) {
-          // 3. Gửi Email
+          // Gửi Email
           sendEmail(user.email, `[Thông Báo] ${title}`, message)
             .catch(err => console.error(`Lỗi gửi email tới ${user.email}:`, err));
         }
@@ -31,7 +43,7 @@ const notificationHelper = {
   },
 
   /**
-   * Gửi thông báo hàng loạt (Web + Email tùy chọn)
+   * Gửi thông báo hàng loạt (Web + Real-time + Email tùy chọn)
    */
   bulkSend: async (userIds, title, message, shouldSendEmail = true) => {
     try {
@@ -44,9 +56,22 @@ const notificationHelper = {
         message,
         isRead: false
       }));
-      await Notification.bulkCreate(notifications);
+      const createdNotis = await Notification.bulkCreate(notifications);
 
-      // 2. Nếu có yêu cầu gửi Email hàng loạt
+      // 2. TÍNH NĂNG REAL-TIME: Đẩy thông báo xuống tất cả user đang online
+      const io = socketManager.getIO();
+      const onlineUsers = socketManager.getOnlineUsers();
+      if (io) {
+        createdNotis.forEach((noti) => {
+          const socketId = onlineUsers.get(String(noti.userId));
+          if (socketId) {
+            io.to(socketId).emit('new_notification', noti);
+            console.log(`📡 [Real-time] Đã bắn thông báo tới User ${noti.userId} (socket: ${socketId})`);
+          }
+        });
+      }
+
+      // 3. Nếu có yêu cầu gửi Email hàng loạt
       if (shouldSendEmail) {
         // Lấy danh sách email
         const users = await User.findAll({
@@ -54,7 +79,7 @@ const notificationHelper = {
           attributes: ['email']
         });
 
-        // 3. Gửi Email
+        // Gửi Email
         users.forEach(u => {
           if (u.email) {
             sendEmail(u.email, `[Thông Báo] ${title}`, message)
