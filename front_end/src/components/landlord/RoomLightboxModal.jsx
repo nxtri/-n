@@ -58,7 +58,7 @@ const RoomLightboxModal = ({
 
           {/* Ảnh được phóng to (Dùng ảnh đang được hiển thị theo currentImageIndex) */}
           <img 
-            src={`http://localhost:5000/uploads/${JSON.parse(viewRoomDetails.images)[currentImageIndex]}`} 
+            src={`${import.meta.env.VITE_API_URL}/uploads/${JSON.parse(viewRoomDetails.images)[currentImageIndex]}`} 
             alt="Phóng to" 
             style={{ 
               maxWidth: '90%',      // Chỉnh nhỏ lại một chút để chừa chỗ cho mũi tên

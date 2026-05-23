@@ -281,7 +281,7 @@ const BillDetailModal = ({
                   try { images = JSON.parse(bill.proofImages || "[]"); } catch (e) {}
                   return images.map((img, idx) => {
                     const fileName = img.replace(/^.*[\\/]/, '');
-                    const imgSrc = `http://localhost:5000/uploads/${fileName}`;
+                    const imgSrc = `${import.meta.env.VITE_API_URL}/uploads/${fileName}`;
                     return (
                       <img
                         key={idx}

@@ -134,7 +134,7 @@ const AllRoomsTabContent = ({
                     try { images = JSON.parse(room.images) || []; } catch(e) {}
                     return images.length > 0 ? (
                       <img 
-                        src={`http://localhost:5000/uploads/${images[0]}`} 
+                        src={`${import.meta.env.VITE_API_URL}/uploads/${images[0]}`} 
                         alt={room.roomNumber} 
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
                       />

@@ -507,12 +507,12 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
                           {selectedIncident.images.map((img, idx) => (
                             <a 
                               key={idx} 
-                              href={`http://localhost:5000/uploads/${img}`} 
+                              href={`${import.meta.env.VITE_API_URL}/uploads/${img}`} 
                               target="_blank" 
                               rel="noopener noreferrer" 
                               className="w-20 h-20 rounded-xl overflow-hidden border border-outline-variant/30 hover:scale-105 transition-all shadow-sm"
                             >
-                              <img src={`http://localhost:5000/uploads/${img}`} alt="evidence" className="w-full h-full object-cover" />
+                              <img src={`${import.meta.env.VITE_API_URL}/uploads/${img}`} alt="evidence" className="w-full h-full object-cover" />
                             </a>
                           ))}
                         </div>

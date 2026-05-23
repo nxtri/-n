@@ -86,7 +86,7 @@ const RoomDetailModal = ({
                         onClick={() => { setShowImageViewer(true); }}
                       >
                         <img 
-                          src={`http://localhost:5000/uploads/${images[currentImageIndex]}`} 
+                          src={`${import.meta.env.VITE_API_URL}/uploads/${images[currentImageIndex]}`} 
                           alt="Main Room View" 
                           className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
                         />
@@ -118,7 +118,7 @@ const RoomDetailModal = ({
                         {images.slice(1, 3).map((img, idx) => (
                           <div key={idx} className="relative rounded-[1.5rem] overflow-hidden group shadow-sm h-full">
                             <img 
-                              src={`http://localhost:5000/uploads/${img}`} 
+                              src={`${import.meta.env.VITE_API_URL}/uploads/${img}`} 
                               alt={`View ${idx + 1}`} 
                               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 cursor-pointer"
                               onClick={() => { setCurrentImageIndex(idx + 1); setShowImageViewer(true); }}
@@ -418,10 +418,10 @@ const RoomDetailModal = ({
                                 {revImages.map((img, idx) => (
                                   <img 
                                     key={idx} 
-                                    src={`http://localhost:5000/uploads/${img}`} 
+                                    src={`${import.meta.env.VITE_API_URL}/uploads/${img}`} 
                                     alt="Review" 
                                     className="w-16 h-16 object-cover rounded-xl border border-outline-variant/30 hover:scale-105 transition-transform cursor-pointer"
-                                    onClick={() => setSelectedImage(`http://localhost:5000/uploads/${img}`)}
+                                    onClick={() => setSelectedImage(`${import.meta.env.VITE_API_URL}/uploads/${img}`)}
                                   />
                                 ))}
                               </div>
@@ -534,7 +534,7 @@ const RoomDetailModal = ({
               <span className="material-symbols-outlined text-2xl">chevron_left</span>
             </button>
             <img
-              src={`http://localhost:5000/uploads/${viewerImages[currentImageIndex]}`}
+              src={`${import.meta.env.VITE_API_URL}/uploads/${viewerImages[currentImageIndex]}`}
               alt={`Photo ${currentImageIndex + 1}`}
               className="max-w-full max-h-[70vh] object-contain rounded-lg"
             />
@@ -553,7 +553,7 @@ const RoomDetailModal = ({
                 onClick={() => setCurrentImageIndex(idx)}
                 className={`flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-all ${currentImageIndex === idx ? 'border-white opacity-100 scale-105' : 'border-transparent opacity-40 hover:opacity-70'}`}
               >
-                <img src={`http://localhost:5000/uploads/${img}`} className="w-full h-full object-cover" alt="thumb" />
+                <img src={`${import.meta.env.VITE_API_URL}/uploads/${img}`} className="w-full h-full object-cover" alt="thumb" />
               </button>
             ))}
           </div>

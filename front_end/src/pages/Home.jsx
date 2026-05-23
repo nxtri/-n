@@ -302,7 +302,7 @@ const Home = () => {
             ) : currentRooms.map((room) => {
               let images = [];
               try { images = JSON.parse(room.images) || []; } catch(e) {}
-              const firstImage = images.length > 0 ? `http://localhost:5000/uploads/${images[0]}` : "https://via.placeholder.com/400x300?text=Chua+Co+Anh";
+              const firstImage = images.length > 0 ? `${import.meta.env.VITE_API_URL}/uploads/${images[0]}` : "https://via.placeholder.com/400x300?text=Chua+Co+Anh";
 
               // Viền bài đăng theo gói đăng ký của chủ nhà
               const plan = room.landlord?.subscriptionPlan;

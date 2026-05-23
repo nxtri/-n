@@ -81,9 +81,9 @@ sequelize.authenticate()
 
     // THAY ĐỔI QUAN TRỌNG: Dùng server.listen() thay vì app.listen()
     // để Socket.io có thể hoạt động trên cùng cổng
-    const PORT = 5000;
+    const PORT = process.env.PORT || 5000;
     server.listen(PORT, () => {
-      console.log(`🚀 Server & Socket.io đang chạy tại http://localhost:${PORT}`);
+      console.log(`🚀 Server & Socket.io đang chạy tại cổng ${PORT}`);
     });
   })
   .catch((error) => {

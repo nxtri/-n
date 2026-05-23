@@ -306,7 +306,7 @@ const ContractFormModal = ({
                             <div className="flex-1 flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
                                 {/* HIỂN THỊ ẢNH CŨ TRÊN SERVER */}
                                 {existingContractImages.map((fileName, i) => {
-                                  const url = `http://localhost:5000/uploads/${fileName.replace(/uploads[\\\/]/, '')}`;
+                                  const url = `${import.meta.env.VITE_API_URL}/uploads/${fileName.replace(/uploads[\\\/]/, '')}`;
                                   return (
                                     <div key={`old-${i}`} className="relative shrink-0 w-12 h-12 rounded-lg overflow-hidden border border-outline-variant group/img shadow-sm cursor-zoom-in" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setViewingMedia({ url, type: 'image' }); }}>
                                       <img src={url} className="w-full h-full object-cover grayscale-[0.6]" title="Ảnh cũ" />
@@ -428,7 +428,7 @@ const ContractFormModal = ({
                               <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
                                   {/* HIỂN THỊ ẢNH TÌNH TRẠNG CŨ */}
                                   {existingConditionImages.map((fileName, i) => {
-                                    const url = `http://localhost:5000/uploads/${fileName.replace(/uploads[\\\/]/, '')}`;
+                                    const url = `${import.meta.env.VITE_API_URL}/uploads/${fileName.replace(/uploads[\\\/]/, '')}`;
                                     return (
                                       <div key={`old-cond-${i}`} className="relative shrink-0 w-10 h-10 rounded-md overflow-hidden border border-outline-variant group/img shadow-sm cursor-zoom-in" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setViewingMedia({ url, type: 'image' }); }}>
                                         <img src={url} className="w-full h-full object-cover grayscale-[0.6]" title="Ảnh cũ" />
@@ -473,7 +473,7 @@ const ContractFormModal = ({
                               <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
                                 {/* HIỂN THỊ VIDEO CŨ */}
                                 {existingConditionVideos.map((fileName, i) => {
-                                  const url = `http://localhost:5000/uploads/${fileName.replace(/uploads[\\\/]/, '')}`;
+                                  const url = `${import.meta.env.VITE_API_URL}/uploads/${fileName.replace(/uploads[\\\/]/, '')}`;
                                   return (
                                     <div key={`old-vid-${i}`} className="relative shrink-0 w-10 h-10 rounded-md overflow-hidden border border-outline-variant bg-black group/img shadow-sm cursor-zoom-in" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setViewingMedia({ url, type: 'video' }); }}>
                                       <video src={url} className="w-full h-full object-cover opacity-50 grayscale-[0.6]" />

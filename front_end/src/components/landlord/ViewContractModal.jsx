@@ -233,8 +233,8 @@ const ViewContractModal = ({
                 return images.length > 0 ? (
                   <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
                     {images.map((fileName, idx) => (
-                      <div key={idx} className="shrink-0 w-32 h-44 rounded-2xl overflow-hidden border-2 border-white shadow-md hover:scale-105 transition-transform cursor-pointer" onClick={() => window.open(`http://localhost:5000/uploads/${fileName}`)}>
-                        <img src={`http://localhost:5000/uploads/${fileName}`} className="w-full h-full object-cover" />
+                      <div key={idx} className="shrink-0 w-32 h-44 rounded-2xl overflow-hidden border-2 border-white shadow-md hover:scale-105 transition-transform cursor-pointer" onClick={() => window.open(`${import.meta.env.VITE_API_URL}/uploads/${fileName}`)}>
+                        <img src={`${import.meta.env.VITE_API_URL}/uploads/${fileName}`} className="w-full h-full object-cover" />
                       </div>
                     ))}
                   </div>
@@ -265,8 +265,8 @@ const ViewContractModal = ({
                     {residenceImages.map((fileName, idx) => {
                       const cleanFileName = fileName.replace('uploads/', '').replace('uploads\\', '');
                       return (
-                        <div key={idx} className="shrink-0 max-w-[300px] h-48 rounded-2xl overflow-hidden border-2 border-white shadow-md hover:scale-105 transition-transform cursor-pointer" onClick={() => window.open(`http://localhost:5000/uploads/${cleanFileName}`)}>
-                          <img src={`http://localhost:5000/uploads/${cleanFileName}`} className="w-full h-full object-contain bg-surface-container-low" />
+                        <div key={idx} className="shrink-0 max-w-[300px] h-48 rounded-2xl overflow-hidden border-2 border-white shadow-md hover:scale-105 transition-transform cursor-pointer" onClick={() => window.open(`${import.meta.env.VITE_API_URL}/uploads/${cleanFileName}`)}>
+                          <img src={`${import.meta.env.VITE_API_URL}/uploads/${cleanFileName}`} className="w-full h-full object-contain bg-surface-container-low" />
                         </div>
                       )
                     })}
@@ -303,7 +303,7 @@ const ViewContractModal = ({
                         {cImages.map((fileName, idx) => {
                           const cleanName = fileName.replace('uploads/', '').replace('uploads\\', '');
                           return (
-                            <img key={idx} src={`http://localhost:5000/uploads/${cleanName}`} className="w-20 h-20 rounded-xl object-cover border border-outline-variant/30 cursor-pointer hover:opacity-80 shadow-sm" onClick={() => window.open(`http://localhost:5000/uploads/${cleanName}`)} />
+                            <img key={idx} src={`${import.meta.env.VITE_API_URL}/uploads/${cleanName}`} className="w-20 h-20 rounded-xl object-cover border border-outline-variant/30 cursor-pointer hover:opacity-80 shadow-sm" onClick={() => window.open(`${import.meta.env.VITE_API_URL}/uploads/${cleanName}`)} />
                           )
                         })}
                       </div>
@@ -324,7 +324,7 @@ const ViewContractModal = ({
                         {cVideos.map((fileName, idx) => {
                           const cleanName = fileName.replace('uploads/', '').replace('uploads\\', '');
                           return (
-                            <video key={idx} src={`http://localhost:5000/uploads/${cleanName}`} className="h-20 w-32 rounded-xl object-cover bg-black border border-outline-variant/30 shadow-sm" controls />
+                            <video key={idx} src={`${import.meta.env.VITE_API_URL}/uploads/${cleanName}`} className="h-20 w-32 rounded-xl object-cover bg-black border border-outline-variant/30 shadow-sm" controls />
                           )
                         })}
                       </div>
