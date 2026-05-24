@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { formatDate } from '../../utils/formatters';
 /**
  * Component RulesModal
  * Chức năng: Hiển thị nội quy hệ thống và quy định phòng trọ.
@@ -38,7 +39,7 @@ const RulesModal = ({
               {systemRules.map((rule, idx) => (
                 <div key={idx} style={{ padding: '20px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                   <div style={{ display: 'inline-block', padding: '4px 12px', background: '#2563eb', color: '#ffffff', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', marginBottom: '12px', textTransform: 'uppercase' }}>
-                    Cập nhật: {new Date(rule.updatedAt).toLocaleDateString('vi-VN')}
+                    Cập nhật: {formatDate(rule.updatedAt)}
                   </div>
                   <div style={{ fontSize: '15px', color: '#334155', lineHeight: '1.6', whiteSpace: 'pre-wrap', textAlign: 'left' }}>
                     {rule.value}

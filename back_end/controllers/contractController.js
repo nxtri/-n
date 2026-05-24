@@ -537,7 +537,8 @@ const contractController = {
       const imagesToKeep = existingImages ? JSON.parse(existingImages) : [];
 
       const contract = await RentalContract.findOne({
-        where: { id: contractId, tenantId: tenantId, status: 'ACTIVE' }
+        where: { id: contractId, tenantId: tenantId, status: 'ACTIVE' },
+        include: [{ model: Room, as: 'room', attributes: ['roomNumber', 'landlordId'] }]
       });
 
       if (!contract) return res.status(404).json({ message: 'Không tìm thấy hợp đồng hợp lệ!' });
@@ -559,6 +560,15 @@ const contractController = {
         residenceDate: residenceDate,
         residencePlace: residencePlace
       });
+
+      // Gửi thông báo cho chủ nhà
+      if (contract.room && contract.room.landlordId) {
+        await notificationHelper.send(
+          contract.room.landlordId,
+          '📝 Khách thuê đã nộp minh chứng tạm trú',
+          `Khách thuê tại phòng ${contract.room.roomNumber} vừa cập nhật hình ảnh minh chứng khai báo tạm trú.`
+        );
+      }
 
       res.status(200).json({ message: 'Cập nhật minh chứng tạm trú thành công!', contract });
     } catch (error) {

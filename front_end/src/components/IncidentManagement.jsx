@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axiosClient from '../api/axiosClient';
 
+import { formatDate } from '../utils/formatters';
 const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }) => {
   const [incidents, setIncidents] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -304,7 +305,7 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
                     </td>
                   )}
                   <td className="py-4 px-8 font-medium max-w-xs truncate">{inc.title}</td>
-                  <td className="py-4 px-8 text-on-surface-variant">{new Date(inc.createdAt).toLocaleDateString('vi-VN')}</td>
+                  <td className="py-4 px-8 text-on-surface-variant">{formatDate(inc.createdAt)}</td>
                   <td className="py-4 px-8">
                     {getStatusBadge(inc.status)}
                   </td>

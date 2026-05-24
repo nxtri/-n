@@ -22,6 +22,7 @@ const Header = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false); // Mobile Menu state
   const userDropdownRef = useRef(null);
   const typeDropdownRef = useRef(null);
 
@@ -151,69 +152,123 @@ const Header = ({
           )}
         </div>
         
-        {/* Right Side: Management Buttons */}
+        {/* Right Side: Management Buttons (Desktop) & Hamburger (Mobile) */}
         <div className="flex-1 flex justify-end items-center gap-2 md:gap-4">
-          {user ? (
-            <div className="flex items-center gap-2 md:gap-4">
-               <button 
-                onClick={() => user?.role === 'ADMIN' ? navigate('/admin') : navigate('/dashboard')}
-                className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-gray-100 text-gray-600 hover:text-primary transition-all font-bold text-sm"
-              >
-                <span className="material-symbols-outlined text-xl">dashboard</span>
-                <span className="hidden lg:inline">Quản lý</span>
-              </button>
+          
+          {/* Hamburger Menu Toggle (Mobile Only) */}
+          <button 
+            className="md:hidden p-2 text-gray-600 hover:text-primary"
+            onClick={() => setShowMobileMenu(!showMobileMenu)}
+          >
+            <span className="material-symbols-outlined text-3xl">{showMobileMenu ? 'close' : 'menu'}</span>
+          </button>
 
-              <div className="relative" ref={userDropdownRef}>
-                <div 
-                  onClick={() => setShowDropdown(!showDropdown)} 
-                  className="flex items-center gap-3 cursor-pointer pl-2 pr-4 py-1.5 rounded-full bg-surface-container-low border border-outline-variant/30 hover:bg-surface-container-high transition-all"
+          {/* Desktop Nav Actions */}
+          <div className="hidden md:flex items-center gap-4">
+            {user ? (
+              <div className="flex items-center gap-4">
+                 <button 
+                  onClick={() => user?.role === 'ADMIN' ? navigate('/admin') : navigate('/dashboard')}
+                  className="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-gray-100 text-gray-600 hover:text-primary transition-all font-bold text-sm"
                 >
-                  <div className="w-8 h-8 rounded-full bg-primary flex justify-center items-center shadow-inner">
-                    <span className="text-white font-black text-[14px]">{user.fullName?.charAt(0).toUpperCase()}</span>
+                  <span className="material-symbols-outlined text-xl">dashboard</span>
+                  <span className="hidden lg:inline">Quản lý</span>
+                </button>
+
+                <div className="relative" ref={userDropdownRef}>
+                  <div 
+                    onClick={() => setShowDropdown(!showDropdown)} 
+                    className="flex items-center gap-3 cursor-pointer pl-2 pr-4 py-1.5 rounded-full bg-surface-container-low border border-outline-variant/30 hover:bg-surface-container-high transition-all"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-primary flex justify-center items-center shadow-inner">
+                      <span className="text-white font-black text-[14px]">{user.fullName?.charAt(0).toUpperCase()}</span>
+                    </div>
+                    <span className="text-[14px] max-w-[120px] truncate font-bold">{user?.fullName}</span>
+                    <span className="text-on-surface-variant opacity-60 material-symbols-outlined">expand_more</span>
                   </div>
-                  <span className="text-[14px] max-w-[120px] truncate font-bold hidden md:inline-block">{user?.fullName}</span>
-                  <span className="text-on-surface-variant opacity-60 material-symbols-outlined hidden md:inline-block">expand_more</span>
+                  {showDropdown && (
+                    <div className="absolute top-[120%] right-0 bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-2 w-[180px] shadow-2xl z-[100] animate-in fade-in slide-in-from-top-2">
+                      <div className="px-4 py-3 border-b border-outline-variant/30 mb-1">
+                        <div className="font-black text-sm truncate">{user?.fullName}</div>
+                        <div className="font-bold text-[10px] text-on-surface-variant uppercase tracking-widest">{user?.role}</div>
+                      </div>
+                      <div 
+                        onClick={() => { onProfileClick(); setShowDropdown(false); }} 
+                        className="px-4 py-2.5 rounded-xl cursor-pointer text-[13px] font-bold transition-all hover:bg-surface-container-low hover:text-primary flex items-center gap-3"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">manage_accounts</span> Hồ sơ
+                      </div>
+                      <div 
+                        onClick={handleLogout} 
+                        className="px-4 py-2.5 rounded-xl cursor-pointer text-error text-[13px] font-bold transition-all hover:bg-error/10 flex items-center gap-3 mt-1"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">logout</span> Đăng xuất
+                      </div>
+                    </div>
+                  )}
                 </div>
-                {showDropdown && (
-                  <div className="absolute top-[120%] right-0 bg-surface-container-lowest border border-outline-variant/30 rounded-2xl p-2 w-[180px] shadow-2xl z-[100] animate-in fade-in slide-in-from-top-2">
-                    <div className="px-4 py-3 border-b border-outline-variant/30 mb-1">
-                      <div className="font-black text-sm truncate">{user?.fullName}</div>
-                      <div className="font-bold text-[10px] text-on-surface-variant uppercase tracking-widest">{user?.role}</div>
-                    </div>
-                    <div 
-                      onClick={() => { onProfileClick(); setShowDropdown(false); }} 
-                      className="px-4 py-2.5 rounded-xl cursor-pointer text-[13px] font-bold transition-all hover:bg-surface-container-low hover:text-primary flex items-center gap-3"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">manage_accounts</span> Hồ sơ
-                    </div>
-                    <div 
-                      onClick={handleLogout} 
-                      className="px-4 py-2.5 rounded-xl cursor-pointer text-error text-[13px] font-bold transition-all hover:bg-error/10 flex items-center gap-3 mt-1"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">logout</span> Đăng xuất
-                    </div>
-                  </div>
+
+                {user.role === 'LANDLORD' && (
+                  <button 
+                    onClick={() => navigate('/dashboard', { state: { targetTab: 'ADD_ROOM' } })}
+                    className="bg-primary text-white font-bold px-5 py-2.5 rounded-full text-sm hover:shadow-lg transition-all active:scale-95 flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-xl">add_circle</span>
+                    <span>Đăng tin</span>
+                  </button>
                 )}
               </div>
+            ) : (
+              <div className="flex items-center gap-4">
+                <button onClick={() => navigate('/login')} className="text-gray-600 font-bold text-sm hover:bg-gray-100 px-4 py-2 rounded-full transition-all">Đăng nhập</button>
+                <button onClick={() => navigate('/register')} className="bg-primary text-white font-bold px-6 py-2.5 rounded-full text-sm hover:shadow-lg transition-all active:scale-95">Đăng ký</button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
+      {/* ═══ MOBILE MENU DROPDOWN ═══ */}
+      {showMobileMenu && (
+        <div className="md:hidden bg-white border-t border-gray-100 shadow-xl flex flex-col p-4 animate-in slide-in-from-top-2 duration-300">
+          {user ? (
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
+                <div className="w-12 h-12 rounded-full bg-primary flex justify-center items-center shadow-inner">
+                  <span className="text-white font-black text-xl">{user.fullName?.charAt(0).toUpperCase()}</span>
+                </div>
+                <div>
+                  <div className="font-black text-base">{user.fullName}</div>
+                  <div className="font-bold text-xs text-on-surface-variant uppercase tracking-widest">{user.role}</div>
+                </div>
+              </div>
+              
+              <button onClick={() => { setShowMobileMenu(false); user?.role === 'ADMIN' ? navigate('/admin') : navigate('/dashboard'); }} className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl font-bold text-gray-700">
+                <span className="material-symbols-outlined text-primary">dashboard</span> Quản lý Dashboard
+              </button>
+              
+              <button onClick={() => { setShowMobileMenu(false); onProfileClick(); }} className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl font-bold text-gray-700">
+                <span className="material-symbols-outlined text-primary">manage_accounts</span> Hồ sơ của tôi
+              </button>
+              
               {user.role === 'LANDLORD' && (
-                <button 
-                  onClick={() => navigate('/dashboard', { state: { targetTab: 'ADD_ROOM' } })}
-                  className="hidden md:flex bg-primary text-white font-bold px-5 py-2.5 rounded-full text-sm hover:shadow-lg transition-all active:scale-95 items-center gap-2"
-                >
-                  <span className="material-symbols-outlined text-xl">add_circle</span>
-                  <span>Đăng tin</span>
+                <button onClick={() => { setShowMobileMenu(false); navigate('/dashboard', { state: { targetTab: 'ADD_ROOM' } }); }} className="flex items-center gap-3 px-4 py-3 bg-primary/10 rounded-xl font-bold text-primary">
+                  <span className="material-symbols-outlined">add_circle</span> Đăng tin mới
                 </button>
               )}
+              
+              <button onClick={() => { setShowMobileMenu(false); handleLogout(); }} className="flex items-center gap-3 px-4 py-3 bg-error/10 rounded-xl font-bold text-error">
+                <span className="material-symbols-outlined">logout</span> Đăng xuất
+              </button>
             </div>
           ) : (
-            <div className="flex items-center gap-4">
-              <button onClick={() => navigate('/login')} className="text-gray-600 font-bold text-sm hover:bg-gray-100 px-4 py-2 rounded-full transition-all">Đăng nhập</button>
-              <button onClick={() => navigate('/register')} className="bg-primary text-white font-bold px-6 py-2.5 rounded-full text-sm hover:shadow-lg transition-all active:scale-95">Đăng ký</button>
+            <div className="flex flex-col gap-3">
+              <button onClick={() => { setShowMobileMenu(false); navigate('/login'); }} className="w-full bg-gray-100 text-gray-700 font-bold py-3 rounded-xl">Đăng nhập</button>
+              <button onClick={() => { setShowMobileMenu(false); navigate('/register'); }} className="w-full bg-primary text-white font-bold py-3 rounded-xl">Đăng ký</button>
             </div>
           )}
         </div>
-      </div>
+      )}
 
       {/* ═══ ROW 2: Search Bar + Quick Filters + Results (only on Home page) ═══ */}
       {showSearchBar && (
@@ -222,23 +277,23 @@ const Header = ({
         } ${showTypeDropdown ? 'overflow-visible' : 'overflow-hidden'}`}>
           <div className="max-w-[1280px] mx-auto px-4 md:px-10">
             {/* Search Bar Pill */}
-            <div className="max-w-4xl bg-white p-1.5 rounded-full shadow-lg flex flex-col md:flex-row items-center gap-1 border border-gray-200/80 hover:shadow-xl transition-shadow duration-300 mb-4">
+            <div className="max-w-4xl bg-white p-2 md:p-1.5 rounded-3xl md:rounded-full shadow-lg flex flex-col md:flex-row items-center gap-2 md:gap-1 border border-gray-200/80 hover:shadow-xl transition-shadow duration-300 mb-4">
               {/* Location Input */}
-              <div className="flex-1 flex items-center gap-2.5 px-5 md:border-r border-gray-200/80 w-full md:w-auto">
+              <div className="flex-1 flex items-center gap-2.5 px-4 md:px-5 border-b md:border-b-0 md:border-r border-gray-200/80 w-full py-2">
                 <span className="material-symbols-outlined text-primary text-xl">location_on</span>
                 <input 
                   type="text" 
                   placeholder="Bạn muốn tìm ở đâu?" 
-                  className="w-full bg-transparent border-none focus:ring-0 text-sm text-on-surface placeholder:text-gray-400 outline-none py-2"
+                  className="w-full bg-transparent border-none focus:ring-0 text-sm text-on-surface placeholder:text-gray-400 outline-none py-1"
                   value={searchTerm || ''}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
               {/* Room Type Custom Dropdown */}
-              <div className="flex-1 relative w-full md:w-auto" ref={typeDropdownRef}>
+              <div className="flex-1 relative w-full border-b md:border-b-0 md:border-r border-gray-200/80" ref={typeDropdownRef}>
                 <div 
                   onClick={() => setShowTypeDropdown(!showTypeDropdown)}
-                  className="flex items-center gap-2.5 px-5 md:border-r border-gray-200/80 cursor-pointer py-2 hover:bg-gray-50/50 transition-colors rounded-full"
+                  className="flex items-center gap-2.5 px-4 md:px-5 py-3 md:py-2 cursor-pointer hover:bg-gray-50/50 transition-colors w-full"
                 >
                   <span className="material-symbols-outlined text-primary text-xl">{selectedType.icon}</span>
                   <span className="text-sm text-on-surface font-medium flex-1">{selectedType.label}</span>
@@ -246,7 +301,7 @@ const Header = ({
                 </div>
                 {/* Dropdown Menu */}
                 {showTypeDropdown && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200/80 py-2 z-[200] min-w-[220px] animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="absolute top-full left-0 right-0 md:mt-2 bg-white rounded-2xl md:shadow-2xl border-t md:border border-gray-200/80 py-2 z-[200] w-full min-w-[220px] animate-in fade-in slide-in-from-top-2 duration-200">
                     {ROOM_TYPES.map(item => (
                       <div
                         key={item.value}
@@ -270,17 +325,17 @@ const Header = ({
                 )}
               </div>
               {/* Filter & Search Buttons */}
-              <div className="flex items-center gap-1.5 pr-1.5 w-full md:w-auto justify-end">
+              <div className="flex items-center gap-2 p-2 md:p-0 pr-1.5 w-full md:w-auto justify-between md:justify-end">
                 <button 
                   onClick={onFilterClick}
-                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-full hover:bg-gray-100 transition-colors font-semibold text-sm text-gray-600"
+                  className="flex-1 md:flex-none flex justify-center items-center gap-1.5 px-4 md:px-5 py-2.5 md:py-2.5 rounded-full bg-gray-100 hover:bg-gray-200 md:bg-transparent md:hover:bg-gray-100 transition-colors font-semibold text-sm text-gray-700"
                 >
                   <span className="material-symbols-outlined text-lg">tune</span>
                   Lọc
                 </button>
                 <button 
                   onClick={onSearch}
-                  className="bg-primary text-on-primary px-8 py-2.5 rounded-full font-bold text-sm hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-primary/20 flex items-center gap-2"
+                  className="flex-[2] md:flex-none flex justify-center items-center gap-2 bg-primary text-on-primary px-4 md:px-8 py-2.5 md:py-2.5 rounded-full font-bold text-sm hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-primary/20"
                 >
                   <span className="material-symbols-outlined text-lg">search</span>
                   Tìm kiếm

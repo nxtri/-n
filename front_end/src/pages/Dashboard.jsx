@@ -96,6 +96,7 @@ const Dashboard = () => {
   // --- STATE TÀI KHOẢN ---
   const [showDropdown, setShowDropdown] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false); // Mobile Sidebar state
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [profileData, setProfileData] = useState({
@@ -615,11 +616,19 @@ const Dashboard = () => {
     <DashboardProvider value={{ contracts, user, rooms, bills, landlordIncidents, transactions, fetchLandlordRooms: fetchRooms, fetchLandlordContracts: fetchContracts, fetchLandlordBills: fetchBills }}>
       <div className="flex flex-col h-screen font-['Inter'] bg-surface-container-lowest text-on-surface">
         {/* 1. HEADER */}
-        <div className="bg-surface-container-lowest text-on-surface px-6 py-3 flex justify-between items-center shadow-sm border-b border-outline-variant/30 z-[100] sticky top-0">
-          <h2 className="m-0 cursor-pointer text-primary font-black text-2xl tracking-tight flex items-center gap-2" onClick={() => navigate('/')}>
-            <span className="material-symbols-outlined text-[28px] fill-1">real_estate_agent</span>
-            PHONGTROSIEUCAP
-          </h2>
+        <div className="bg-surface-container-lowest text-on-surface px-4 md:px-6 py-3 flex justify-between items-center shadow-sm border-b border-outline-variant/30 z-[100] sticky top-0">
+          <div className="flex items-center gap-3">
+            <button 
+              className="md:hidden p-1 text-gray-600 hover:text-primary transition-colors flex items-center justify-center"
+              onClick={() => setShowSidebar(true)}
+            >
+              <span className="material-symbols-outlined text-3xl">menu</span>
+            </button>
+            <h2 className="m-0 cursor-pointer text-primary font-black text-xl md:text-2xl tracking-tight flex items-center gap-1 md:gap-2" onClick={() => navigate('/')}>
+              <span className="material-symbols-outlined text-[24px] md:text-[28px] fill-1">real_estate_agent</span>
+              <span className="hidden sm:inline">PHONGTROSIEUCAP</span>
+            </h2>
+          </div>
           
           <div className="flex items-center gap-4 md:gap-6">
             <NotificationPanel
@@ -675,9 +684,25 @@ const Dashboard = () => {
           </div>
         </div>
             
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden relative">
+          
+          {/* MOBILE OVERLAY FOR SIDEBAR */}
+          {showSidebar && (
+            <div 
+              className="md:hidden fixed inset-0 bg-black/50 z-[140]" 
+              onClick={() => setShowSidebar(false)}
+            />
+          )}
+
           {/* 2. SIDEBAR */}
-          <div className="w-[280px] bg-surface-container-lowest border-r border-outline-variant/30 flex flex-col shrink-0 z-0">
+          <div className={`fixed md:relative top-0 left-0 h-full z-[150] w-[280px] bg-surface-container-lowest border-r border-outline-variant/30 flex flex-col shrink-0 transition-transform duration-300 ${
+            showSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+          }`}>
+            <div className="md:hidden flex justify-end p-2 border-b border-outline-variant/20">
+              <button onClick={() => setShowSidebar(false)} className="p-2 text-gray-500 hover:text-primary">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
             <div className="flex-1 overflow-y-auto py-6 no-scrollbar flex flex-col gap-2">
               {user?.role === 'LANDLORD' ? (
                 <LandlordSidebar

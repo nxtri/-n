@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { formatDate } from '../../utils/formatters';
 /**
  * Component TenantBillsTab
  * Chức năng: Hiển thị danh sách và thống kê hóa đơn dành cho khách thuê.
@@ -199,7 +200,7 @@ const TenantBillsTab = ({
                     </div>
                     <div className="flex flex-col gap-1">
                       <span className="text-[11px] font-bold uppercase tracking-wide opacity-60">Ngày tạo</span>
-                      <span className="text-on-surface font-medium">{new Date(bill.createdAt).toLocaleDateString('vi-VN')}</span>
+                      <span className="text-on-surface font-medium">{formatDate(bill.createdAt)}</span>
                     </div>
                   </div>
                 </div>

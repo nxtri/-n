@@ -32,11 +32,11 @@ const Footer = () => {
           <div className="space-y-3">
             <div className="flex items-center gap-3 text-on-surface-variant text-sm">
               <span className="material-symbols-outlined text-primary text-xl">mail</span>
-              support@phongtrosieucap.vn
+              xuantri6262@gmail.com
             </div>
             <div className="flex items-center gap-3 text-on-surface-variant text-sm">
               <span className="material-symbols-outlined text-primary text-xl">phone</span>
-              1900 1234
+              0337377034
             </div>
           </div>
         </div>

@@ -7,8 +7,8 @@ const router = express.Router();
 
 // Route lấy phòng cho trang chủ (Gồm Trống + Sắp trống)
 router.get('/public', roomController.getPublicRooms);
-// Khách vãn lai xem danh sách phòng
-router.get('/', authMiddleware.verifyTokenOptional, roomController.getAllRooms);
+// API lấy danh sách phòng cho Dashboard (Yêu cầu đăng nhập)
+router.get('/', authMiddleware.verifyToken, roomController.getAllRooms);
 
 // Khách vãn lai xem chi tiết 1 phòng
 router.get('/:id', roomController.getRoomById);

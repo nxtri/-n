@@ -2,6 +2,7 @@ import React from 'react';
 import RoomMetricsCards from './RoomMetricsCards';
 import { useDashboardContext } from '../../context/DashboardContext';
 
+import { formatDate } from '../../utils/formatters';
 /**
  * Component AllRoomsTabContent
  * Chức năng: Hiển thị danh sách tất cả các phòng trọ của chủ nhà trong Dashboard.
@@ -243,7 +244,7 @@ const AllRoomsTabContent = ({
                               {activeContract.noticeGivenBy === 'LANDLORD' ? 'Bạn yêu cầu lấy lại' : 'Khách yêu cầu trả phòng'}
                             </p>
                             <p className="text-sm font-black text-on-surface truncate">
-                              Ngày đi: <span className="text-error font-black border-b border-error/20">{new Date(activeContract.intendedMoveOutDate).toLocaleDateString('vi-VN')}</span>
+                              Ngày đi: <span className="text-error font-black border-b border-error/20">{formatDate(activeContract.intendedMoveOutDate)}</span>
                             </p>
                           </div>
                         </div>

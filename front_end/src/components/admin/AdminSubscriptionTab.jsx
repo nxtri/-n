@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import walletApi from '../../api/walletApi';
+import CurrencyInput from '../common/CurrencyInput';
 
 const AdminSubscriptionTab = () => {
   const [transactions, setTransactions] = useState([]);
@@ -155,11 +156,11 @@ const AdminSubscriptionTab = () => {
                 <h4 className="font-black text-on-surface text-lg">{key === 'BRONZE' ? '🥉 Đồng' : key === 'SILVER' ? '🥈 Bạc' : key === 'GOLD' ? '🥇 Vàng' : '💎 Kim Cương'}</h4>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-on-surface-variant">Giá / tháng (VNĐ)</label>
-                  <input type="number" value={plan.price} onChange={e => setEditPlans({...editPlans, [key]: {...plan, price: parseInt(e.target.value)||0}})} className="w-full p-3 border border-outline-variant/30 rounded-xl font-bold focus:ring-2 focus:ring-primary/20 outline-none"/>
+                  <CurrencyInput value={plan.price} onChange={e => setEditPlans({...editPlans, [key]: {...plan, price: parseInt(e.target.value)||0}})} className="w-full p-3 border border-outline-variant/30 rounded-xl font-bold focus:ring-2 focus:ring-primary/20 outline-none"/>
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-secondary">Giá bán lẻ / phòng (đ/phòng/tháng)</label>
-                  <input type="number" value={plan.retailPrice || 0} onChange={e => setEditPlans({...editPlans, [key]: {...plan, retailPrice: parseInt(e.target.value)||0}})} className="w-full p-3 border border-secondary/30 rounded-xl font-bold focus:ring-2 focus:ring-secondary/20 outline-none text-secondary"/>
+                  <CurrencyInput value={plan.retailPrice || 0} onChange={e => setEditPlans({...editPlans, [key]: {...plan, retailPrice: parseInt(e.target.value)||0}})} className="w-full p-3 border border-secondary/30 rounded-xl font-bold focus:ring-2 focus:ring-secondary/20 outline-none text-secondary"/>
                 </div>
                 {key !== 'DIAMOND' && (
                   <div className="space-y-2">

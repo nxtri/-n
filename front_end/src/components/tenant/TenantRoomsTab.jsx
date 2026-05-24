@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { formatDate } from '../../utils/formatters';
 /**
  * Component TenantRoomsTab
  * Chức năng: Quản lý các phòng và hợp đồng thuê hiện tại của khách thuê.
@@ -243,7 +244,7 @@ const TenantRoomsTab = ({
                               {c.noticeGivenBy === 'LANDLORD' ? '⚠️ CHỦ NHÀ YÊU CẦU LẤY LẠI PHÒNG' : 'BẠN ĐÃ GỬI YÊU CẦU TRẢ PHÒNG'}
                             </p>
                             <p className="text-sm text-on-surface-variant font-bold">
-                              Dự kiến bàn giao lại phòng vào: <span className="text-error font-black border-b-2 border-error/20">{new Date(c.intendedMoveOutDate).toLocaleDateString('vi-VN')}</span>
+                              Dự kiến bàn giao lại phòng vào: <span className="text-error font-black border-b-2 border-error/20">{formatDate(c.intendedMoveOutDate)}</span>
                             </p>
                             {c.terminationReason && (
                               <div className="mt-2 bg-white/50 p-3 rounded-xl border border-outline-variant/20 italic">

@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { formatDate } from '../../utils/formatters';
 /**
  * COMPONENT: AdminRoomsTab
  * Chức năng: Quản lý phòng trọ, hợp đồng và sự cố trên toàn hệ thống.
@@ -27,7 +28,7 @@ const AdminRoomsTab = ({
         <h3 className="m-0 mb-6 text-on-surface text-xl font-black flex items-center gap-3">
           <span className="material-symbols-outlined text-[24px] text-primary">real_estate_agent</span> Tất Cả Phòng Trọ ({rooms.length})
         </h3>
-        <div className="max-h-[400px] overflow-y-auto rounded-2xl border border-outline-variant/30 no-scrollbar">
+        <div className="max-h-[400px] overflow-y-auto overflow-x-auto rounded-2xl border border-outline-variant/30 no-scrollbar">
           <table className="w-full border-collapse text-left bg-surface-container-lowest">
             <thead>
               <tr className="bg-surface-container-low text-on-surface-variant border-b border-outline-variant/30 sticky top-0 z-10">
@@ -59,7 +60,7 @@ const AdminRoomsTab = ({
                       <span className="font-bold opacity-80">{r.landlord?.phone}</span>
                     </div>
                   </td>
-                  <td className="p-4 text-on-surface-variant">{new Date(r.createdAt).toLocaleDateString('vi-VN')}</td>
+                  <td className="p-4 text-on-surface-variant">{formatDate(r.createdAt)}</td>
                   <td className="p-4">
                     {r.deletedAt ? (
                       <span className="font-bold text-error flex items-center gap-1.5"><span className="material-symbols-outlined text-[16px]">delete</span> Đã xóa</span>
@@ -149,7 +150,7 @@ const AdminRoomsTab = ({
                      </span>
                   </div>
                   <div className="flex justify-between items-end border-t border-outline-variant/10 pt-3">
-                     <span className="text-[12px] text-on-surface-variant opacity-70 font-medium flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">calendar_today</span> {new Date(c.createdAt).toLocaleDateString('vi-VN')}</span>
+                     <span className="text-[12px] text-on-surface-variant opacity-70 font-medium flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">calendar_today</span> {formatDate(c.createdAt)}</span>
                      <span className="font-black text-on-surface text-[15px]">{c.price.toLocaleString()}đ<span className="text-[11px] font-medium opacity-60">/tháng</span></span>
                   </div>
                 </div>
@@ -173,7 +174,7 @@ const AdminRoomsTab = ({
                      <span className="text-on-surface font-bold text-[15px] leading-snug">{inc.title}</span>
                    </div>
                    <div className="flex justify-between items-center border-t border-outline-variant/10 pt-3">
-                     <span className="text-[12px] text-on-surface-variant opacity-70 font-medium flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">calendar_today</span> {new Date(inc.createdAt).toLocaleDateString('vi-VN')}</span>
+                     <span className="text-[12px] text-on-surface-variant opacity-70 font-medium flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">calendar_today</span> {formatDate(inc.createdAt)}</span>
                      <span className={`px-2.5 py-1 rounded-lg text-[11px] font-black ${inc.status === 'Pending' ? 'bg-secondary/10 text-secondary' : inc.status === 'Resolved' ? 'bg-success/10 text-success' : 'bg-primary/10 text-primary'}`}>
                        {inc.status}
                      </span>

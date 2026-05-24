@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import walletApi from '../../api/walletApi';
+import CurrencyInput from '../common/CurrencyInput';
 
+import { formatDate } from '../../utils/formatters';
 const PLAN_INFO = {
   BRONZE:  { name: 'Đồng', icon: '🥉', color: '#cd7f32', bg: 'from-amber-800/10 to-amber-900/5', border: 'border-amber-700/30', rank: 1 },
   SILVER:  { name: 'Bạc', icon: '🥈', color: '#86efac', bg: 'from-green-400/10 to-emerald-500/5', border: 'border-green-300/50', rank: 2 },
@@ -134,7 +136,7 @@ const WalletTab = ({ onPurchaseSuccess }) => {
                 {currentPlanInfo.icon} {currentPlanInfo.name} 
                 {!wallet?.hasBasePlan && <span className="text-[10px] bg-white/50 text-black px-2 py-0.5 rounded-full border border-black/10">Gói lẻ</span>}
               </p>
-              <p className="text-xs font-bold text-on-surface-variant mt-2">Hết hạn: {new Date(wallet.subscriptionExpiry).toLocaleDateString('vi-VN')}</p>
+              <p className="text-xs font-bold text-on-surface-variant mt-2">Hết hạn: {formatDate(wallet.subscriptionExpiry)}</p>
               {wallet?.extraRoomLimit > 0 && (
                 <p className="text-xs font-bold text-primary mt-1">+ {wallet.extraRoomLimit} phòng lẻ mua thêm</p>
               )}
@@ -241,7 +243,7 @@ const WalletTab = ({ onPurchaseSuccess }) => {
             {buyMode === 'BASE' && wallet?.subscriptionPlan !== 'NONE' && !isExpired && PLAN_INFO[selectedPlan].rank < PLAN_INFO[wallet.subscriptionPlan].rank && (
               <div className="bg-error/10 border border-error/20 p-3 rounded-xl text-xs text-error font-bold flex gap-2 items-start">
                 <span className="material-symbols-outlined text-lg">warning</span>
-                <span>Cảnh báo: Bạn đang dùng gói {PLAN_INFO[wallet.subscriptionPlan].name} đến {new Date(wallet.subscriptionExpiry).toLocaleDateString('vi-VN')}. Nếu đăng ký gói {PLAN_INFO[selectedPlan].name} (thấp hơn) bây giờ, bạn sẽ ngay lập tức MẤT TOÀN BỘ QUYỀN LỢI gói cũ!</span>
+                <span>Cảnh báo: Bạn đang dùng gói {PLAN_INFO[wallet.subscriptionPlan].name} đến {formatDate(wallet.subscriptionExpiry)}. Nếu đăng ký gói {PLAN_INFO[selectedPlan].name} (thấp hơn) bây giờ, bạn sẽ ngay lập tức MẤT TOÀN BỘ QUYỀN LỢI gói cũ!</span>
               </div>
             )}
             
@@ -315,7 +317,7 @@ const WalletTab = ({ onPurchaseSuccess }) => {
           <h3 className="text-xl font-black text-on-surface flex items-center gap-2"><span className="material-symbols-outlined text-primary">account_balance_wallet</span>Nạp tiền vào ví</h3>
           <div className="space-y-2">
             <label className="text-xs font-black text-on-surface-variant uppercase tracking-widest">Số tiền muốn nạp (VNĐ)</label>
-            <input type="number" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} placeholder="VD: 500000" className="w-full p-4 border border-outline-variant/30 rounded-2xl text-lg font-bold focus:ring-2 focus:ring-primary/20 outline-none"/>
+            <CurrencyInput value={depositAmount} onChange={e => setDepositAmount(e.target.value)} placeholder="VD: 500000" className="w-full p-4 border border-outline-variant/30 rounded-2xl text-lg font-bold focus:ring-2 focus:ring-primary/20 outline-none"/>
             <div className="flex flex-wrap gap-2 mt-2">
               {[100000,200000,500000,1000000].map(v=>(
                 <button key={v} onClick={()=>setDepositAmount(v)} className="px-4 py-2 rounded-xl text-xs font-bold border border-outline-variant/30 hover:border-primary/50 transition-all">{v.toLocaleString('vi-VN')}đ</button>

@@ -6,6 +6,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ProfileModal from '../components/ProfileModal';
 
+import { formatDate } from '../utils/formatters';
 const Home = () => {
   const [rooms, setRooms] = useState([]);
   const [filteredRooms, setFilteredRooms] = useState([]);
@@ -287,10 +288,10 @@ const Home = () => {
         filteredRoomsCount={filteredRooms.length}
       />
 
-      <main className="mt-[240px] flex-grow">
+      <main className="mt-[180px] md:mt-[240px] flex-grow">
 
         {/* Listing Section */}
-        <section className="w-full px-6 md:px-10 pb-20 mt-4">
+        <section className="w-full px-4 md:px-10 pb-20 mt-4">
 
           {/* Grid */}
           <div id="search-results" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
@@ -349,7 +350,7 @@ const Home = () => {
                       {room.status === 'RENTED' && room.intendedMoveOutDate && (
                         <div className="px-2 py-0.5 bg-white/90 backdrop-blur-sm text-tertiary text-[8px] font-black rounded-md shadow-sm border border-tertiary/20 flex items-center gap-0.5 animate-in slide-in-from-left-2 duration-500">
                           <span className="material-symbols-outlined text-[12px]">calendar_today</span>
-                          Trống từ: {new Date(room.intendedMoveOutDate).toLocaleDateString('vi-VN')}
+                          Trống từ: {formatDate(room.intendedMoveOutDate)}
                         </div>
                       )}
                     </div>

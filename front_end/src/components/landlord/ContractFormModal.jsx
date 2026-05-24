@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import contractApi from '../../api/contractApi';
 import authApi from '../../api/authApi';
 import { useDashboardContext } from '../../context/DashboardContext';
+import CurrencyInput from '../common/CurrencyInput';
 
 /**
  * Component ContractFormModal
@@ -215,7 +216,7 @@ const ContractFormModal = ({
 
   return (              
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-on-surface/40 backdrop-blur-md animate-in fade-in duration-300">
-                <div className="w-full max-w-5xl max-h-[95vh] overflow-y-auto bg-surface-container-lowest p-8 rounded-[2.5rem] border-t-8 border-primary shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 space-y-6 no-scrollbar">
+                <div className="w-full max-w-5xl max-h-[95vh] overflow-y-auto bg-surface-container-lowest p-4 sm:p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] border-t-8 border-primary shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 space-y-6 no-scrollbar">
                   {/* HEADER */}
                   <div className="flex items-center justify-between pb-6 border-b border-outline-variant/30">
                     <div className="flex items-center gap-4">
@@ -386,11 +387,11 @@ const ContractFormModal = ({
                       <label htmlFor="directUtilityModal" className="text-xs font-bold text-primary cursor-pointer uppercase tracking-tight">Khách thuê tự thanh toán hóa đơn điện/nước trực tiếp</label>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4 bg-tertiary-container/5 p-5 rounded-2xl border border-tertiary/20">
-                      <div className="space-y-1"><label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Giá phòng (đ/Tháng)</label><input type="number" value={contractData.price} onChange={e => setContractData({...contractData, price: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-black text-primary outline-none focus:ring-2 focus:ring-primary/20 transition-all" /></div>
+                      <div className="space-y-1"><label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Giá phòng (đ/Tháng)</label><CurrencyInput value={contractData.price} onChange={e => setContractData({...contractData, price: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-black text-primary outline-none focus:ring-2 focus:ring-primary/20 transition-all" /></div>
                       {!contractData.isDirectUtilityPayment && (
                         <>
-                          <div className="space-y-1"><label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Giá điện (đ/Ký)</label><input type="number" value={contractData.electricityPrice} onChange={e => setContractData({...contractData, electricityPrice: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" /></div>
-                          <div className="space-y-1"><label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Giá nước (đ/Khối)</label><input type="number" value={contractData.waterPrice} onChange={e => setContractData({...contractData, waterPrice: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" /></div>
+                          <div className="space-y-1"><label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Giá điện (đ/Ký)</label><CurrencyInput value={contractData.electricityPrice} onChange={e => setContractData({...contractData, electricityPrice: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" /></div>
+                          <div className="space-y-1"><label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Giá nước (đ/Khối)</label><CurrencyInput value={contractData.waterPrice} onChange={e => setContractData({...contractData, waterPrice: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" /></div>
                         </>
                       )}
                       <div className="space-y-1"><label className="text-[10px] font-black text-error uppercase">Chỉ số ĐIỆN ban đầu</label><input type="number" placeholder="Số trên đồng hồ" value={contractData.startElectricity} onChange={e => setContractData({...contractData, startElectricity: e.target.value})} className="w-full px-4 py-2 bg-white border-2 border-error/30 rounded-xl text-sm font-black text-error outline-none focus:ring-2 focus:ring-error/10 transition-all" /></div>
@@ -399,11 +400,11 @@ const ContractFormModal = ({
                         <label className="text-[10px] font-black text-primary uppercase">Số lượng xe (Chiếc)</label>
                         <div className="flex gap-2">
                           <input type="number" placeholder="Số xe" value={contractData.vehicleCount} onChange={e => setContractData({...contractData, vehicleCount: e.target.value})} className="w-2/5 px-3 py-2 bg-white border-2 border-primary/30 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-primary/10 transition-all" />
-                          <input type="number" placeholder="Giá/xe" value={contractData.parkingPrice} onChange={e => setContractData({...contractData, parkingPrice: e.target.value})} className="w-3/5 px-3 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/10 transition-all" />
+                          <CurrencyInput placeholder="Giá/xe" value={contractData.parkingPrice} onChange={e => setContractData({...contractData, parkingPrice: e.target.value})} className="w-3/5 px-3 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/10 transition-all" />
                         </div>
                       </div>
-                      <div className="space-y-1"><label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Mạng Internet (đ/Tháng)</label><input type="number" value={contractData.internetPrice} onChange={e => setContractData({...contractData, internetPrice: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" /></div>
-                      <div className="space-y-1"><label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Phí Dịch vụ (đ/Tháng)</label><input type="number" value={contractData.servicePrice} onChange={e => setContractData({...contractData, servicePrice: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" /></div>
+                      <div className="space-y-1"><label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Mạng Internet (đ/Tháng)</label><CurrencyInput value={contractData.internetPrice} onChange={e => setContractData({...contractData, internetPrice: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" /></div>
+                      <div className="space-y-1"><label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Phí Dịch vụ (đ/Tháng)</label><CurrencyInput value={contractData.servicePrice} onChange={e => setContractData({...contractData, servicePrice: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" /></div>
                     </div>
                   </div>
 

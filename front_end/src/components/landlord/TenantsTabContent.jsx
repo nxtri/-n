@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useDashboardContext } from '../../context/DashboardContext';
 
+import { formatDate } from '../../utils/formatters';
 /**
  * Component TenantsTabContent
  * Chức năng: Hiển thị danh sách tất cả những người đã và đang thuê phòng.
@@ -222,7 +223,7 @@ const TenantsTabContent = ({
                                         <div className="font-medium text-on-surface">{c.startDate} <span className="material-symbols-outlined text-[14px] opacity-30 px-1">arrow_forward</span> {c.endDate}</div>
                                       </td>
                                       <td className="py-4 px-8">
-                                        {c.status === 'ACTIVE' ? <span className="text-on-surface-variant opacity-30">—</span> : <span className="font-medium text-on-surface">{new Date(c.updatedAt).toLocaleDateString('vi-VN')}</span>}
+                                        {c.status === 'ACTIVE' ? <span className="text-on-surface-variant opacity-30">—</span> : <span className="font-medium text-on-surface">{formatDate(c.updatedAt)}</span>}
                                       </td>
                                       <td className="py-4 px-8 text-center">
 

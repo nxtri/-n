@@ -31,6 +31,15 @@ const walletController = {
         proofImage: proofImage
       });
 
+      // Lấy thông tin user để gửi thông báo
+      const user = await User.findByPk(req.user.id, { attributes: ['fullName'] });
+
+      // Gửi thông báo cho toàn bộ Admin
+      await notificationHelper.notifyAdmins(
+        '💰 Yêu cầu nạp tiền mới',
+        `Chủ nhà ${user?.fullName || 'ID ' + req.user.id} vừa gửi yêu cầu nạp ${parseFloat(amount).toLocaleString('vi-VN')} đ vào ví.`
+      );
+
       res.status(201).json({ message: 'Đã gửi yêu cầu nạp tiền! Vui lòng chờ Admin xác nhận.', transaction });
     } catch (error) {
       console.error('Lỗi tạo yêu cầu nạp tiền:', error);

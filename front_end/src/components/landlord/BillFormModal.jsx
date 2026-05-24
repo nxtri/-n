@@ -97,7 +97,7 @@ const BillFormModal = ({
                 const waterPrice = Number(billContract.waterPrice) || 0;
                 return (
                   <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-on-surface/40 backdrop-blur-md animate-in fade-in duration-300">
-                    <div className="w-full max-w-4xl max-h-[95vh] overflow-y-auto bg-surface-container-lowest p-8 rounded-[2.5rem] border-t-8 border-tertiary shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 space-y-8 no-scrollbar">
+                    <div className="w-full max-w-4xl max-h-[95vh] overflow-y-auto bg-surface-container-lowest p-4 sm:p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] border-t-8 border-tertiary shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 space-y-8 no-scrollbar">
                       <div className="flex items-center justify-between pb-6 border-b border-outline-variant/30">
                         <div className="flex items-center gap-4">
                           <div className="w-14 h-14 rounded-2xl bg-tertiary/10 text-tertiary flex items-center justify-center">

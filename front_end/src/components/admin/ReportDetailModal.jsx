@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { formatDate } from '../../utils/formatters';
 /**
  * COMPONENT: ReportDetailModal
  * Chức năng: Hiển thị danh sách các báo cáo vi phạm (báo xấu) của một phòng trọ cụ thể.
@@ -50,7 +51,7 @@ const ReportDetailModal = ({
                       {report.status === 'PENDING' ? 'Chờ xử lý' : 'Đã giải quyết'}
                     </span>
                   </div>
-                  <span className="text-[12px] text-on-surface-variant font-bold flex items-center gap-1.5"><span className="material-symbols-outlined text-[14px]">calendar_today</span> {new Date(report.createdAt).toLocaleDateString('vi-VN')}</span>
+                  <span className="text-[12px] text-on-surface-variant font-bold flex items-center gap-1.5"><span className="material-symbols-outlined text-[14px]">calendar_today</span> {formatDate(report.createdAt)}</span>
                 </div>
                 {report.description && (
                   <p className="text-[14px] text-on-surface m-0 mb-4 leading-relaxed bg-surface-container-lowest p-3 rounded-xl border border-outline-variant/30">

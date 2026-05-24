@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+import { formatDate } from '../../utils/formatters';
 const RoomDetailModal = ({
   room,
   reviews,
@@ -402,7 +403,7 @@ const RoomDetailModal = ({
                             </div>
                           </div>
                           <span className="text-[10px] font-bold text-on-surface-variant opacity-40 uppercase tracking-widest">
-                            {new Date(review.createdAt).toLocaleDateString('vi-VN')}
+                            {formatDate(review.createdAt)}
                           </span>
                         </div>
                         

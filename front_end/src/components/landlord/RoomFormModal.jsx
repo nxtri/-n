@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import roomApi from '../../api/roomApi';
 import { useDashboardContext } from '../../context/DashboardContext';
+import CurrencyInput from '../common/CurrencyInput';
 
 /**
  * Component RoomFormModal
@@ -165,7 +166,7 @@ const RoomFormModal = ({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-on-surface/40 backdrop-blur-md animate-in fade-in duration-300">
-      <div className="w-full max-w-4xl max-h-[95vh] overflow-y-auto bg-surface-container-lowest p-8 rounded-[2.5rem] border-t-8 border-primary shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 no-scrollbar">
+      <div className="w-full max-w-4xl max-h-[95vh] overflow-y-auto bg-surface-container-lowest p-4 sm:p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] border-t-8 border-primary shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 no-scrollbar">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #2563eb', paddingBottom: '10px', marginBottom: '20px' }}>
           <h2 style={{ margin: 0, color: '#0f172a' }}>{roomToEdit ? `Sửa thông tin: ${newRoom.roomType === 'WHOLE_HOUSE' ? '' : 'Phòng '}${newRoom.roomNumber}` : 'Đăng tin mới'}</h2>
           <button onClick={() => setShowModal(false)} className="w-10 h-10 flex items-center justify-center hover:bg-error/10 hover:text-error rounded-full transition-all">
@@ -414,12 +415,12 @@ const RoomFormModal = ({
           <fieldset style={{ marginBottom: '20px', borderColor: '#e2e8f0', padding: '15px', borderRadius: '8px' }}>
             <legend style={{ fontWeight: 'bold', color: '#475569' }}>Giá thuê & Dịch vụ</legend>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <input type="number" placeholder="Giá thuê/tháng *" required value={newRoom.price} onChange={e => setNewRoom({...newRoom, price: e.target.value})} style={{ flex: '1 1 30%', minWidth: '150px', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px' }} />
-              <input type="number" placeholder="Giá điện/ký" value={newRoom.electricityPrice} onChange={e => setNewRoom({...newRoom, electricityPrice: e.target.value})} style={{ flex: '1 1 30%', minWidth: '150px', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px' }} />
-              <input type="number" placeholder="Giá nước/khối" value={newRoom.waterPrice} onChange={e => setNewRoom({...newRoom, waterPrice: e.target.value})} style={{ flex: '1 1 30%', minWidth: '150px', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px' }} />
-              <input type="number" placeholder="Giá mạng/tháng" value={newRoom.internetPrice} onChange={e => setNewRoom({...newRoom, internetPrice: e.target.value})} style={{ flex: '1 1 30%', minWidth: '150px', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px' }} />
-              <input type="number" placeholder="Giá gửi xe/tháng/xe" value={newRoom.parkingPrice} onChange={e => setNewRoom({...newRoom, parkingPrice: e.target.value})} style={{ flex: '1 1 30%', minWidth: '150px', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px' }} />
-              <input type="number" placeholder="Phí vệ sinh, dịch vụ..." value={newRoom.servicePrice} onChange={e => setNewRoom({...newRoom, servicePrice: e.target.value})} style={{ flex: '1 1 30%', minWidth: '150px', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px' }} />
+              <CurrencyInput placeholder="Giá thuê/tháng *" required value={newRoom.price} onChange={e => setNewRoom({...newRoom, price: e.target.value})} style={{ flex: '1 1 30%', minWidth: '150px', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px' }} />
+              <CurrencyInput placeholder="Giá điện/ký" value={newRoom.electricityPrice} onChange={e => setNewRoom({...newRoom, electricityPrice: e.target.value})} style={{ flex: '1 1 30%', minWidth: '150px', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px' }} />
+              <CurrencyInput placeholder="Giá nước/khối" value={newRoom.waterPrice} onChange={e => setNewRoom({...newRoom, waterPrice: e.target.value})} style={{ flex: '1 1 30%', minWidth: '150px', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px' }} />
+              <CurrencyInput placeholder="Giá mạng/tháng" value={newRoom.internetPrice} onChange={e => setNewRoom({...newRoom, internetPrice: e.target.value})} style={{ flex: '1 1 30%', minWidth: '150px', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px' }} />
+              <CurrencyInput placeholder="Giá gửi xe/tháng/xe" value={newRoom.parkingPrice} onChange={e => setNewRoom({...newRoom, parkingPrice: e.target.value})} style={{ flex: '1 1 30%', minWidth: '150px', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px' }} />
+              <CurrencyInput placeholder="Phí vệ sinh, dịch vụ..." value={newRoom.servicePrice} onChange={e => setNewRoom({...newRoom, servicePrice: e.target.value})} style={{ flex: '1 1 30%', minWidth: '150px', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '6px' }} />
             </div>
           </fieldset>
 

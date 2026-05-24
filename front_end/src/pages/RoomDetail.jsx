@@ -7,6 +7,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ProfileModal from '../components/ProfileModal';
 
+import { formatDate } from '../utils/formatters';
 const RoomDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -226,7 +227,7 @@ const RoomDetail = () => {
             {room.status !== 'AVAILABLE' && room.intendedMoveOutDate && (
               <div className="flex items-center gap-2 text-tertiary font-bold text-xs bg-tertiary/5 p-2 rounded-xl border border-tertiary/10 w-fit mt-3">
                 <span className="material-symbols-outlined text-[16px]">calendar_today</span>
-                <span>Trống từ ngày: {new Date(room.intendedMoveOutDate).toLocaleDateString('vi-VN')}</span>
+                <span>Trống từ ngày: {formatDate(room.intendedMoveOutDate)}</span>
               </div>
             )}
           </div>
@@ -486,7 +487,7 @@ const RoomDetail = () => {
                         </div>
                       </div>
                       <span className="text-xs font-bold text-outline uppercase tracking-wider">
-                        {new Date(review.createdAt).toLocaleDateString('vi-VN')}
+                        {formatDate(review.createdAt)}
                       </span>
                     </div>
                     

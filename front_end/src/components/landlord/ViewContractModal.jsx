@@ -27,7 +27,7 @@ const ViewContractModal = ({
       onClick={() => onClose()} 
     >
       <div 
-        className="w-full max-w-4xl max-h-[95vh] overflow-y-auto bg-surface-container-lowest p-8 rounded-[2.5rem] border-t-8 border-primary shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 space-y-8 no-scrollbar"
+        className="w-full max-w-4xl max-h-[95vh] overflow-y-auto bg-surface-container-lowest p-4 sm:p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] border-t-8 border-primary shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 space-y-8 no-scrollbar"
         onClick={(e) => e.stopPropagation()} 
       >
         {/* HEADER */}
@@ -184,7 +184,7 @@ const ViewContractModal = ({
             <span className="material-symbols-outlined text-lg">groups</span>
             Người ở cùng ({viewContract.members ? (typeof viewContract.members === 'string' ? JSON.parse(viewContract.members).length : viewContract.members.length) : 0} người)
           </h4>
-          <div className="bg-white rounded-3xl border border-outline-variant/30 overflow-hidden shadow-sm">
+          <div className="bg-white rounded-3xl border border-outline-variant/30 overflow-x-auto shadow-sm">
             {viewContract.members && (typeof viewContract.members === 'string' ? JSON.parse(viewContract.members) : viewContract.members).length > 0 ? (
               <table className="w-full text-left text-xs">
                 <thead className="bg-surface-container-low border-b border-outline-variant/30">

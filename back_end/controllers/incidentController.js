@@ -142,7 +142,9 @@ const incidentController = {
       const incidentId = req.params.id;
       const { repairDescription, repairCost } = req.body;
 
-      const incident = await Incident.findByPk(incidentId);
+      const incident = await Incident.findByPk(incidentId, {
+        include: [{ model: Room, as: 'room', attributes: ['roomNumber'] }]
+      });
       if (!incident) {
         return res.status(404).json({ message: 'Không tìm thấy sự cố này.' });
       }
@@ -155,6 +157,9 @@ const incidentController = {
         repairDescription: repairDescription || incident.repairDescription,
         repairCost: repairCost !== undefined ? Number(repairCost) : incident.repairCost
       });
+
+      // Gửi thông báo cho khách thuê (nếu có thay đổi chi phí)
+      // Theo yêu cầu của người dùng, không cần thông báo điều này cho khách thuê.
 
       res.status(200).json({ message: 'Đã lưu chi phí phát sinh thành công.', incident });
     } catch (error) {

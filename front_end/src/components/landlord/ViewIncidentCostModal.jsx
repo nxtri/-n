@@ -1,5 +1,6 @@
 import React from 'react';
 
+import { formatDate } from '../../utils/formatters';
 /**
  * Component ViewIncidentCostModal
  * Chức năng: Hiển thị chi tiết về chi phí sửa chữa của một sự cố.
@@ -45,7 +46,7 @@ const ViewIncidentCostModal = ({
               </div>
               <div>
                 <span style={{ color: '#475569', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase' }}>Ngày sự cố</span>
-                <div style={{ marginTop: '3px', color: '#0f172a' }}>{new Date(viewIncidentCostDetails.createdAt).toLocaleDateString('vi-VN')}</div>
+                <div style={{ marginTop: '3px', color: '#0f172a' }}>{formatDate(viewIncidentCostDetails.createdAt)}</div>
               </div>
             </div>
 
