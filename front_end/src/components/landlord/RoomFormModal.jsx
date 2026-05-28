@@ -165,7 +165,7 @@ const RoomFormModal = ({
   if (!showModal) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-on-surface/40 backdrop-blur-md animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-8 bg-on-surface/40 backdrop-blur-md animate-in fade-in duration-300">
       <div className="w-full max-w-4xl max-h-[95vh] overflow-y-auto bg-surface-container-lowest p-4 sm:p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] border-t-8 border-primary shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 no-scrollbar">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #2563eb', paddingBottom: '10px', marginBottom: '20px' }}>
           <h2 style={{ margin: 0, color: '#0f172a' }}>{roomToEdit ? `Sửa thông tin: ${newRoom.roomType === 'WHOLE_HOUSE' ? '' : 'Phòng '}${newRoom.roomNumber}` : 'Đăng tin mới'}</h2>
