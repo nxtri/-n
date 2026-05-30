@@ -1,6 +1,79 @@
 const { Room, User, RentalContract, SystemConfig } = require('../models');
 const { uploadFilesToCloudinary } = require('../utils/cloudinaryUpload');
 
+const currencyFields = [
+  'price',
+  'electricityPrice',
+  'waterPrice',
+  'internetPrice',
+  'parkingPrice',
+  'servicePrice',
+];
+
+const numberFields = [
+  'area',
+  'maxOccupants',
+  'numFloors',
+  'numBedrooms',
+  'numBathrooms',
+];
+
+const booleanFields = [
+  'hasElevator',
+  'hasWashingMachine',
+  'hasFridge',
+  'hasKitchen',
+  'hasHeater',
+];
+
+const parseCurrencyValue = (value) => {
+  if (value === undefined || value === null || value === '') return value;
+  if (typeof value === 'number') return value;
+
+  const normalizedValue = String(value).replace(/[^\d-]/g, '');
+  if (normalizedValue === '' || normalizedValue === '-') return null;
+
+  const parsedValue = Number(normalizedValue);
+  return Number.isFinite(parsedValue) ? parsedValue : value;
+};
+
+const parseNumberValue = (value) => {
+  if (value === undefined || value === null || value === '') return value;
+  if (typeof value === 'number') return value;
+
+  const parsedValue = Number(String(value).replace(',', '.'));
+  return Number.isFinite(parsedValue) ? parsedValue : value;
+};
+
+const parseBooleanValue = (value) => {
+  if (value === true || value === false) return value;
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  return value;
+};
+
+const normalizeRoomPayload = (data) => {
+  currencyFields.forEach((field) => {
+    if (Object.prototype.hasOwnProperty.call(data, field)) {
+      data[field] = parseCurrencyValue(data[field]);
+    }
+  });
+
+  numberFields.forEach((field) => {
+    if (Object.prototype.hasOwnProperty.call(data, field)) {
+      data[field] = parseNumberValue(data[field]);
+    }
+  });
+
+  booleanFields.forEach((field) => {
+    if (Object.prototype.hasOwnProperty.call(data, field)) {
+      data[field] = parseBooleanValue(data[field]);
+    }
+  });
+
+  return data;
+};
+
 const normalizeCoordinate = (value, min, max) => {
   if (value === undefined || value === null || value === '') return null;
 
@@ -90,6 +163,7 @@ const roomController = {
           dataToCreate[key] = null;
         }
       }
+      normalizeRoomPayload(dataToCreate);
 
       const coordinateResult = normalizeRoomCoordinates(dataToCreate);
       if (coordinateResult.error) {
@@ -312,6 +386,7 @@ const roomController = {
           dataToUpdate[key] = null;
         }
       }
+      normalizeRoomPayload(dataToUpdate);
       const coordinateResult = normalizeRoomCoordinates(dataToUpdate);
       if (coordinateResult.error) {
         return res.status(400).json({ message: coordinateResult.error });
