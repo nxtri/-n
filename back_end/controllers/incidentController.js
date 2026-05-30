@@ -1,5 +1,6 @@
 const { Incident, Room, User, Notification, RentalContract } = require('../models');
 const notificationHelper = require('../utils/notificationHelper');
+const { uploadFilesToCloudinary } = require('../utils/cloudinaryUpload');
 
 const incidentController = {
   // 1. Tạo báo cáo sự cố (Dành cho Tenant)
@@ -32,7 +33,7 @@ const incidentController = {
       // Lưu trữ ảnh nếu có (giống cách upload của Room/Review)
       let images = [];
       if (req.files && req.files.length > 0) {
-        images = req.files.map(file => file.filename);
+        images = await uploadFilesToCloudinary(req.files, 'phongtro/incidents');
       }
 
       const newIncident = await Incident.create({

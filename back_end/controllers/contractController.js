@@ -1,5 +1,6 @@
 const { RentalContract, Room, User, Notification, Review } = require('../models');
 const notificationHelper = require('../utils/notificationHelper');
+const { uploadFilesToCloudinary } = require('../utils/cloudinaryUpload');
 
 
 const contractController = {
@@ -62,9 +63,15 @@ const contractController = {
       let conditionVideosFiles = [];
       
       if (req.files) {
-        if (req.files.contractImages) contractFiles = req.files.contractImages.map(f => f.filename);
-        if (req.files.conditionImages) conditionImagesFiles = req.files.conditionImages.map(f => f.filename);
-        if (req.files.conditionVideos) conditionVideosFiles = req.files.conditionVideos.map(f => f.filename);
+        if (req.files.contractImages) {
+          contractFiles = await uploadFilesToCloudinary(req.files.contractImages, 'phongtro/contracts');
+        }
+        if (req.files.conditionImages) {
+          conditionImagesFiles = await uploadFilesToCloudinary(req.files.conditionImages, 'phongtro/contract-condition-images');
+        }
+        if (req.files.conditionVideos) {
+          conditionVideosFiles = await uploadFilesToCloudinary(req.files.conditionVideos, 'phongtro/contract-condition-videos');
+        }
       }
 
       // Bước 3: Tạo hợp đồng với TẤT CẢ các trường dữ liệu
@@ -284,13 +291,16 @@ const contractController = {
 
       if (req.files) {
         if (req.files.contractImages && req.files.contractImages.length > 0) {
-          finalContractImages = [...finalContractImages, ...req.files.contractImages.map(file => file.filename)];
+          const uploadedContractImages = await uploadFilesToCloudinary(req.files.contractImages, 'phongtro/contracts');
+          finalContractImages = [...finalContractImages, ...uploadedContractImages];
         }
         if (req.files.conditionImages && req.files.conditionImages.length > 0) {
-          finalConditionImages = [...finalConditionImages, ...req.files.conditionImages.map(file => file.filename)];
+          const uploadedConditionImages = await uploadFilesToCloudinary(req.files.conditionImages, 'phongtro/contract-condition-images');
+          finalConditionImages = [...finalConditionImages, ...uploadedConditionImages];
         }
         if (req.files.conditionVideos && req.files.conditionVideos.length > 0) {
-          finalConditionVideos = [...finalConditionVideos, ...req.files.conditionVideos.map(file => file.filename)];
+          const uploadedConditionVideos = await uploadFilesToCloudinary(req.files.conditionVideos, 'phongtro/contract-condition-videos');
+          finalConditionVideos = [...finalConditionVideos, ...uploadedConditionVideos];
         }
       }
 
@@ -439,8 +449,10 @@ const contractController = {
       if (!contract) return res.status(404).json({ message: 'Không tìm thấy hợp đồng!' });
 
       const files = req.files || [];
-      const images = files.filter(f => f.mimetype.startsWith('image/')).map(f => f.filename);
-      const videos = files.filter(f => f.mimetype.startsWith('video/')).map(f => f.filename);
+      const imageFiles = files.filter(f => f.mimetype.startsWith('image/'));
+      const videoFiles = files.filter(f => f.mimetype.startsWith('video/'));
+      const images = await uploadFilesToCloudinary(imageFiles, 'phongtro/reviews/images');
+      const videos = await uploadFilesToCloudinary(videoFiles, 'phongtro/reviews/videos');
 
       // Kiểm tra xem khách đã đánh giá phòng này chưa
       let review = await Review.findOne({ where: { contractId: contractId } });
@@ -544,7 +556,9 @@ const contractController = {
       if (!contract) return res.status(404).json({ message: 'Không tìm thấy hợp đồng hợp lệ!' });
 
       // Hứng mảng file ảnh mới
-      const newResidenceFiles = req.files ? req.files.map(file => file.filename) : [];
+      const newResidenceFiles = req.files?.length
+        ? await uploadFilesToCloudinary(req.files, 'phongtro/residence-proofs')
+        : [];
       
       // Gộp ảnh cũ muốn giữ và ảnh mới chọn
       const finalImages = [...imagesToKeep, ...newResidenceFiles];

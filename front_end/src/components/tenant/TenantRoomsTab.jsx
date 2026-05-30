@@ -1,6 +1,7 @@
 import React from 'react';
 
 import { formatDate } from '../../utils/formatters';
+import { getMediaUrl } from '../../utils/media';
 /**
  * Component TenantRoomsTab
  * Chức năng: Quản lý các phòng và hợp đồng thuê hiện tại của khách thuê.
@@ -126,7 +127,7 @@ const TenantRoomsTab = ({
                     <img 
                       alt={`Phòng ${c.room?.roomNumber}`} 
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" 
-                      src={c.room?.images?.[0] ? `${import.meta.env.VITE_API_URL}/uploads/${c.room.images[0]}` : "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=1000"} 
+                      src={c.room?.images?.[0] ? getMediaUrl(c.room.images[0]) : "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=1000"} 
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
 
@@ -366,7 +367,7 @@ const TenantRoomsTab = ({
                               let resImages = [];
                               try { resImages = Array.isArray(c.residenceImage) ? c.residenceImage : JSON.parse(c.residenceImage || '[]'); } catch (e) { resImages = []; }
                               return resImages.map((img, idx) => {
-                                const imageUrl = `${import.meta.env.VITE_API_URL}/uploads/${img.replace(/uploads[\\\/]/, '')}`;
+                                const imageUrl = getMediaUrl(img);
                                 return (
                                   <img 
                                     key={idx} 
@@ -434,7 +435,7 @@ const TenantRoomsTab = ({
                                 <div className="flex-1 flex items-center gap-1.5 overflow-x-auto py-0.5 custom-scrollbar">
                                   {/* HIỂN THỊ ẢNH CŨ (TRÊN SERVER) */}
                                   {(existingImagesToKeep[c.id] || []).map((img, i) => {
-                                    const imageUrl = `${import.meta.env.VITE_API_URL}/uploads/${img.replace(/uploads[\\\/]/, '')}`;
+                                    const imageUrl = getMediaUrl(img);
                                     return (
                                       <div key={`old-${i}`} className="relative shrink-0 w-9 h-9 rounded-md overflow-hidden border border-outline-variant group/img cursor-zoom-in" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setViewingMedia({ url: imageUrl, type: 'image' }); }}>
                                         <img src={imageUrl} className="w-full h-full object-cover grayscale-[0.5]" title="Ảnh cũ" />

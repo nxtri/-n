@@ -1,4 +1,5 @@
 import React from 'react';
+import { getMediaUrl } from '../../utils/media';
 
 /**
  * COMPONENT: ReviewDetailModal
@@ -104,10 +105,10 @@ const ReviewDetailModal = ({
                         {JSON.parse(rev.images).map((img, i) => (
                           <img 
                             key={i} 
-                            src={`${import.meta.env.VITE_API_URL}/uploads/${img}`} 
+                            src={getMediaUrl(img)} 
                             alt="Review" 
                             className="w-[100px] h-[100px] object-cover rounded-xl border border-outline-variant/30 cursor-pointer transition-all hover:scale-105 hover:border-primary" 
-                            onClick={() => window.open(`${import.meta.env.VITE_API_URL}/uploads/${img}`)} />
+                            onClick={() => window.open(getMediaUrl(img))} />
                         ))}
                       </div>
                     )}

@@ -1,4 +1,47 @@
 const { Room, User, RentalContract, SystemConfig } = require('../models');
+const { uploadFilesToCloudinary } = require('../utils/cloudinaryUpload');
+
+const normalizeCoordinate = (value, min, max) => {
+  if (value === undefined || value === null || value === '') return null;
+
+  const normalizedValue = Number(value);
+  if (!Number.isFinite(normalizedValue) || normalizedValue < min || normalizedValue > max) {
+    return undefined;
+  }
+
+  return normalizedValue;
+};
+
+const normalizeRoomCoordinates = (data) => {
+  const hasLatitudeKey = Object.prototype.hasOwnProperty.call(data, 'latitude');
+  const hasLongitudeKey = Object.prototype.hasOwnProperty.call(data, 'longitude');
+
+  if (!hasLatitudeKey && !hasLongitudeKey) {
+    return { data };
+  }
+
+  if (hasLatitudeKey !== hasLongitudeKey) {
+    return { error: 'Vui lòng nhập đủ cả vĩ độ và kinh độ!' };
+  }
+
+  const hasLatitude = hasLatitudeKey && data.latitude !== undefined && data.latitude !== null && data.latitude !== '';
+  const hasLongitude = hasLongitudeKey && data.longitude !== undefined && data.longitude !== null && data.longitude !== '';
+
+  if (hasLatitude !== hasLongitude) {
+    return { error: 'Vui lòng nhập đủ cả vĩ độ và kinh độ!' };
+  }
+
+  const latitude = normalizeCoordinate(data.latitude, -90, 90);
+  const longitude = normalizeCoordinate(data.longitude, -180, 180);
+
+  if (latitude === undefined || longitude === undefined) {
+    return { error: 'Tọa độ phòng không hợp lệ!' };
+  }
+
+  data.latitude = latitude;
+  data.longitude = longitude;
+  return { data };
+};
 
 const roomController = {
 
@@ -36,7 +79,9 @@ const roomController = {
       }
 
       // 1. Lấy danh sách ảnh
-      const imageFiles = req.files ? req.files.map(file => file.filename) : [];
+      const imageFiles = req.files?.length
+        ? await uploadFilesToCloudinary(req.files, 'phongtro/rooms')
+        : [];
 
       // 2. Màng lọc bảo vệ PostgreSQL (Biến chuỗi rỗng "" thành null)
       const dataToCreate = { ...req.body };
@@ -44,6 +89,11 @@ const roomController = {
         if (dataToCreate[key] === '') {
           dataToCreate[key] = null;
         }
+      }
+
+      const coordinateResult = normalizeRoomCoordinates(dataToCreate);
+      if (coordinateResult.error) {
+        return res.status(400).json({ message: coordinateResult.error });
       }
 
       // 3. Gán ID chủ nhà và nhét danh sách ảnh vào
@@ -251,7 +301,8 @@ const roomController = {
       // 1. Xử lý Ảnh (Nếu có ảnh mới thì lấy, không thì giữ ảnh cũ)
       let newImages = room.images; 
       if (req.files && req.files.length > 0) {
-        newImages = JSON.stringify(req.files.map(file => file.filename));
+        const uploadedImages = await uploadFilesToCloudinary(req.files, 'phongtro/rooms');
+        newImages = JSON.stringify(uploadedImages);
       }
 
       // 2. Màng lọc bảo vệ PostgreSQL (Biến chuỗi rỗng "" thành null)
@@ -260,6 +311,10 @@ const roomController = {
         if (dataToUpdate[key] === '') {
           dataToUpdate[key] = null;
         }
+      }
+      const coordinateResult = normalizeRoomCoordinates(dataToUpdate);
+      if (coordinateResult.error) {
+        return res.status(400).json({ message: coordinateResult.error });
       }
       dataToUpdate.images = newImages; // Nhét danh sách ảnh vào
 

@@ -211,9 +211,9 @@ const Header = ({
                 {user.role === 'LANDLORD' && (
                   <button 
                     onClick={() => navigate('/dashboard', { state: { targetTab: 'ADD_ROOM' } })}
-                    className="bg-primary text-white font-bold px-5 py-2.5 rounded-full text-sm hover:shadow-lg transition-all active:scale-95 flex items-center gap-2"
+                    className="h-11 shrink-0 bg-primary text-white font-bold px-5 rounded-full text-sm leading-none hover:shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2 whitespace-nowrap"
                   >
-                    <span className="material-symbols-outlined text-xl">add_circle</span>
+                    <span className="material-symbols-outlined text-xl shrink-0">add_circle</span>
                     <span>Đăng tin</span>
                   </button>
                 )}

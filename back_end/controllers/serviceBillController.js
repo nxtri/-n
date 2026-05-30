@@ -1,5 +1,6 @@
 const { ServiceBill, RentalContract, Room, User, Notification } = require('../models');
 const notificationHelper = require('../utils/notificationHelper');
+const { uploadFilesToCloudinary } = require('../utils/cloudinaryUpload');
 
 const serviceBillController = {
   // 1. Tạo hóa đơn (Chủ nhà nhập chỉ số -> Hệ thống tự tính tiền)
@@ -147,7 +148,7 @@ const serviceBillController = {
         return res.status(400).json({ message: 'Vui lòng tải lên ít nhất 1 ảnh bằng chứng!' });
       }
 
-      const imageUrls = files.map(file => `/uploads/proofs/${file.filename}`);
+      const imageUrls = await uploadFilesToCloudinary(files, 'phongtro/payment-proofs');
 
 
       

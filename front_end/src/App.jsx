@@ -7,6 +7,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Home from './pages/Home'; // Import Home
 import RoomDetail from './pages/RoomDetail'; // Import RoomDetail
+import RoomLocation from './pages/RoomLocation';
 import AdminDashboard from './pages/AdminDashboard'; // Quản trị viên
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -17,6 +18,7 @@ function App() {
         <Routes>
             <Route path="/" element={<Home />} />  {/* Khách vào web sẽ thấy trang này đầu tiên */}
             <Route path="/room/:id" element={<RoomDetail />} />  {/* Trang chi tiết phòng */}
+            <Route path="/room/:id/location" element={<RoomLocation />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/dashboard" element={<Dashboard />} /> 

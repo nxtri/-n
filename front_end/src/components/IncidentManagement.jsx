@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import axiosClient from '../api/axiosClient';
 
 import { formatDate } from '../utils/formatters';
+import { getMediaUrl } from '../utils/media';
 const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }) => {
   const [incidents, setIncidents] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -508,12 +509,12 @@ const IncidentManagement = ({ user, rooms, contracts = [], onRepairCostUpdated }
                           {selectedIncident.images.map((img, idx) => (
                             <a 
                               key={idx} 
-                              href={`${import.meta.env.VITE_API_URL}/uploads/${img}`} 
+                              href={getMediaUrl(img)} 
                               target="_blank" 
                               rel="noopener noreferrer" 
                               className="w-20 h-20 rounded-xl overflow-hidden border border-outline-variant/30 hover:scale-105 transition-all shadow-sm"
                             >
-                              <img src={`${import.meta.env.VITE_API_URL}/uploads/${img}`} alt="evidence" className="w-full h-full object-cover" />
+                              <img src={getMediaUrl(img)} alt="evidence" className="w-full h-full object-cover" />
                             </a>
                           ))}
                         </div>

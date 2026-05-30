@@ -7,6 +7,7 @@ import Footer from '../components/Footer';
 import ProfileModal from '../components/ProfileModal';
 
 import { formatDate } from '../utils/formatters';
+import { getMediaUrl } from '../utils/media';
 const Home = () => {
   const [rooms, setRooms] = useState([]);
   const [filteredRooms, setFilteredRooms] = useState([]);
@@ -303,7 +304,7 @@ const Home = () => {
             ) : currentRooms.map((room) => {
               let images = [];
               try { images = JSON.parse(room.images) || []; } catch(e) {}
-              const firstImage = images.length > 0 ? `${import.meta.env.VITE_API_URL}/uploads/${images[0]}` : "https://via.placeholder.com/400x300?text=Chua+Co+Anh";
+              const firstImage = images.length > 0 ? getMediaUrl(images[0]) : "https://via.placeholder.com/400x300?text=Chua+Co+Anh";
 
               // Viền bài đăng theo gói đăng ký của chủ nhà
               const plan = room.landlord?.subscriptionPlan;
@@ -401,7 +402,15 @@ const Home = () => {
                           {room.maxOccupants} người
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 text-on-surface-variant text-[11px] marquee-container">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/room/${room.id}/location`);
+                        }}
+                        className="w-full flex items-center gap-1 text-on-surface-variant hover:text-primary text-[11px] marquee-container text-left transition-colors"
+                        title="Xem vị trí phòng trên bản đồ"
+                      >
                         <span className="material-symbols-outlined text-sm text-primary flex-shrink-0">location_on</span>
                         <div className="marquee-content">
                           <span>{room.houseNumber ? `${room.houseNumber}, ` : ''}{room.address}</span>
@@ -409,7 +418,7 @@ const Home = () => {
                             <span className="ml-8">{room.houseNumber ? `${room.houseNumber}, ` : ''}{room.address}</span>
                           )}
                         </div>
-                      </div>
+                      </button>
                     </div>
 
                     {/* Description Preview */}

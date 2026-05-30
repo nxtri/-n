@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import walletApi from '../../api/walletApi';
 import CurrencyInput from '../common/CurrencyInput';
+import { getMediaUrl } from '../../utils/media';
 
 const AdminSubscriptionTab = () => {
   const [transactions, setTransactions] = useState([]);
@@ -246,7 +247,7 @@ const AdminSubscriptionTab = () => {
       {proofModal && (
         <div className="fixed inset-0 bg-black/90 flex justify-center items-center z-[9999]" onClick={()=>setProofModal(null)}>
           <button onClick={()=>setProofModal(null)} className="absolute top-5 right-5 text-white text-3xl">✖</button>
-          <img src={`${import.meta.env.VITE_API_URL}/uploads/${proofModal}`} alt="Proof" className="max-w-[90%] max-h-[90%] object-contain rounded-2xl shadow-2xl"/>
+          <img src={getMediaUrl(proofModal)} alt="Proof" className="max-w-[90%] max-h-[90%] object-contain rounded-2xl shadow-2xl"/>
         </div>
       )}
     </div>

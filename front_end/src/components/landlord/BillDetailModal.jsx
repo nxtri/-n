@@ -1,4 +1,5 @@
 import React from 'react';
+import { getMediaUrl } from '../../utils/media';
 
 /**
  * Component BillDetailModal
@@ -280,8 +281,7 @@ const BillDetailModal = ({
                   let images = [];
                   try { images = JSON.parse(bill.proofImages || "[]"); } catch (e) {}
                   return images.map((img, idx) => {
-                    const fileName = img.replace(/^.*[\\/]/, '');
-                    const imgSrc = `${import.meta.env.VITE_API_URL}/uploads/${fileName}`;
+                    const imgSrc = getMediaUrl(img);
                     return (
                       <img
                         key={idx}

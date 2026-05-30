@@ -1,5 +1,6 @@
 const { Transaction, User, SystemConfig } = require('../models');
 const notificationHelper = require('../utils/notificationHelper');
+const { uploadFileToCloudinary } = require('../utils/cloudinaryUpload');
 
 // =========================================================
 // CONTROLLER: VÍ ĐIỆN TỬ (Wallet)
@@ -13,7 +14,9 @@ const walletController = {
   createDeposit: async (req, res) => {
     try {
       const { amount } = req.body;
-      const proofImage = req.file ? req.file.filename : null;
+      const proofImage = req.file
+        ? await uploadFileToCloudinary(req.file, 'phongtro/wallet-proofs')
+        : null;
 
       if (!amount || amount <= 0) {
         return res.status(400).json({ message: 'Số tiền không hợp lệ!' });

@@ -9,6 +9,8 @@ const Room = sequelize.define('Room', {
   roomCode: { type: DataTypes.STRING, allowNull: true, unique: true },
   houseNumber: { type: DataTypes.STRING, allowNull: true },
   address: { type: DataTypes.STRING, allowNull: true }, // Xã, Thành phố
+  latitude: { type: DataTypes.FLOAT, allowNull: true },
+  longitude: { type: DataTypes.FLOAT, allowNull: true },
   roomType: { 
     type: DataTypes.ENUM('SINGLE', 'WHOLE_HOUSE'), 
     defaultValue: 'SINGLE' 

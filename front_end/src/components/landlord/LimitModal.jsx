@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import roomApi from '../../api/roomApi';
+import { getMediaUrl } from '../../utils/media';
 
 const LimitModal = ({ isVisible, limitInfo, onClose, rooms, fetchRooms, setActiveTab, activeTab }) => {
   const [selectedRoomIds, setSelectedRoomIds] = useState([]);
@@ -97,7 +98,7 @@ const LimitModal = ({ isVisible, limitInfo, onClose, rooms, fetchRooms, setActiv
                       {/* Thumbnail */}
                       <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-surface-container flex items-center justify-center">
                         {images.length > 0 ? (
-                          <img src={`${import.meta.env.VITE_API_URL}/uploads/${images[0]}`} alt={`Phòng ${room.roomNumber}`} className="w-full h-full object-cover" />
+                          <img src={getMediaUrl(images[0])} alt={`Phòng ${room.roomNumber}`} className="w-full h-full object-cover" />
                         ) : (
                           <span className="material-symbols-outlined text-outline-variant">image</span>
                         )}

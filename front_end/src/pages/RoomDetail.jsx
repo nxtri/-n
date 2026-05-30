@@ -8,6 +8,7 @@ import Footer from '../components/Footer';
 import ProfileModal from '../components/ProfileModal';
 
 import { formatDate } from '../utils/formatters';
+import { getMediaUrl } from '../utils/media';
 const RoomDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -171,18 +172,18 @@ const RoomDetail = () => {
               </div>
             ) : images.length === 1 ? (
               <div className="aspect-[16/10] rounded-2xl overflow-hidden cursor-pointer group" onClick={() => { setCurrentImageIndex(0); setShowImageViewer(true); }}>
-                <img src={`${import.meta.env.VITE_API_URL}/uploads/${images[0]}`} alt="Room" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                <img src={getMediaUrl(images[0])} alt="Room" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
               </div>
             ) : (
               <div className="grid grid-cols-4 grid-rows-2 gap-2 h-[480px] rounded-2xl overflow-hidden">
                 {/* Large image - left half */}
                 <div className="col-span-2 row-span-2 relative cursor-pointer group" onClick={() => { setCurrentImageIndex(0); setShowImageViewer(true); }}>
-                  <img src={`${import.meta.env.VITE_API_URL}/uploads/${images[0]}`} alt="Main" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  <img src={getMediaUrl(images[0])} alt="Main" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 </div>
                 {/* Small images - right half */}
                 {images.slice(1, 5).map((img, idx) => (
                   <div key={idx} className="relative cursor-pointer group overflow-hidden" onClick={() => { setCurrentImageIndex(idx + 1); setShowImageViewer(true); }}>
-                    <img src={`${import.meta.env.VITE_API_URL}/uploads/${img}`} alt={`Photo ${idx + 2}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                    <img src={getMediaUrl(img)} alt={`Photo ${idx + 2}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                     {idx === 3 && images.length > 5 && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                         <span className="text-white text-2xl font-black">+{images.length - 5} ảnh</span>
@@ -499,10 +500,10 @@ const RoomDetail = () => {
                     {(review.images || review.videos) && (
                       <div className="flex gap-4 flex-wrap mb-6">
                         {JSON.parse(review.images || "[]").map((img, idx) => (
-                          <img key={idx} src={`${import.meta.env.VITE_API_URL}/uploads/${img}`} className="w-24 h-24 object-cover rounded-xl border border-outline-variant/20 cursor-pointer hover:scale-105 transition-transform" alt="review" onClick={() => window.open(`${import.meta.env.VITE_API_URL}/uploads/${img}`)} />
+                          <img key={idx} src={getMediaUrl(img)} className="w-24 h-24 object-cover rounded-xl border border-outline-variant/20 cursor-pointer hover:scale-105 transition-transform" alt="review" onClick={() => window.open(getMediaUrl(img))} />
                         ))}
                         {JSON.parse(review.videos || "[]").map((vid, idx) => (
-                          <video key={idx} src={`${import.meta.env.VITE_API_URL}/uploads/${vid}`} className="w-24 h-24 object-cover rounded-xl border border-outline-variant/20 bg-black" controls />
+                          <video key={idx} src={getMediaUrl(vid)} className="w-24 h-24 object-cover rounded-xl border border-outline-variant/20 bg-black" controls />
                         ))}
                       </div>
                     )}
@@ -576,7 +577,7 @@ const RoomDetail = () => {
               <span className="material-symbols-outlined text-2xl">chevron_left</span>
             </button>
             <img
-              src={`${import.meta.env.VITE_API_URL}/uploads/${images[currentImageIndex]}`}
+              src={getMediaUrl(images[currentImageIndex])}
               alt={`Photo ${currentImageIndex + 1}`}
               className="max-w-full max-h-[70vh] object-contain rounded-lg"
             />
@@ -595,7 +596,7 @@ const RoomDetail = () => {
                 onClick={() => setCurrentImageIndex(idx)}
                 className={`flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-all ${currentImageIndex === idx ? 'border-white opacity-100 scale-105' : 'border-transparent opacity-40 hover:opacity-70'}`}
               >
-                <img src={`${import.meta.env.VITE_API_URL}/uploads/${img}`} className="w-full h-full object-cover" alt="thumb" />
+                <img src={getMediaUrl(img)} className="w-full h-full object-cover" alt="thumb" />
               </button>
             ))}
           </div>

@@ -1,8 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import RoomMetricsCards from './RoomMetricsCards';
 import { useDashboardContext } from '../../context/DashboardContext';
 
 import { formatDate } from '../../utils/formatters';
+import { getMediaUrl } from '../../utils/media';
 /**
  * Component AllRoomsTabContent
  * Chức năng: Hiển thị danh sách tất cả các phòng trọ của chủ nhà trong Dashboard.
@@ -34,6 +36,7 @@ const AllRoomsTabContent = ({
   fetchRooms             // Hàm tải lại danh sách phòng từ server
 }) => {
   const { contracts } = useDashboardContext();
+  const navigate = useNavigate();
 
   // Kiểm tra xem tab hiện tại có thuộc nhóm quản lý phòng không
   const isRoomsTab = activeTab === 'ALL_ROOMS' || activeTab === 'AVAILABLE' || activeTab === 'RENTED' || activeTab === 'MAINTENANCE' || activeTab === 'UPCOMING' || activeTab === 'DEPOSITED' || activeTab === 'HIDDEN';
@@ -135,7 +138,7 @@ const AllRoomsTabContent = ({
                     try { images = JSON.parse(room.images) || []; } catch(e) {}
                     return images.length > 0 ? (
                       <img 
-                        src={`${import.meta.env.VITE_API_URL}/uploads/${images[0]}`} 
+                        src={getMediaUrl(images[0])} 
                         alt={room.roomNumber} 
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
                       />
@@ -216,7 +219,12 @@ const AllRoomsTabContent = ({
                       </div>
                     </div>
                     {/* Địa chỉ có hiệu ứng chữ chạy (Marquee) nếu quá dài */}
-                    <div className="flex items-center gap-1.5 text-on-surface-variant text-sm marquee-container">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/room/${room.id}/location`)}
+                      className="w-full flex items-center gap-1.5 text-on-surface-variant hover:text-primary text-sm marquee-container text-left transition-colors"
+                      title="Xem vị trí phòng trên bản đồ"
+                    >
                       <span className="material-symbols-outlined text-lg text-primary flex-shrink-0">location_on</span>
                       <div className="marquee-content">
                         <span>{room.houseNumber ? `${room.houseNumber}, ` : ''}{room.address}</span>
@@ -224,7 +232,7 @@ const AllRoomsTabContent = ({
                           <span className="ml-8">{room.houseNumber ? `${room.houseNumber}, ` : ''}{room.address}</span>
                         )}
                       </div>
-                    </div>
+                    </button>
                   </div>
 
                   {/* Khu vực thông tin thuê phòng / cọc và các nút điều khiển */}
