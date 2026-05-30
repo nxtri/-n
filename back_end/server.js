@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path'); // Đảm bảo có dòng này ở đầu file server.js
 const http = require('http'); // Module HTTP để tạo Server cho Socket.io
 const socketManager = require('./socketManager'); // Module quản lý Socket.io
+const { corsOptions } = require('./config/corsOptions');
 
 // Cho phép Frontend truy cập trực tiếp vào các file trong thư mục 'uploads'
 
@@ -20,7 +21,8 @@ socketManager.init(server);
 
 
 app.use(express.json());
-app.use(cors());app.use('/uploads', express.static('uploads'));
+app.use(cors(corsOptions));
+app.use('/uploads', express.static('uploads'));
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 

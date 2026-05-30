@@ -1,4 +1,5 @@
 const { Server } = require('socket.io');
+const { isAllowedOrigin } = require('./config/corsOptions');
 
 let io = null;
 const onlineUsers = new Map(); // userId -> socketId
@@ -11,8 +12,15 @@ module.exports = {
   init: (httpServer) => {
     io = new Server(httpServer, {
       cors: {
-        origin: "http://localhost:5173", // URL của React Frontend (Vite dev server)
-        methods: ["GET", "POST"]
+        origin: (origin, callback) => {
+          if (isAllowedOrigin(origin)) {
+            return callback(null, true);
+          }
+
+          return callback(new Error(`Origin ${origin} is not allowed by Socket.IO CORS`));
+        },
+        methods: ["GET", "POST"],
+        credentials: true
       }
     });
 
