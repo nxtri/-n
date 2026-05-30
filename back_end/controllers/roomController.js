@@ -399,7 +399,7 @@ const roomController = {
       res.status(200).json({ message: 'Cập nhật phòng thành công!', room });
     } catch (error) {
       console.error("=== LỖI KHI CẬP NHẬT PHÒNG ===", error);
-      res.status(500).json({ message: 'Lỗi server khi cập nhật phòng!' });
+      res.status(500).json({ message: `Lỗi server khi cập nhật phòng! Chi tiết: ${error.message}` });
     }
   },
 
