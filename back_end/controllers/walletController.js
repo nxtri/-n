@@ -1,6 +1,16 @@
 const { Transaction, User, SystemConfig } = require('../models');
 const notificationHelper = require('../utils/notificationHelper');
 const { uploadFileToCloudinary } = require('../utils/cloudinaryUpload');
+const socketManager = require('../socketManager');
+
+const emitAdminWalletEvent = async (event, payload = {}) => {
+  try {
+    const admins = await User.findAll({ where: { role: 'ADMIN' }, attributes: ['id'] });
+    socketManager.emitToUsers(admins.map(admin => admin.id), event, payload);
+  } catch (error) {
+    console.error('Realtime admin wallet emit error:', error);
+  }
+};
 
 // =========================================================
 // CONTROLLER: VÍ ĐIỆN TỬ (Wallet)
@@ -42,6 +52,13 @@ const walletController = {
         '💰 Yêu cầu nạp tiền mới',
         `Chủ nhà ${user?.fullName || 'ID ' + req.user.id} vừa gửi yêu cầu nạp ${parseFloat(amount).toLocaleString('vi-VN')} đ vào ví.`
       );
+
+      await emitAdminWalletEvent('wallet:deposit_created', {
+        transactionId: transaction.id,
+        userId: transaction.userId,
+        amount: transaction.amount,
+        status: transaction.status
+      });
 
       res.status(201).json({ message: 'Đã gửi yêu cầu nạp tiền! Vui lòng chờ Admin xác nhận.', transaction });
     } catch (error) {
@@ -146,6 +163,22 @@ const walletController = {
         `Admin đã xác nhận khoản nạp ${transaction.amount.toLocaleString('vi-VN')} đ vào ví của bạn. Số dư hiện tại: ${user.balance.toLocaleString('vi-VN')} đ.`
       );
 
+      socketManager.emitToUser(user.id, 'wallet:updated', {
+        balance: user.balance,
+        transactionId: transaction.id,
+        status: transaction.status
+      });
+      socketManager.emitToUser(user.id, 'transaction:updated', {
+        transactionId: transaction.id,
+        status: transaction.status
+      });
+      await emitAdminWalletEvent('wallet:deposit_updated', {
+        transactionId: transaction.id,
+        userId: transaction.userId,
+        amount: transaction.amount,
+        status: transaction.status
+      });
+
       res.status(200).json({ message: `Đã duyệt nạp ${transaction.amount.toLocaleString('vi-VN')} đ cho ${user.fullName}!` });
     } catch (error) {
       console.error('Lỗi duyệt nạp tiền:', error);
@@ -172,6 +205,19 @@ const walletController = {
           `Admin đã từ chối yêu cầu nạp ${transaction.amount.toLocaleString('vi-VN')} đ. Vui lòng kiểm tra lại thông tin chuyển khoản và thử lại.`
         );
       }
+
+      if (user) {
+        socketManager.emitToUser(user.id, 'transaction:updated', {
+          transactionId: transaction.id,
+          status: transaction.status
+        });
+      }
+      await emitAdminWalletEvent('wallet:deposit_updated', {
+        transactionId: transaction.id,
+        userId: transaction.userId,
+        amount: transaction.amount,
+        status: transaction.status
+      });
 
       res.status(200).json({ message: 'Đã từ chối yêu cầu nạp tiền!' });
     } catch (error) {

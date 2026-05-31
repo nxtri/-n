@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import adminApi from '../api/adminApi';
 import authApi from '../api/authApi';
 import notificationApi from '../api/notificationApi';
+import socket from '../api/socket';
 import {
   AdminUsersTab,
   AdminRoomsTab,
@@ -31,6 +32,8 @@ const AdminDashboard = () => {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef(null);
+  const realtimeRefreshRef = useRef(null);
+  const [realtimeRefreshKey, setRealtimeRefreshKey] = useState(0);
 
   // State cho bộ lọc Thống kê
   const [filterMonth, setFilterMonth] = useState('ALL');
@@ -110,6 +113,43 @@ const AdminDashboard = () => {
     }
   };
 
+  realtimeRefreshRef.current = () => {
+    fetchAllData();
+    fetchNotifications();
+  };
+
+  useEffect(() => {
+    if (!user || user.role !== 'ADMIN') return;
+
+    socket.connect();
+    socket.emit('user_online', user.id);
+
+    const scheduleRealtimeRefresh = () => {
+      setRealtimeRefreshKey(prev => prev + 1);
+      setTimeout(() => {
+        if (realtimeRefreshRef.current) realtimeRefreshRef.current();
+      }, 500);
+    };
+
+    const handleNewNotification = (newNoti) => {
+      setNotifications(prev => [newNoti, ...prev]);
+      scheduleRealtimeRefresh();
+    };
+
+    socket.on('new_notification', handleNewNotification);
+    socket.on('wallet:deposit_created', scheduleRealtimeRefresh);
+    socket.on('wallet:deposit_updated', scheduleRealtimeRefresh);
+    socket.on('dashboard:refresh', scheduleRealtimeRefresh);
+
+    return () => {
+      socket.off('new_notification', handleNewNotification);
+      socket.off('wallet:deposit_created', scheduleRealtimeRefresh);
+      socket.off('wallet:deposit_updated', scheduleRealtimeRefresh);
+      socket.off('dashboard:refresh', scheduleRealtimeRefresh);
+      socket.disconnect();
+    };
+  }, [user?.id, user?.role]);
+
   const fetchStats = async () => {
     try {
       const resStats = await adminApi.getDashboardStats({ month: filterMonth, year: filterYear });
@@ -184,6 +224,7 @@ const AdminDashboard = () => {
   };
 
   const handleLogout = () => {
+    socket.disconnect();
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     window.location.href = '/login';
@@ -424,7 +465,7 @@ const AdminDashboard = () => {
           )}
 
           {activeTab === 'SUBSCRIPTION' && (
-            <AdminSubscriptionTab />
+            <AdminSubscriptionTab realtimeRefreshKey={realtimeRefreshKey} />
           )}
 
           {activeTab === 'REGULATIONS' && (

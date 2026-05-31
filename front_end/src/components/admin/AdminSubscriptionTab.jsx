@@ -3,7 +3,7 @@ import walletApi from '../../api/walletApi';
 import CurrencyInput from '../common/CurrencyInput';
 import { getMediaUrl } from '../../utils/media';
 
-const AdminSubscriptionTab = () => {
+const AdminSubscriptionTab = ({ realtimeRefreshKey = 0 }) => {
   const [transactions, setTransactions] = useState([]);
   const [plans, setPlans] = useState(null);
   const [bankInfo, setBankInfo] = useState({ bankId: '', bankAccount: '', bankName: '' });
@@ -12,6 +12,9 @@ const AdminSubscriptionTab = () => {
   const [proofModal, setProofModal] = useState(null);
 
   useEffect(() => { fetchAll(); }, []);
+  useEffect(() => {
+    if (realtimeRefreshKey > 0) fetchAll();
+  }, [realtimeRefreshKey]);
 
   const fetchAll = async () => {
     try {

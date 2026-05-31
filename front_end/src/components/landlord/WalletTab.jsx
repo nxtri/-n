@@ -10,7 +10,7 @@ const PLAN_INFO = {
   DIAMOND: { name: 'Kim Cương', icon: '💎', color: '#facc15', bg: 'from-yellow-300/10 to-amber-400/5', border: 'border-yellow-400/50', rank: 4 },
 };
 
-const WalletTab = ({ onPurchaseSuccess }) => {
+const WalletTab = ({ onPurchaseSuccess, realtimeRefreshKey = 0 }) => {
   const [wallet, setWallet] = useState(null);
   const [plans, setPlans] = useState(null);
   const [transactions, setTransactions] = useState([]);
@@ -30,6 +30,9 @@ const WalletTab = ({ onPurchaseSuccess }) => {
   const [buyMode, setBuyMode] = useState('BASE'); // 'BASE' | 'RETAIL'
 
   useEffect(() => { fetchAll(); }, []);
+  useEffect(() => {
+    if (realtimeRefreshKey > 0) fetchAll();
+  }, [realtimeRefreshKey]);
 
   const fetchAll = async () => {
     try {

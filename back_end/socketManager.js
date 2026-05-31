@@ -58,4 +58,28 @@ module.exports = {
    * Lấy danh sách user đang online (Map: userId -> socketId)
    */
   getOnlineUsers: () => onlineUsers,
+
+  emitToUser: (userId, event, payload = {}) => {
+    if (!io) return false;
+    const socketId = onlineUsers.get(String(userId));
+    if (!socketId) return false;
+
+    io.to(socketId).emit(event, payload);
+    return true;
+  },
+
+  emitToUsers: (userIds = [], event, payload = {}) => {
+    if (!io) return 0;
+
+    let sentCount = 0;
+    userIds.forEach((userId) => {
+      const socketId = onlineUsers.get(String(userId));
+      if (socketId) {
+        io.to(socketId).emit(event, payload);
+        sentCount += 1;
+      }
+    });
+
+    return sentCount;
+  },
 };

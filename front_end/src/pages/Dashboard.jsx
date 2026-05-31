@@ -65,6 +65,7 @@ const Dashboard = () => {
   const [isRoomMenuOpen, setIsRoomMenuOpen] = useState(true); 
   const [isFinanceMenuOpen, setIsFinanceMenuOpen] = useState(false);
   const [limitInfo, setLimitInfo] = useState(null);
+  const [realtimeRefreshKey, setRealtimeRefreshKey] = useState(0);
 
   // --- STATE CHO TÍNH NĂNG BÁO TRẢ PHÒNG ---
   const [showTerminateModal, setShowTerminateModal] = useState(false);
@@ -178,6 +179,13 @@ const Dashboard = () => {
     // 2. Báo cho Server biết "Tôi đang online"
     socket.emit('user_online', user.id);
 
+    const scheduleRealtimeRefresh = () => {
+      setTimeout(() => {
+        setRealtimeRefreshKey(prev => prev + 1);
+        if (refreshDataRef.current) refreshDataRef.current();
+      }, 500);
+    };
+
     // 3. Lắng nghe thông báo mới từ Server
     socket.on('new_notification', (newNoti) => {
       console.log('🔔 CÓ THÔNG BÁO MỚI:', newNoti);
@@ -188,14 +196,19 @@ const Dashboard = () => {
 
       // TỰ ĐỘNG CẬP NHẬT DỮ LIỆU trên trang (hóa đơn, hợp đồng, phòng,...)
       // Delay 500ms để đảm bảo Backend đã lưu xong dữ liệu vào DB
-      setTimeout(() => {
-        if (refreshDataRef.current) refreshDataRef.current();
-      }, 500);
+      scheduleRealtimeRefresh();
     });
+
+    socket.on('wallet:updated', scheduleRealtimeRefresh);
+    socket.on('transaction:updated', scheduleRealtimeRefresh);
+    socket.on('dashboard:refresh', scheduleRealtimeRefresh);
 
     // 4. Cleanup: Ngắt kết nối khi rời Dashboard
     return () => {
       socket.off('new_notification');
+      socket.off('wallet:updated', scheduleRealtimeRefresh);
+      socket.off('transaction:updated', scheduleRealtimeRefresh);
+      socket.off('dashboard:refresh', scheduleRealtimeRefresh);
       socket.disconnect();
     };
   }, [user?.id]);
@@ -756,7 +769,7 @@ const Dashboard = () => {
             )}
 
             {activeTab === 'WALLET' && user?.role === 'LANDLORD' && (
-              <WalletTab onPurchaseSuccess={checkLimit} />
+              <WalletTab onPurchaseSuccess={checkLimit} realtimeRefreshKey={realtimeRefreshKey} />
             )}
 
             {/* LANDLORD TABS */}
