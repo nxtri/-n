@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import contractApi from '../../api/contractApi';
-import authApi from '../../api/authApi';
-import { useDashboardContext } from '../../context/DashboardContext';
-import CurrencyInput from '../common/CurrencyInput';
-import { getMediaUrl } from '../../utils/media';
+import React, { useState, useEffect } from "react";
+import contractApi from "../../api/contractApi";
+import authApi from "../../api/authApi";
+import { useDashboardContext } from "../../context/DashboardContext";
+import CurrencyInput from "../common/CurrencyInput";
+import { getMediaUrl } from "../../utils/media";
 
 /**
  * Component ContractFormModal
@@ -14,22 +14,40 @@ import { getMediaUrl } from '../../utils/media';
  * - Quản lý danh sách thành viên ở cùng.
  * - Tải lên ảnh hợp đồng và minh chứng hiện trạng phòng (ảnh/video).
  */
-const ContractFormModal = ({ 
+const ContractFormModal = ({
   roomForNewContract, // Đối tượng phòng (nếu là tạo hợp đồng mới cho phòng này)
-  contractToEdit,     // Đối tượng hợp đồng cần sửa (nếu là chế độ chỉnh sửa)
-  onClose             // Hàm để đóng modal
+  contractToEdit, // Đối tượng hợp đồng cần sửa (nếu là chế độ chỉnh sửa)
+  onClose, // Hàm để đóng modal
 }) => {
-  const { user, fetchLandlordContracts, fetchLandlordRooms } = useDashboardContext();
+  const { user, fetchLandlordContracts, fetchLandlordRooms } =
+    useDashboardContext();
 
-  const [contractData, setContractData] = useState({ 
-    landlordName: '', landlordDob: '', landlordPhone: '', landlordIdentityNumber: '', landlordHometown: '',
-    tenantEmail: '', tenantName: '', tenantDob: '', tenantPhone: '', tenantIdentityNumber: '', tenantHometown: '',
-    startDate: '', endDate: '',
-    price: 0, electricityPrice: 0, waterPrice: 0, internetPrice: 0, parkingPrice: 0, servicePrice: 0,
-    startElectricity: '', startWater: '', vehicleCount: 0,
+  const [contractData, setContractData] = useState({
+    landlordName: "",
+    landlordDob: "",
+    landlordPhone: "",
+    landlordIdentityNumber: "",
+    landlordHometown: "",
+    tenantEmail: "",
+    tenantName: "",
+    tenantDob: "",
+    tenantPhone: "",
+    tenantIdentityNumber: "",
+    tenantHometown: "",
+    startDate: "",
+    endDate: "",
+    price: 0,
+    electricityPrice: 0,
+    waterPrice: 0,
+    internetPrice: 0,
+    parkingPrice: 0,
+    servicePrice: 0,
+    startElectricity: "",
+    startWater: "",
+    vehicleCount: 0,
     members: [],
-    conditionDescription: '',
-    isDirectUtilityPayment: false
+    conditionDescription: "",
+    isDirectUtilityPayment: false,
   });
 
   const [contractImages, setContractImages] = useState([]);
@@ -38,29 +56,33 @@ const ContractFormModal = ({
   const [conditionImagesPreviews, setConditionImagesPreviews] = useState([]);
   const [conditionVideos, setConditionVideos] = useState([]);
   const [conditionVideosPreviews, setConditionVideosPreviews] = useState([]);
-  
+
   const [existingContractImages, setExistingContractImages] = useState([]);
   const [existingConditionImages, setExistingConditionImages] = useState([]);
   const [existingConditionVideos, setExistingConditionVideos] = useState([]);
-  
+
   const [viewingMedia, setViewingMedia] = useState(null); // Lưu { url, type } để xem phóng to
-  
-  const [tenantDetails, setTenantDetails] = useState({ fullName: '', phone: '', identityNumber: '' });
+
+  const [tenantDetails, setTenantDetails] = useState({
+    fullName: "",
+    phone: "",
+    identityNumber: "",
+  });
 
   // Hàm xử lý khi chọn file (nối thêm vào mảng cũ)
   const handleFileChange = (e, type) => {
     const files = Array.from(e.target.files);
-    const newPreviews = files.map(file => URL.createObjectURL(file));
+    const newPreviews = files.map((file) => URL.createObjectURL(file));
 
-    if (type === 'contract') {
-      setContractImages(prev => [...prev, ...files]);
-      setContractPreviews(prev => [...prev, ...newPreviews]);
-    } else if (type === 'conditionImage') {
-      setConditionImages(prev => [...prev, ...files]);
-      setConditionImagesPreviews(prev => [...prev, ...newPreviews]);
-    } else if (type === 'conditionVideo') {
-      setConditionVideos(prev => [...prev, ...files]);
-      setConditionVideosPreviews(prev => [...prev, ...newPreviews]);
+    if (type === "contract") {
+      setContractImages((prev) => [...prev, ...files]);
+      setContractPreviews((prev) => [...prev, ...newPreviews]);
+    } else if (type === "conditionImage") {
+      setConditionImages((prev) => [...prev, ...files]);
+      setConditionImagesPreviews((prev) => [...prev, ...newPreviews]);
+    } else if (type === "conditionVideo") {
+      setConditionVideos((prev) => [...prev, ...files]);
+      setConditionVideosPreviews((prev) => [...prev, ...newPreviews]);
     }
     // Reset input để có thể chọn lại cùng 1 file nếu vừa xóa
     e.target.value = null;
@@ -69,19 +91,30 @@ const ContractFormModal = ({
   // Hàm xóa file cụ thể
   const removeFile = (index, type, isExisting = false) => {
     if (isExisting) {
-      if (type === 'contract') setExistingContractImages(prev => prev.filter((_, i) => i !== index));
-      else if (type === 'conditionImage') setExistingConditionImages(prev => prev.filter((_, i) => i !== index));
-      else if (type === 'conditionVideo') setExistingConditionVideos(prev => prev.filter((_, i) => i !== index));
+      if (type === "contract")
+        setExistingContractImages((prev) => prev.filter((_, i) => i !== index));
+      else if (type === "conditionImage")
+        setExistingConditionImages((prev) =>
+          prev.filter((_, i) => i !== index),
+        );
+      else if (type === "conditionVideo")
+        setExistingConditionVideos((prev) =>
+          prev.filter((_, i) => i !== index),
+        );
     } else {
-      if (type === 'contract') {
-        setContractImages(prev => prev.filter((_, i) => i !== index));
-        setContractPreviews(prev => prev.filter((_, i) => i !== index));
-      } else if (type === 'conditionImage') {
-        setConditionImages(prev => prev.filter((_, i) => i !== index));
-        setConditionImagesPreviews(prev => prev.filter((_, i) => i !== index));
-      } else if (type === 'conditionVideo') {
-        setConditionVideos(prev => prev.filter((_, i) => i !== index));
-        setConditionVideosPreviews(prev => prev.filter((_, i) => i !== index));
+      if (type === "contract") {
+        setContractImages((prev) => prev.filter((_, i) => i !== index));
+        setContractPreviews((prev) => prev.filter((_, i) => i !== index));
+      } else if (type === "conditionImage") {
+        setConditionImages((prev) => prev.filter((_, i) => i !== index));
+        setConditionImagesPreviews((prev) =>
+          prev.filter((_, i) => i !== index),
+        );
+      } else if (type === "conditionVideo") {
+        setConditionVideos((prev) => prev.filter((_, i) => i !== index));
+        setConditionVideosPreviews((prev) =>
+          prev.filter((_, i) => i !== index),
+        );
       }
     }
   };
@@ -98,68 +131,126 @@ const ContractFormModal = ({
 
     if (contractToEdit) {
       let parsedMembers = [];
-      try { parsedMembers = typeof contractToEdit.members === 'string' ? JSON.parse(contractToEdit.members) : (contractToEdit.members || []); } catch(e) {}
+      try {
+        parsedMembers =
+          typeof contractToEdit.members === "string"
+            ? JSON.parse(contractToEdit.members)
+            : contractToEdit.members || [];
+      } catch (e) {}
 
       setContractData({
-        landlordName: contractToEdit.landlordName || '', landlordDob: contractToEdit.landlordDob || '', landlordPhone: contractToEdit.landlordPhone || '', landlordIdentityNumber: contractToEdit.landlordIdentityNumber || '', landlordHometown: contractToEdit.landlordHometown || '',
-        tenantEmail: contractToEdit.tenantEmail || '', tenantName: contractToEdit.tenantName || '', tenantDob: contractToEdit.tenantDob || '', tenantPhone: contractToEdit.tenantPhone || '', tenantIdentityNumber: contractToEdit.tenantIdentityNumber || '', tenantHometown: contractToEdit.tenantHometown || '',
-        startDate: contractToEdit.startDate || '', endDate: contractToEdit.endDate || '',
-        price: contractToEdit.price || 0, electricityPrice: contractToEdit.electricityPrice || 0, waterPrice: contractToEdit.waterPrice || 0, internetPrice: contractToEdit.internetPrice || 0, parkingPrice: contractToEdit.parkingPrice || 0, servicePrice: contractToEdit.servicePrice || 0,
-        startElectricity: contractToEdit.startElectricity || '', startWater: contractToEdit.startWater || '', vehicleCount: contractToEdit.vehicleCount || 0,
+        landlordName: contractToEdit.landlordName || "",
+        landlordDob: contractToEdit.landlordDob || "",
+        landlordPhone: contractToEdit.landlordPhone || "",
+        landlordIdentityNumber: contractToEdit.landlordIdentityNumber || "",
+        landlordHometown: contractToEdit.landlordHometown || "",
+        tenantEmail: contractToEdit.tenantEmail || "",
+        tenantName: contractToEdit.tenantName || "",
+        tenantDob: contractToEdit.tenantDob || "",
+        tenantPhone: contractToEdit.tenantPhone || "",
+        tenantIdentityNumber: contractToEdit.tenantIdentityNumber || "",
+        tenantHometown: contractToEdit.tenantHometown || "",
+        startDate: contractToEdit.startDate || "",
+        endDate: contractToEdit.endDate || "",
+        price: contractToEdit.price || 0,
+        electricityPrice: contractToEdit.electricityPrice || 0,
+        waterPrice: contractToEdit.waterPrice || 0,
+        internetPrice: contractToEdit.internetPrice || 0,
+        parkingPrice: contractToEdit.parkingPrice || 0,
+        servicePrice: contractToEdit.servicePrice || 0,
+        startElectricity: contractToEdit.startElectricity || "",
+        startWater: contractToEdit.startWater || "",
+        vehicleCount: contractToEdit.vehicleCount || 0,
         isDirectUtilityPayment: !!contractToEdit.isDirectUtilityPayment,
-        members: parsedMembers
+        members: parsedMembers,
       });
 
       // Khởi tạo các file cũ
       let oldContracts = [];
-      try { oldContracts = Array.isArray(contractToEdit.contractImage) ? contractToEdit.contractImage : JSON.parse(contractToEdit.contractImage || '[]'); } catch(e) {}
+      try {
+        oldContracts = Array.isArray(contractToEdit.contractImage)
+          ? contractToEdit.contractImage
+          : JSON.parse(contractToEdit.contractImage || "[]");
+      } catch (e) {}
       setExistingContractImages(oldContracts);
 
       let oldCondImages = [];
-      try { oldCondImages = Array.isArray(contractToEdit.conditionImages) ? contractToEdit.conditionImages : JSON.parse(contractToEdit.conditionImages || '[]'); } catch(e) {}
+      try {
+        oldCondImages = Array.isArray(contractToEdit.conditionImages)
+          ? contractToEdit.conditionImages
+          : JSON.parse(contractToEdit.conditionImages || "[]");
+      } catch (e) {}
       setExistingConditionImages(oldCondImages);
 
       let oldCondVideos = [];
-      try { oldCondVideos = Array.isArray(contractToEdit.conditionVideos) ? contractToEdit.conditionVideos : JSON.parse(contractToEdit.conditionVideos || '[]'); } catch(e) {}
+      try {
+        oldCondVideos = Array.isArray(contractToEdit.conditionVideos)
+          ? contractToEdit.conditionVideos
+          : JSON.parse(contractToEdit.conditionVideos || "[]");
+      } catch (e) {}
       setExistingConditionVideos(oldCondVideos);
     } else if (roomForNewContract) {
       setContractData({
-        landlordName: user?.fullName || '', landlordDob: user?.dob || '', landlordPhone: user?.phone || '', landlordIdentityNumber: user?.identityNumber || '', landlordHometown: user?.address || '',
-        tenantEmail: '', tenantName: '', tenantDob: '', tenantPhone: '', tenantIdentityNumber: '', tenantHometown: '',
-        startDate: '', endDate: '',
-        price: roomForNewContract.price || 0, electricityPrice: roomForNewContract.electricityPrice || 0, waterPrice: roomForNewContract.waterPrice || 0, internetPrice: roomForNewContract.internetPrice || 0, parkingPrice: roomForNewContract.parkingPrice || 0, servicePrice: roomForNewContract.servicePrice || 0,
-        startElectricity: '', startWater: '', vehicleCount: 0,
-        members: [], conditionDescription: '', isDirectUtilityPayment: false
+        landlordName: user?.fullName || "",
+        landlordDob: user?.dob || "",
+        landlordPhone: user?.phone || "",
+        landlordIdentityNumber: user?.identityNumber || "",
+        landlordHometown: user?.address || "",
+        tenantEmail: "",
+        tenantName: "",
+        tenantDob: "",
+        tenantPhone: "",
+        tenantIdentityNumber: "",
+        tenantHometown: "",
+        startDate: "",
+        endDate: "",
+        price: roomForNewContract.price || 0,
+        electricityPrice: roomForNewContract.electricityPrice || 0,
+        waterPrice: roomForNewContract.waterPrice || 0,
+        internetPrice: roomForNewContract.internetPrice || 0,
+        parkingPrice: roomForNewContract.parkingPrice || 0,
+        servicePrice: roomForNewContract.servicePrice || 0,
+        startElectricity: "",
+        startWater: "",
+        vehicleCount: 0,
+        members: [],
+        conditionDescription: "",
+        isDirectUtilityPayment: false,
       });
     }
   }, [contractToEdit, roomForNewContract, user]);
 
   const handleCheckTenantEmail = async () => {
-    if (!contractData.tenantEmail) return alert("Vui lòng nhập Email khách thuê trước!");
+    if (!contractData.tenantEmail)
+      return alert("Vui lòng nhập Email khách thuê trước!");
     try {
       const res = await authApi.getUserByEmail(contractData.tenantEmail);
       if (res.user) {
         const tenant = res.user;
-        const formattedDob = tenant.dob ? tenant.dob.split('T')[0] : '';
+        const formattedDob = tenant.dob ? tenant.dob.split("T")[0] : "";
 
-        setTenantDetails({ 
-          fullName: tenant.fullName, 
-          phone: tenant.phone, 
-          identityNumber: tenant.identityNumber 
+        setTenantDetails({
+          fullName: tenant.fullName,
+          phone: tenant.phone,
+          identityNumber: tenant.identityNumber,
         });
-        setContractData(prev => ({
-          ...prev, 
-          tenantName: tenant.fullName, 
-          tenantPhone: tenant.phone, 
+        setContractData((prev) => ({
+          ...prev,
+          tenantName: tenant.fullName,
+          tenantPhone: tenant.phone,
           tenantIdentityNumber: tenant.identityNumber,
           tenantDob: formattedDob,
-          tenantHometown: tenant.address || ''
+          tenantHometown: tenant.address || "",
         }));
-        alert("Đã tìm thấy thông tin Khách thuê! Hệ thống đã tự điền vào Form.");
+        alert(
+          "Đã tìm thấy thông tin Khách thuê! Hệ thống đã tự điền vào Form.",
+        );
       }
     } catch (error) {
-      alert("Không tìm thấy Khách thuê với Email này trong hệ thống. Vui lòng tự nhập tay thông tin.");
-      setTenantDetails({ fullName: '', phone: '', identityNumber: '' });
+      alert(
+        "Không tìm thấy Khách thuê với Email này trong hệ thống. Vui lòng tự nhập tay thông tin.",
+      );
+      setTenantDetails({ fullName: "", phone: "", identityNumber: "" });
     }
   };
 
@@ -167,46 +258,74 @@ const ContractFormModal = ({
     e.preventDefault();
     try {
       const formData = new FormData();
-      const roomId = contractToEdit ? contractToEdit.roomId : roomForNewContract?.id;
+      const roomId = contractToEdit
+        ? contractToEdit.roomId
+        : roomForNewContract?.id;
       if (!roomId) return alert("Không tìm thấy thông tin phòng!");
 
-      formData.append('roomId', roomId);
-      
+      formData.append("roomId", roomId);
+
       // Đóng gói các trường dữ liệu text
-      Object.keys(contractData).forEach(key => {
-        if (key === 'members') {
-          formData.append('members', JSON.stringify(contractData.members));
-        } else if (key === 'electricityPrice') {
-          formData.append('electricityPrice', contractData.isDirectUtilityPayment ? 0 : contractData.electricityPrice);
-        } else if (key === 'waterPrice') {
-          formData.append('waterPrice', contractData.isDirectUtilityPayment ? 0 : contractData.waterPrice);
+      Object.keys(contractData).forEach((key) => {
+        if (key === "members") {
+          formData.append("members", JSON.stringify(contractData.members));
+        } else if (key === "electricityPrice") {
+          formData.append(
+            "electricityPrice",
+            contractData.isDirectUtilityPayment
+              ? 0
+              : contractData.electricityPrice,
+          );
+        } else if (key === "waterPrice") {
+          formData.append(
+            "waterPrice",
+            contractData.isDirectUtilityPayment ? 0 : contractData.waterPrice,
+          );
         } else {
           formData.append(key, contractData[key]);
         }
       });
 
-      if (contractImages.length > 0) contractImages.forEach(image => formData.append('contractImages', image));
-      if (conditionImages.length > 0) conditionImages.forEach(image => formData.append('conditionImages', image));
-      if (conditionVideos.length > 0) conditionVideos.forEach(video => formData.append('conditionVideos', video));
+      if (contractImages.length > 0)
+        contractImages.forEach((image) =>
+          formData.append("contractImages", image),
+        );
+      if (conditionImages.length > 0)
+        conditionImages.forEach((image) =>
+          formData.append("conditionImages", image),
+        );
+      if (conditionVideos.length > 0)
+        conditionVideos.forEach((video) =>
+          formData.append("conditionVideos", video),
+        );
 
       // Gửi danh sách file cũ muốn giữ lại
-      formData.append('existingContractImages', JSON.stringify(existingContractImages));
-      formData.append('existingConditionImages', JSON.stringify(existingConditionImages));
-      formData.append('existingConditionVideos', JSON.stringify(existingConditionVideos));
+      formData.append(
+        "existingContractImages",
+        JSON.stringify(existingContractImages),
+      );
+      formData.append(
+        "existingConditionImages",
+        JSON.stringify(existingConditionImages),
+      );
+      formData.append(
+        "existingConditionVideos",
+        JSON.stringify(existingConditionVideos),
+      );
 
       if (contractToEdit) {
         await contractApi.updateContract(contractToEdit.id, formData);
-        alert('Cập nhật hợp đồng thành công!');
+        alert("Cập nhật hợp đồng thành công!");
       } else {
         await contractApi.createContract(formData);
-        alert('Tạo hợp đồng thành công!');
+        alert("Tạo hợp đồng thành công!");
       }
-      
+
       onClose();
       fetchLandlordRooms && fetchLandlordRooms();
       fetchLandlordContracts && fetchLandlordContracts();
     } catch (error) {
-      alert(error.response?.data?.message || 'Lỗi tạo hợp đồng!');
+      alert(error.response?.data?.message || "Lỗi tạo hợp đồng!");
     }
   };
 
@@ -215,335 +334,912 @@ const ContractFormModal = ({
   const targetRoom = contractToEdit ? contractToEdit.room : roomForNewContract;
   const editingContractId = contractToEdit ? contractToEdit.id : null;
 
-  return (              
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-on-surface/40 backdrop-blur-md animate-in fade-in duration-300">
-                <div className="w-full max-w-5xl max-h-[95vh] overflow-y-auto bg-surface-container-lowest p-4 sm:p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] border-t-8 border-primary shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 space-y-6 no-scrollbar">
-                  {/* HEADER */}
-                  <div className="flex items-center justify-between pb-6 border-b border-outline-variant/30">
-                    <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-                        <span className="material-symbols-outlined text-3xl">description</span>
-                      </div>
-                      <div>
-                        <h3 className="text-2xl font-black text-on-surface tracking-tight">
-                          {editingContractId ? '✏️ Cập nhật Hợp đồng Phòng ' : '✍️ Ký hợp đồng cho Phòng '}{targetRoom.roomNumber}
-                        </h3>
-                        <p className="text-sm text-on-surface-variant font-bold opacity-60">{targetRoom.address}</p>
-                      </div>
-                    </div>
-                    <button onClick={() => { onClose(); }} className="w-12 h-12 flex items-center justify-center hover:bg-error/10 hover:text-error rounded-full transition-all group">
-                      <span className="material-symbols-outlined group-hover:rotate-90 transition-transform">close</span>
-                    </button>
-                  </div>
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-8 bg-on-surface/40 backdrop-blur-md animate-in fade-in duration-300">
+      <div className="w-full max-w-5xl max-h-[95vh] overflow-y-auto bg-surface-container-lowest p-4 sm:p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] border-t-8 border-primary shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] animate-in zoom-in-95 slide-in-from-bottom-8 duration-500 space-y-6 no-scrollbar">
+        {/* HEADER */}
+        <div className="flex items-center justify-between pb-6 border-b border-outline-variant/30">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
+              <span className="material-symbols-outlined text-3xl">
+                description
+              </span>
+            </div>
+            <div>
+              <h3 className="text-2xl font-black text-on-surface tracking-tight">
+                {editingContractId
+                  ? "✏️ Cập nhật Hợp đồng Phòng "
+                  : "✍️ Ký hợp đồng cho Phòng "}
+                {targetRoom.roomNumber}
+              </h3>
+              <p className="text-sm text-on-surface-variant font-bold opacity-60">
+                {targetRoom.address}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              onClose();
+            }}
+            className="w-12 h-12 flex items-center justify-center hover:bg-error/10 hover:text-error rounded-full transition-all group"
+          >
+            <span className="material-symbols-outlined group-hover:rotate-90 transition-transform">
+              close
+            </span>
+          </button>
+        </div>
 
-                  {/* PHẦN 1: BÊN A */}
-                  <div>
-                    <h4 className="text-sm font-black text-on-surface uppercase tracking-widest mb-3 flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-[10px]">01</span>
-                      Thông tin Chủ nhà (Bên A)
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-surface-container-low p-5 rounded-2xl border border-outline-variant/30">
-                      <input type="text" placeholder="Họ và tên *" value={contractData.landlordName} onChange={e => setContractData({...contractData, landlordName: e.target.value})} className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
-                      <input type="text" placeholder="Số điện thoại *" value={contractData.landlordPhone} onChange={e => setContractData({...contractData, landlordPhone: e.target.value})} className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
-                      <input type="text" placeholder="Số CCCD/CMND *" value={contractData.landlordIdentityNumber} onChange={e => setContractData({...contractData, landlordIdentityNumber: e.target.value})} className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-on-surface-variant whitespace-nowrap">Ngày sinh:</span>
-                        <input type="date" value={contractData.landlordDob} onChange={e => setContractData({...contractData, landlordDob: e.target.value})} className="flex-1 px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                      </div>
-                      <input type="text" placeholder="Quê quán / Thường trú *" value={contractData.landlordHometown} onChange={e => setContractData({...contractData, landlordHometown: e.target.value})} className="md:col-span-2 px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" />
-                    </div>
-                  </div>
+        {/* PHẦN 1: BÊN A */}
+        <div>
+          <h4 className="text-sm font-black text-on-surface uppercase tracking-widest mb-3 flex items-center gap-2">
+            <span className="w-6 h-6 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-[10px]">
+              01
+            </span>
+            Thông tin Chủ nhà (Bên A)
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-surface-container-low p-5 rounded-2xl border border-outline-variant/30">
+            <input
+              type="text"
+              placeholder="Họ và tên *"
+              value={contractData.landlordName}
+              onChange={(e) =>
+                setContractData({
+                  ...contractData,
+                  landlordName: e.target.value,
+                })
+              }
+              className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            />
+            <input
+              type="text"
+              placeholder="Số điện thoại *"
+              value={contractData.landlordPhone}
+              onChange={(e) =>
+                setContractData({
+                  ...contractData,
+                  landlordPhone: e.target.value,
+                })
+              }
+              className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            />
+            <input
+              type="text"
+              placeholder="Số CCCD/CMND *"
+              value={contractData.landlordIdentityNumber}
+              onChange={(e) =>
+                setContractData({
+                  ...contractData,
+                  landlordIdentityNumber: e.target.value,
+                })
+              }
+              className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            />
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-on-surface-variant whitespace-nowrap">
+                Ngày sinh:
+              </span>
+              <input
+                type="date"
+                value={contractData.landlordDob}
+                onChange={(e) =>
+                  setContractData({
+                    ...contractData,
+                    landlordDob: e.target.value,
+                  })
+                }
+                className="flex-1 px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              />
+            </div>
+            <input
+              type="text"
+              placeholder="Quê quán / Thường trú *"
+              value={contractData.landlordHometown}
+              onChange={(e) =>
+                setContractData({
+                  ...contractData,
+                  landlordHometown: e.target.value,
+                })
+              }
+              className="md:col-span-2 px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+            />
+          </div>
+        </div>
 
-                  {/* PHẦN 2: BÊN B */}
-                  <div>
-                    <h4 className="text-sm font-black text-on-surface uppercase tracking-widest mb-3 flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center text-[10px]">02</span>
-                      Thông tin Người đại diện thuê (Bên B)
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-secondary-container/5 p-5 rounded-2xl border border-secondary/20">
-                      <input type="text" placeholder="Họ và tên *" value={contractData.tenantName} onChange={e => setContractData({...contractData, tenantName: e.target.value})} className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all" />
-                      <input type="email" placeholder="Email (Gõ xong bấm ra ngoài để tự điền) *" value={contractData.tenantEmail} onChange={e => setContractData({...contractData, tenantEmail: e.target.value})} onBlur={handleCheckTenantEmail} className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all" />
-                      <input type="text" placeholder="Số điện thoại *" value={contractData.tenantPhone} onChange={e => setContractData({...contractData, tenantPhone: e.target.value})} className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all" />
-                      <input type="text" placeholder="Số CCCD/CMND *" value={contractData.tenantIdentityNumber} onChange={e => setContractData({...contractData, tenantIdentityNumber: e.target.value})} className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all" />
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-on-surface-variant whitespace-nowrap">Ngày sinh:</span>
-                        <input type="date" value={contractData.tenantDob} onChange={e => setContractData({...contractData, tenantDob: e.target.value})} className="flex-1 px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all" />
-                      </div>
-                      <input type="text" placeholder="Quê quán / Thường trú *" value={contractData.tenantHometown} onChange={e => setContractData({...contractData, tenantHometown: e.target.value})} className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all" />
-                    </div>
-                  </div>
+        {/* PHẦN 2: BÊN B */}
+        <div>
+          <h4 className="text-sm font-black text-on-surface uppercase tracking-widest mb-3 flex items-center gap-2">
+            <span className="w-6 h-6 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center text-[10px]">
+              02
+            </span>
+            Thông tin Người đại diện thuê (Bên B)
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-secondary-container/5 p-5 rounded-2xl border border-secondary/20">
+            <input
+              type="text"
+              placeholder="Họ và tên *"
+              value={contractData.tenantName}
+              onChange={(e) =>
+                setContractData({ ...contractData, tenantName: e.target.value })
+              }
+              className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+            />
+            <input
+              type="email"
+              placeholder="Email (Gõ xong bấm ra ngoài để tự điền) *"
+              value={contractData.tenantEmail}
+              onChange={(e) =>
+                setContractData({
+                  ...contractData,
+                  tenantEmail: e.target.value,
+                })
+              }
+              onBlur={handleCheckTenantEmail}
+              className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+            />
+            <input
+              type="text"
+              placeholder="Số điện thoại *"
+              value={contractData.tenantPhone}
+              onChange={(e) =>
+                setContractData({
+                  ...contractData,
+                  tenantPhone: e.target.value,
+                })
+              }
+              className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+            />
+            <input
+              type="text"
+              placeholder="Số CCCD/CMND *"
+              value={contractData.tenantIdentityNumber}
+              onChange={(e) =>
+                setContractData({
+                  ...contractData,
+                  tenantIdentityNumber: e.target.value,
+                })
+              }
+              className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+            />
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-on-surface-variant whitespace-nowrap">
+                Ngày sinh:
+              </span>
+              <input
+                type="date"
+                value={contractData.tenantDob}
+                onChange={(e) =>
+                  setContractData({
+                    ...contractData,
+                    tenantDob: e.target.value,
+                  })
+                }
+                className="flex-1 px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+              />
+            </div>
+            <input
+              type="text"
+              placeholder="Quê quán / Thường trú *"
+              value={contractData.tenantHometown}
+              onChange={(e) =>
+                setContractData({
+                  ...contractData,
+                  tenantHometown: e.target.value,
+                })
+              }
+              className="px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-secondary/20 transition-all"
+            />
+          </div>
+        </div>
 
-                  {/* PHẦN 3: THỜI HẠN & ẢNH */}
-                  <div>
-                    <h4 className="text-sm font-black text-on-surface uppercase tracking-widest mb-3 flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-lg bg-tertiary/10 text-tertiary flex items-center justify-center text-[10px]">03</span>
-                      Thời hạn hợp đồng
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-surface-container-low p-5 rounded-2xl border border-outline-variant/30">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Ngày bắt đầu:</label>
-                        <input type="date" value={contractData.startDate} onChange={e => setContractData({...contractData, startDate: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Ngày kết thúc:</label>
-                        <input type="date" value={contractData.endDate} onChange={e => setContractData({...contractData, endDate: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Ảnh hợp đồng (Có thể chọn nhiều lần):</label>
-                        <div className="relative">
-                          <input 
-                            type="file" 
-                            id="contractImagesInput"
-                            multiple 
-                            accept="image/*" 
-                            onChange={(e) => handleFileChange(e, 'contract')} 
-                            className="hidden" 
+        {/* PHẦN 3: THỜI HẠN & ẢNH */}
+        <div>
+          <h4 className="text-sm font-black text-on-surface uppercase tracking-widest mb-3 flex items-center gap-2">
+            <span className="w-6 h-6 rounded-lg bg-tertiary/10 text-tertiary flex items-center justify-center text-[10px]">
+              03
+            </span>
+            Thời hạn hợp đồng
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-surface-container-low p-5 rounded-2xl border border-outline-variant/30">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">
+                Ngày bắt đầu:
+              </label>
+              <input
+                type="date"
+                value={contractData.startDate}
+                onChange={(e) =>
+                  setContractData({
+                    ...contractData,
+                    startDate: e.target.value,
+                  })
+                }
+                className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">
+                Ngày kết thúc:
+              </label>
+              <input
+                type="date"
+                value={contractData.endDate}
+                onChange={(e) =>
+                  setContractData({ ...contractData, endDate: e.target.value })
+                }
+                className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">
+                Ảnh hợp đồng (Có thể chọn nhiều lần):
+              </label>
+              <div className="relative">
+                <input
+                  type="file"
+                  id="contractImagesInput"
+                  multiple
+                  accept="image/*"
+                  onChange={(e) => handleFileChange(e, "contract")}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="contractImagesInput"
+                  className="w-full min-h-[56px] px-4 py-2 bg-white border-2 border-dashed border-outline-variant/50 rounded-2xl flex items-center gap-3 cursor-pointer hover:border-primary/50 hover:bg-primary/[0.02] transition-all overflow-hidden"
+                >
+                  <span className="shrink-0 px-4 py-2 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm">
+                    Chọn tệp
+                  </span>
+
+                  <div className="flex-1 flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+                    {/* HIỂN THỊ ẢNH CŨ TRÊN SERVER */}
+                    {existingContractImages.map((fileName, i) => {
+                      const url = getMediaUrl(fileName);
+                      return (
+                        <div
+                          key={`old-${i}`}
+                          className="relative shrink-0 w-12 h-12 rounded-lg overflow-hidden border border-outline-variant group/img shadow-sm cursor-zoom-in"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setViewingMedia({ url, type: "image" });
+                          }}
+                        >
+                          <img
+                            src={url}
+                            className="w-full h-full object-cover grayscale-[0.6]"
+                            title="Ảnh cũ"
                           />
-                          <label 
-                            htmlFor="contractImagesInput" 
-                            className="w-full min-h-[56px] px-4 py-2 bg-white border-2 border-dashed border-outline-variant/50 rounded-2xl flex items-center gap-3 cursor-pointer hover:border-primary/50 hover:bg-primary/[0.02] transition-all overflow-hidden"
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              removeFile(i, "contract", true);
+                            }}
+                            className="absolute top-0.5 right-0.5 w-4 h-4 bg-error text-white rounded-full flex items-center justify-center hover:scale-125 transition-all z-10 shadow-md"
                           >
-                            <span className="shrink-0 px-4 py-2 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm">Chọn tệp</span>
-                            
-                            <div className="flex-1 flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-                                {/* HIỂN THỊ ẢNH CŨ TRÊN SERVER */}
-                                {existingContractImages.map((fileName, i) => {
-                                  const url = getMediaUrl(fileName);
-                                  return (
-                                    <div key={`old-${i}`} className="relative shrink-0 w-12 h-12 rounded-lg overflow-hidden border border-outline-variant group/img shadow-sm cursor-zoom-in" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setViewingMedia({ url, type: 'image' }); }}>
-                                      <img src={url} className="w-full h-full object-cover grayscale-[0.6]" title="Ảnh cũ" />
-                                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFile(i, 'contract', true); }} className="absolute top-0.5 right-0.5 w-4 h-4 bg-error text-white rounded-full flex items-center justify-center hover:scale-125 transition-all z-10 shadow-md">
-                                        <span className="material-symbols-outlined text-[10px] font-black">close</span>
-                                      </button>
-                                    </div>
-                                  );
-                                })}
-
-                                {/* HIỂN THỊ ẢNH MỚI CHỌN */}
-                                {contractPreviews.length > 0 ? (
-                                  contractPreviews.map((url, i) => (
-                                    <div 
-                                      key={`new-${i}`} 
-                                      className="relative shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 border-primary group/img shadow-sm cursor-zoom-in"
-                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setViewingMedia({ url, type: 'image' }); }}
-                                    >
-                                      <img src={url} className="w-full h-full object-cover transition-transform group-hover/img:scale-110" />
-                                      <button 
-                                        type="button" 
-                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFile(i, 'contract', false); }} 
-                                        className="absolute top-0.5 right-0.5 w-4 h-4 bg-error text-white rounded-full flex items-center justify-center hover:scale-125 transition-all z-10 shadow-md"
-                                      >
-                                        <span className="material-symbols-outlined text-[10px] font-black">close</span>
-                                      </button>
-                                    </div>
-                                  ))
-                                ) : (
-                                  existingContractImages.length === 0 && <span className="text-sm font-bold text-on-surface-variant opacity-40">Chưa có tệp nào được chọn</span>
-                                )}
-                              </div>
-                          </label>
+                            <span className="material-symbols-outlined text-[10px] font-black">
+                              close
+                            </span>
+                          </button>
                         </div>
-                      </div>
-                    </div>
-                  </div>
+                      );
+                    })}
 
-                  {/* PHẦN 4: THÀNH VIÊN Ở CÙNG */}
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-black text-on-surface uppercase tracking-widest flex items-center gap-2">
-                        <span className="w-6 h-6 rounded-lg bg-tertiary/10 text-tertiary flex items-center justify-center text-[10px]">04</span>
-                        Danh sách người ở cùng (Không tính người đại diện)
-                      </h4>
-                      <button onClick={() => setContractData({...contractData, members: [...contractData.members, { fullName: '', dob: '', phone: '', identityNumber: '', hometown: '' }]})} className="px-4 py-1.5 bg-tertiary text-on-tertiary rounded-lg text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-sm">
-                        + Thêm người ở
-                      </button>
-                    </div>
-                    {contractData.members.map((member, index) => (
-                      <div key={index} className="mb-3 bg-surface-container-low p-4 rounded-2xl border border-dashed border-outline-variant/50 relative">
-                        <button onClick={() => { const newMembers = contractData.members.filter((_, i) => i !== index); setContractData({...contractData, members: newMembers}); }} className="absolute top-3 right-3 px-3 py-1 bg-error text-white rounded-lg text-[10px] font-black hover:bg-error/80 transition-all">Xóa</button>
-                        <p className="text-xs font-bold text-on-surface-variant opacity-50 mb-3">Thành viên {index + 1}</p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          <input type="text" placeholder="Họ và tên *" value={member.fullName} onChange={(e) => { const m = [...contractData.members]; m[index].fullName = e.target.value; setContractData({...contractData, members: m}); }} className="px-3 py-2 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                          <input type="text" placeholder="Số điện thoại" value={member.phone} onChange={(e) => { const m = [...contractData.members]; m[index].phone = e.target.value; setContractData({...contractData, members: m}); }} className="px-3 py-2 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                          <input type="text" placeholder="Số CCCD/CMND *" value={member.identityNumber} onChange={(e) => { const m = [...contractData.members]; m[index].identityNumber = e.target.value; setContractData({...contractData, members: m}); }} className="px-3 py-2 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-on-surface-variant whitespace-nowrap">Ngày sinh:</span>
-                            <input type="date" value={member.dob} onChange={(e) => { const m = [...contractData.members]; m[index].dob = e.target.value; setContractData({...contractData, members: m}); }} className="flex-1 px-3 py-2 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                    {/* HIỂN THỊ ẢNH MỚI CHỌN */}
+                    {contractPreviews.length > 0
+                      ? contractPreviews.map((url, i) => (
+                          <div
+                            key={`new-${i}`}
+                            className="relative shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 border-primary group/img shadow-sm cursor-zoom-in"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setViewingMedia({ url, type: "image" });
+                            }}
+                          >
+                            <img
+                              src={url}
+                              className="w-full h-full object-cover transition-transform group-hover/img:scale-110"
+                            />
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                removeFile(i, "contract", false);
+                              }}
+                              className="absolute top-0.5 right-0.5 w-4 h-4 bg-error text-white rounded-full flex items-center justify-center hover:scale-125 transition-all z-10 shadow-md"
+                            >
+                              <span className="material-symbols-outlined text-[10px] font-black">
+                                close
+                              </span>
+                            </button>
                           </div>
-                          <input type="text" placeholder="Quê quán / Thường trú *" value={member.hometown} onChange={(e) => { const m = [...contractData.members]; m[index].hometown = e.target.value; setContractData({...contractData, members: m}); }} className="md:col-span-2 px-3 py-2 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                        </div>
-                      </div>
-                    ))}
-                    {contractData.members.length === 0 && <p className="text-xs text-on-surface-variant italic opacity-50">Chưa có thành viên nào. Bấm "+ Thêm người ở" nếu phòng có nhiều người.</p>}
+                        ))
+                      : existingContractImages.length === 0 && (
+                          <span className="text-sm font-bold text-on-surface-variant opacity-40">
+                            Chưa có tệp nào được chọn
+                          </span>
+                        )}
                   </div>
-
-                  {/* PHẦN 5: CHI PHÍ & CHỈ SỐ BAN ĐẦU */}
-                  <div>
-                    <h4 className="text-sm font-black text-on-surface uppercase tracking-widest mb-3 flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-lg bg-error/10 text-error flex items-center justify-center text-[10px]">05</span>
-                      Chi phí & Chỉ số ban đầu
-                    </h4>
-                    <div className="flex items-center gap-3 p-3 bg-primary-container/10 rounded-2xl border border-primary/20 mb-4">
-                      <input type="checkbox" checked={contractData.isDirectUtilityPayment} onChange={e => setContractData({...contractData, isDirectUtilityPayment: e.target.checked})} className="w-5 h-5 rounded-lg text-primary focus:ring-0 cursor-pointer" id="directUtilityModal" />
-                      <label htmlFor="directUtilityModal" className="text-xs font-bold text-primary cursor-pointer uppercase tracking-tight">Khách thuê tự thanh toán hóa đơn điện/nước trực tiếp</label>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 bg-tertiary-container/5 p-5 rounded-2xl border border-tertiary/20">
-                      <div className="space-y-1"><label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Giá phòng (đ/Tháng)</label><CurrencyInput value={contractData.price} onChange={e => setContractData({...contractData, price: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-black text-primary outline-none focus:ring-2 focus:ring-primary/20 transition-all" /></div>
-                      {!contractData.isDirectUtilityPayment && (
-                        <>
-                          <div className="space-y-1"><label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Giá điện (đ/Ký)</label><CurrencyInput value={contractData.electricityPrice} onChange={e => setContractData({...contractData, electricityPrice: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" /></div>
-                          <div className="space-y-1"><label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Giá nước (đ/Khối)</label><CurrencyInput value={contractData.waterPrice} onChange={e => setContractData({...contractData, waterPrice: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" /></div>
-                        </>
-                      )}
-                      <div className="space-y-1"><label className="text-[10px] font-black text-error uppercase">Chỉ số ĐIỆN ban đầu</label><input type="number" placeholder="Số trên đồng hồ" value={contractData.startElectricity} onChange={e => setContractData({...contractData, startElectricity: e.target.value})} className="w-full px-4 py-2 bg-white border-2 border-error/30 rounded-xl text-sm font-black text-error outline-none focus:ring-2 focus:ring-error/10 transition-all" /></div>
-                      <div className="space-y-1"><label className="text-[10px] font-black text-error uppercase">Chỉ số NƯỚC ban đầu</label><input type="number" placeholder="Số trên đồng hồ" value={contractData.startWater} onChange={e => setContractData({...contractData, startWater: e.target.value})} className="w-full px-4 py-2 bg-white border-2 border-error/30 rounded-xl text-sm font-black text-error outline-none focus:ring-2 focus:ring-error/10 transition-all" /></div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-black text-primary uppercase">Số lượng xe (Chiếc)</label>
-                        <div className="flex gap-2">
-                          <input type="number" placeholder="Số xe" value={contractData.vehicleCount} onChange={e => setContractData({...contractData, vehicleCount: e.target.value})} className="w-2/5 px-3 py-2 bg-white border-2 border-primary/30 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-primary/10 transition-all" />
-                          <CurrencyInput placeholder="Giá/xe" value={contractData.parkingPrice} onChange={e => setContractData({...contractData, parkingPrice: e.target.value})} className="w-3/5 px-3 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/10 transition-all" />
-                        </div>
-                      </div>
-                      <div className="space-y-1"><label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Mạng Internet (đ/Tháng)</label><CurrencyInput value={contractData.internetPrice} onChange={e => setContractData({...contractData, internetPrice: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" /></div>
-                      <div className="space-y-1"><label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">Phí Dịch vụ (đ/Tháng)</label><CurrencyInput value={contractData.servicePrice} onChange={e => setContractData({...contractData, servicePrice: e.target.value})} className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" /></div>
-                    </div>
-                  </div>
-
-                  {/* PHẦN 6: TÌNH TRẠNG BÀN GIAO */}
-                  <div>
-                    <h4 className="text-sm font-black text-on-surface uppercase tracking-widest mb-3 flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-lg bg-outline/10 text-outline flex items-center justify-center text-[10px]">06</span>
-                      Tình trạng phòng bàn giao
-                    </h4>
-                    <div className="bg-surface-container-low p-5 rounded-2xl border border-outline-variant/30 space-y-4">
-                      <div className="space-y-1.5">
-                        <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Mô tả chi tiết đồ dùng, trạng thái:</label>
-                        <textarea rows="3" value={contractData.conditionDescription} onChange={e => setContractData({...contractData, conditionDescription: e.target.value})} className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all" placeholder="VD: Tường sạch, có 1 giường, 1 nệm cũ, tủ lạnh hoạt động bình thường..." />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Ảnh tình trạng phòng:</label>
-                          <div className="relative">
-                            <input type="file" id="condImgInput" multiple accept="image/*" onChange={(e) => handleFileChange(e, 'conditionImage')} className="hidden" />
-                            <label htmlFor="condImgInput" className="w-full min-h-[50px] px-3 py-1.5 bg-white border border-dashed border-outline-variant rounded-xl flex items-center gap-2 cursor-pointer hover:border-primary/50 transition-all overflow-hidden shadow-sm">
-                              <span className="shrink-0 px-2 py-1 bg-primary text-white rounded-lg text-[10px] font-black uppercase shadow-sm">Chọn ảnh</span>
-                              <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-                                  {/* HIỂN THỊ ẢNH TÌNH TRẠNG CŨ */}
-                                  {existingConditionImages.map((fileName, i) => {
-                                    const url = getMediaUrl(fileName);
-                                    return (
-                                      <div key={`old-cond-${i}`} className="relative shrink-0 w-10 h-10 rounded-md overflow-hidden border border-outline-variant group/img shadow-sm cursor-zoom-in" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setViewingMedia({ url, type: 'image' }); }}>
-                                        <img src={url} className="w-full h-full object-cover grayscale-[0.6]" title="Ảnh cũ" />
-                                        <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFile(i, 'conditionImage', true); }} className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-error text-white rounded-full flex items-center justify-center hover:scale-125 transition-all z-10 shadow-md">
-                                          <span className="material-symbols-outlined text-[8px] font-black">close</span>
-                                        </button>
-                                      </div>
-                                    );
-                                  })}
-
-                                  {/* HIỂN THỊ ẢNH MỚI */}
-                                  {conditionImagesPreviews.length > 0 ? (
-                                    conditionImagesPreviews.map((url, i) => (
-                                      <div 
-                                        key={`new-cond-${i}`} 
-                                        className="relative shrink-0 w-10 h-10 rounded-md overflow-hidden border-2 border-primary group/img shadow-sm cursor-zoom-in"
-                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setViewingMedia({ url, type: 'image' }); }}
-                                      >
-                                        <img src={url} className="w-full h-full object-cover transition-transform group-hover/img:scale-110" />
-                                        <button 
-                                          type="button" 
-                                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFile(i, 'conditionImage', false); }} 
-                                          className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-error text-white rounded-full flex items-center justify-center hover:scale-125 transition-all z-10 shadow-md"
-                                        >
-                                          <span className="material-symbols-outlined text-[8px] font-black">close</span>
-                                        </button>
-                                      </div>
-                                    ))
-                                  ) : (
-                                    existingConditionImages.length === 0 && <span className="text-[11px] font-bold text-on-surface-variant opacity-40">Chưa có ảnh</span>
-                                  )}
-                              </div>
-                            </label>
-                          </div>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">Video tình trạng phòng (nếu có):</label>
-                          <div className="relative">
-                            <input type="file" id="condVidInput" multiple accept="video/*" onChange={(e) => handleFileChange(e, 'conditionVideo')} className="hidden" />
-                            <label htmlFor="condVidInput" className="w-full min-h-[50px] px-3 py-1.5 bg-white border border-dashed border-outline-variant rounded-xl flex items-center gap-2 cursor-pointer hover:border-primary/50 transition-all overflow-hidden shadow-sm">
-                              <span className="shrink-0 px-2 py-1 bg-primary text-white rounded-lg text-[10px] font-black uppercase shadow-sm">Chọn video</span>
-                              <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-                                {/* HIỂN THỊ VIDEO CŨ */}
-                                {existingConditionVideos.map((fileName, i) => {
-                                  const url = getMediaUrl(fileName);
-                                  return (
-                                    <div key={`old-vid-${i}`} className="relative shrink-0 w-10 h-10 rounded-md overflow-hidden border border-outline-variant bg-black group/img shadow-sm cursor-zoom-in" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setViewingMedia({ url, type: 'video' }); }}>
-                                      <video src={url} className="w-full h-full object-cover opacity-50 grayscale-[0.6]" />
-                                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFile(i, 'conditionVideo', true); }} className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-error text-white rounded-full flex items-center justify-center hover:scale-125 transition-all z-10 shadow-md">
-                                        <span className="material-symbols-outlined text-[8px] font-black">close</span>
-                                      </button>
-                                      <span className="absolute inset-0 flex items-center justify-center text-white/30"><span className="material-symbols-outlined text-xs">play_circle</span></span>
-                                    </div>
-                                  );
-                                })}
-
-                                {/* HIỂN THỊ VIDEO MỚI */}
-                                {conditionVideosPreviews.length > 0 ? (
-                                  conditionVideosPreviews.map((url, i) => (
-                                    <div 
-                                      key={`new-vid-${i}`} 
-                                      className="relative shrink-0 w-10 h-10 rounded-md overflow-hidden border-2 border-primary bg-black group/img shadow-sm cursor-zoom-in"
-                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setViewingMedia({ url, type: 'video' }); }}
-                                    >
-                                      <video src={url} className="w-full h-full object-cover opacity-80 group-hover/img:opacity-100" />
-                                      <button 
-                                        type="button" 
-                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFile(i, 'conditionVideo', false); }} 
-                                        className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-error text-white rounded-full flex items-center justify-center hover:scale-125 transition-all z-10 shadow-md"
-                                      >
-                                        <span className="material-symbols-outlined text-[8px] font-black">close</span>
-                                      </button>
-                                      <span className="absolute inset-0 flex items-center justify-center text-white/50 group-hover/img:text-white transition-colors">
-                                        <span className="material-symbols-outlined text-xs">play_circle</span>
-                                      </span>
-                                    </div>
-                                  ))
-                                ) : (
-                                  existingConditionVideos.length === 0 && <span className="text-[11px] font-bold text-on-surface-variant opacity-40">Chưa có video</span>
-                                )}
-                              </div>
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* NÚT HÀNH ĐỘNG */}
-                  <div className="flex justify-end gap-4 pt-6 border-t border-outline-variant/30">
-                    <button onClick={onClose} className="px-10 py-4 rounded-2xl border-2 border-outline-variant text-on-surface-variant font-black uppercase tracking-widest text-xs hover:bg-surface-container-low transition-all active:scale-95">Hủy bỏ</button>
-                    <button onClick={handleCreateContract} className={`px-16 py-4 ${editingContractId ? 'bg-secondary shadow-xl shadow-secondary/30' : 'bg-primary shadow-xl shadow-primary/30'} text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all`}>
-                      {editingContractId ? 'Lưu Cập Nhật' : 'Tạo Hợp Đồng'}
-                    </button>
-                  </div>
-                </div>
-
-                {/* MODAL XEM PHÓNG TO ẢNH/VIDEO */}
-                {viewingMedia && (
-                  <div className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={() => setViewingMedia(null)}>
-                    <button className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-full transition-all">
-                      <span className="material-symbols-outlined text-3xl">close</span>
-                    </button>
-                    <div className="max-w-5xl max-h-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
-                      {viewingMedia.type === 'image' ? (
-                        <img src={viewingMedia.url} className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-300" />
-                      ) : (
-                        <video src={viewingMedia.url} controls autoPlay className="max-w-full max-h-[90vh] rounded-lg shadow-2xl animate-in zoom-in-95 duration-300" />
-                      )}
-                    </div>
-                  </div>
-                )}
+                </label>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* PHẦN 4: THÀNH VIÊN Ở CÙNG */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-black text-on-surface uppercase tracking-widest flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-tertiary/10 text-tertiary flex items-center justify-center text-[10px]">
+                04
+              </span>
+              Danh sách người ở cùng (Không tính người đại diện)
+            </h4>
+            <button
+              onClick={() =>
+                setContractData({
+                  ...contractData,
+                  members: [
+                    ...contractData.members,
+                    {
+                      fullName: "",
+                      dob: "",
+                      phone: "",
+                      identityNumber: "",
+                      hometown: "",
+                    },
+                  ],
+                })
+              }
+              className="px-4 py-1.5 bg-tertiary text-on-tertiary rounded-lg text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-sm"
+            >
+              + Thêm người ở
+            </button>
+          </div>
+          {contractData.members.map((member, index) => (
+            <div
+              key={index}
+              className="mb-3 bg-surface-container-low p-4 rounded-2xl border border-dashed border-outline-variant/50 relative"
+            >
+              <button
+                onClick={() => {
+                  const newMembers = contractData.members.filter(
+                    (_, i) => i !== index,
+                  );
+                  setContractData({ ...contractData, members: newMembers });
+                }}
+                className="absolute top-3 right-3 px-3 py-1 bg-error text-white rounded-lg text-[10px] font-black hover:bg-error/80 transition-all"
+              >
+                Xóa
+              </button>
+              <p className="text-xs font-bold text-on-surface-variant opacity-50 mb-3">
+                Thành viên {index + 1}
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <input
+                  type="text"
+                  placeholder="Họ và tên *"
+                  value={member.fullName}
+                  onChange={(e) => {
+                    const m = [...contractData.members];
+                    m[index].fullName = e.target.value;
+                    setContractData({ ...contractData, members: m });
+                  }}
+                  className="px-3 py-2 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                />
+                <input
+                  type="text"
+                  placeholder="Số điện thoại"
+                  value={member.phone}
+                  onChange={(e) => {
+                    const m = [...contractData.members];
+                    m[index].phone = e.target.value;
+                    setContractData({ ...contractData, members: m });
+                  }}
+                  className="px-3 py-2 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                />
+                <input
+                  type="text"
+                  placeholder="Số CCCD/CMND *"
+                  value={member.identityNumber}
+                  onChange={(e) => {
+                    const m = [...contractData.members];
+                    m[index].identityNumber = e.target.value;
+                    setContractData({ ...contractData, members: m });
+                  }}
+                  className="px-3 py-2 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                />
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-on-surface-variant whitespace-nowrap">
+                    Ngày sinh:
+                  </span>
+                  <input
+                    type="date"
+                    value={member.dob}
+                    onChange={(e) => {
+                      const m = [...contractData.members];
+                      m[index].dob = e.target.value;
+                      setContractData({ ...contractData, members: m });
+                    }}
+                    className="flex-1 px-3 py-2 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Quê quán / Thường trú *"
+                  value={member.hometown}
+                  onChange={(e) => {
+                    const m = [...contractData.members];
+                    m[index].hometown = e.target.value;
+                    setContractData({ ...contractData, members: m });
+                  }}
+                  className="md:col-span-2 px-3 py-2 bg-white border border-outline-variant rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                />
+              </div>
+            </div>
+          ))}
+          {contractData.members.length === 0 && (
+            <p className="text-xs text-on-surface-variant italic opacity-50">
+              Chưa có thành viên nào. Bấm "+ Thêm người ở" nếu phòng có nhiều
+              người.
+            </p>
+          )}
+        </div>
+
+        {/* PHẦN 5: CHI PHÍ & CHỈ SỐ BAN ĐẦU */}
+        <div>
+          <h4 className="text-sm font-black text-on-surface uppercase tracking-widest mb-3 flex items-center gap-2">
+            <span className="w-6 h-6 rounded-lg bg-error/10 text-error flex items-center justify-center text-[10px]">
+              05
+            </span>
+            Chi phí & Chỉ số ban đầu
+          </h4>
+          <div className="flex items-center gap-3 p-3 bg-primary-container/10 rounded-2xl border border-primary/20 mb-4">
+            <input
+              type="checkbox"
+              checked={contractData.isDirectUtilityPayment}
+              onChange={(e) =>
+                setContractData({
+                  ...contractData,
+                  isDirectUtilityPayment: e.target.checked,
+                })
+              }
+              className="w-5 h-5 rounded-lg text-primary focus:ring-0 cursor-pointer"
+              id="directUtilityModal"
+            />
+            <label
+              htmlFor="directUtilityModal"
+              className="text-xs font-bold text-primary cursor-pointer uppercase tracking-tight"
+            >
+              Khách thuê tự thanh toán hóa đơn điện/nước trực tiếp
+            </label>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 bg-tertiary-container/5 p-5 rounded-2xl border border-tertiary/20">
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">
+                Giá phòng (đ/Tháng)
+              </label>
+              <CurrencyInput
+                value={contractData.price}
+                onChange={(e) =>
+                  setContractData({ ...contractData, price: e.target.value })
+                }
+                className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-black text-primary outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              />
+            </div>
+            {!contractData.isDirectUtilityPayment && (
+              <>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">
+                    Giá điện (đ/Ký)
+                  </label>
+                  <CurrencyInput
+                    value={contractData.electricityPrice}
+                    onChange={(e) =>
+                      setContractData({
+                        ...contractData,
+                        electricityPrice: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">
+                    Giá nước (đ/Khối)
+                  </label>
+                  <CurrencyInput
+                    value={contractData.waterPrice}
+                    onChange={(e) =>
+                      setContractData({
+                        ...contractData,
+                        waterPrice: e.target.value,
+                      })
+                    }
+                    className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  />
+                </div>
+              </>
+            )}
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-error uppercase">
+                Chỉ số ĐIỆN ban đầu
+              </label>
+              <input
+                type="number"
+                placeholder="Số trên đồng hồ"
+                value={contractData.startElectricity}
+                onChange={(e) =>
+                  setContractData({
+                    ...contractData,
+                    startElectricity: e.target.value,
+                  })
+                }
+                className="w-full px-4 py-2 bg-white border-2 border-error/30 rounded-xl text-sm font-black text-error outline-none focus:ring-2 focus:ring-error/10 transition-all"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-error uppercase">
+                Chỉ số NƯỚC ban đầu
+              </label>
+              <input
+                type="number"
+                placeholder="Số trên đồng hồ"
+                value={contractData.startWater}
+                onChange={(e) =>
+                  setContractData({
+                    ...contractData,
+                    startWater: e.target.value,
+                  })
+                }
+                className="w-full px-4 py-2 bg-white border-2 border-error/30 rounded-xl text-sm font-black text-error outline-none focus:ring-2 focus:ring-error/10 transition-all"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-primary uppercase">
+                Số lượng xe (Chiếc)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  placeholder="Số xe"
+                  value={contractData.vehicleCount}
+                  onChange={(e) =>
+                    setContractData({
+                      ...contractData,
+                      vehicleCount: e.target.value,
+                    })
+                  }
+                  className="w-2/5 px-3 py-2 bg-white border-2 border-primary/30 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-primary/10 transition-all"
+                />
+                <CurrencyInput
+                  placeholder="Giá/xe"
+                  value={contractData.parkingPrice}
+                  onChange={(e) =>
+                    setContractData({
+                      ...contractData,
+                      parkingPrice: e.target.value,
+                    })
+                  }
+                  className="w-3/5 px-3 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/10 transition-all"
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">
+                Mạng Internet (đ/Tháng)
+              </label>
+              <CurrencyInput
+                value={contractData.internetPrice}
+                onChange={(e) =>
+                  setContractData({
+                    ...contractData,
+                    internetPrice: e.target.value,
+                  })
+                }
+                className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60">
+                Phí Dịch vụ (đ/Tháng)
+              </label>
+              <CurrencyInput
+                value={contractData.servicePrice}
+                onChange={(e) =>
+                  setContractData({
+                    ...contractData,
+                    servicePrice: e.target.value,
+                  })
+                }
+                className="w-full px-4 py-2 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* PHẦN 6: TÌNH TRẠNG BÀN GIAO */}
+        <div>
+          <h4 className="text-sm font-black text-on-surface uppercase tracking-widest mb-3 flex items-center gap-2">
+            <span className="w-6 h-6 rounded-lg bg-outline/10 text-outline flex items-center justify-center text-[10px]">
+              06
+            </span>
+            Tình trạng phòng bàn giao
+          </h4>
+          <div className="bg-surface-container-low p-5 rounded-2xl border border-outline-variant/30 space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">
+                Mô tả chi tiết đồ dùng, trạng thái:
+              </label>
+              <textarea
+                rows="3"
+                value={contractData.conditionDescription}
+                onChange={(e) =>
+                  setContractData({
+                    ...contractData,
+                    conditionDescription: e.target.value,
+                  })
+                }
+                className="w-full px-4 py-2.5 bg-white border border-outline-variant rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                placeholder="VD: Tường sạch, có 1 giường, 1 nệm cũ, tủ lạnh hoạt động bình thường..."
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">
+                  Ảnh tình trạng phòng:
+                </label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    id="condImgInput"
+                    multiple
+                    accept="image/*"
+                    onChange={(e) => handleFileChange(e, "conditionImage")}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="condImgInput"
+                    className="w-full min-h-[50px] px-3 py-1.5 bg-white border border-dashed border-outline-variant rounded-xl flex items-center gap-2 cursor-pointer hover:border-primary/50 transition-all overflow-hidden shadow-sm"
+                  >
+                    <span className="shrink-0 px-2 py-1 bg-primary text-white rounded-lg text-[10px] font-black uppercase shadow-sm">
+                      Chọn ảnh
+                    </span>
+                    <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                      {/* HIỂN THỊ ẢNH TÌNH TRẠNG CŨ */}
+                      {existingConditionImages.map((fileName, i) => {
+                        const url = getMediaUrl(fileName);
+                        return (
+                          <div
+                            key={`old-cond-${i}`}
+                            className="relative shrink-0 w-10 h-10 rounded-md overflow-hidden border border-outline-variant group/img shadow-sm cursor-zoom-in"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setViewingMedia({ url, type: "image" });
+                            }}
+                          >
+                            <img
+                              src={url}
+                              className="w-full h-full object-cover grayscale-[0.6]"
+                              title="Ảnh cũ"
+                            />
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                removeFile(i, "conditionImage", true);
+                              }}
+                              className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-error text-white rounded-full flex items-center justify-center hover:scale-125 transition-all z-10 shadow-md"
+                            >
+                              <span className="material-symbols-outlined text-[8px] font-black">
+                                close
+                              </span>
+                            </button>
+                          </div>
+                        );
+                      })}
+
+                      {/* HIỂN THỊ ẢNH MỚI */}
+                      {conditionImagesPreviews.length > 0
+                        ? conditionImagesPreviews.map((url, i) => (
+                            <div
+                              key={`new-cond-${i}`}
+                              className="relative shrink-0 w-10 h-10 rounded-md overflow-hidden border-2 border-primary group/img shadow-sm cursor-zoom-in"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setViewingMedia({ url, type: "image" });
+                              }}
+                            >
+                              <img
+                                src={url}
+                                className="w-full h-full object-cover transition-transform group-hover/img:scale-110"
+                              />
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  removeFile(i, "conditionImage", false);
+                                }}
+                                className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-error text-white rounded-full flex items-center justify-center hover:scale-125 transition-all z-10 shadow-md"
+                              >
+                                <span className="material-symbols-outlined text-[8px] font-black">
+                                  close
+                                </span>
+                              </button>
+                            </div>
+                          ))
+                        : existingConditionImages.length === 0 && (
+                            <span className="text-[11px] font-bold text-on-surface-variant opacity-40">
+                              Chưa có ảnh
+                            </span>
+                          )}
+                    </div>
+                  </label>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-on-surface-variant uppercase opacity-60 ml-1">
+                  Video tình trạng phòng (nếu có):
+                </label>
+                <div className="relative">
+                  <input
+                    type="file"
+                    id="condVidInput"
+                    multiple
+                    accept="video/*"
+                    onChange={(e) => handleFileChange(e, "conditionVideo")}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="condVidInput"
+                    className="w-full min-h-[50px] px-3 py-1.5 bg-white border border-dashed border-outline-variant rounded-xl flex items-center gap-2 cursor-pointer hover:border-primary/50 transition-all overflow-hidden shadow-sm"
+                  >
+                    <span className="shrink-0 px-2 py-1 bg-primary text-white rounded-lg text-[10px] font-black uppercase shadow-sm">
+                      Chọn video
+                    </span>
+                    <div className="flex-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+                      {/* HIỂN THỊ VIDEO CŨ */}
+                      {existingConditionVideos.map((fileName, i) => {
+                        const url = getMediaUrl(fileName);
+                        return (
+                          <div
+                            key={`old-vid-${i}`}
+                            className="relative shrink-0 w-10 h-10 rounded-md overflow-hidden border border-outline-variant bg-black group/img shadow-sm cursor-zoom-in"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setViewingMedia({ url, type: "video" });
+                            }}
+                          >
+                            <video
+                              src={url}
+                              className="w-full h-full object-cover opacity-50 grayscale-[0.6]"
+                            />
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                removeFile(i, "conditionVideo", true);
+                              }}
+                              className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-error text-white rounded-full flex items-center justify-center hover:scale-125 transition-all z-10 shadow-md"
+                            >
+                              <span className="material-symbols-outlined text-[8px] font-black">
+                                close
+                              </span>
+                            </button>
+                            <span className="absolute inset-0 flex items-center justify-center text-white/30">
+                              <span className="material-symbols-outlined text-xs">
+                                play_circle
+                              </span>
+                            </span>
+                          </div>
+                        );
+                      })}
+
+                      {/* HIỂN THỊ VIDEO MỚI */}
+                      {conditionVideosPreviews.length > 0
+                        ? conditionVideosPreviews.map((url, i) => (
+                            <div
+                              key={`new-vid-${i}`}
+                              className="relative shrink-0 w-10 h-10 rounded-md overflow-hidden border-2 border-primary bg-black group/img shadow-sm cursor-zoom-in"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setViewingMedia({ url, type: "video" });
+                              }}
+                            >
+                              <video
+                                src={url}
+                                className="w-full h-full object-cover opacity-80 group-hover/img:opacity-100"
+                              />
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  removeFile(i, "conditionVideo", false);
+                                }}
+                                className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-error text-white rounded-full flex items-center justify-center hover:scale-125 transition-all z-10 shadow-md"
+                              >
+                                <span className="material-symbols-outlined text-[8px] font-black">
+                                  close
+                                </span>
+                              </button>
+                              <span className="absolute inset-0 flex items-center justify-center text-white/50 group-hover/img:text-white transition-colors">
+                                <span className="material-symbols-outlined text-xs">
+                                  play_circle
+                                </span>
+                              </span>
+                            </div>
+                          ))
+                        : existingConditionVideos.length === 0 && (
+                            <span className="text-[11px] font-bold text-on-surface-variant opacity-40">
+                              Chưa có video
+                            </span>
+                          )}
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* NÚT HÀNH ĐỘNG */}
+        <div className="flex justify-end gap-4 pt-6 border-t border-outline-variant/30">
+          <button
+            onClick={onClose}
+            className="px-10 py-4 rounded-2xl border-2 border-outline-variant text-on-surface-variant font-black uppercase tracking-widest text-xs hover:bg-surface-container-low transition-all active:scale-95"
+          >
+            Hủy bỏ
+          </button>
+          <button
+            onClick={handleCreateContract}
+            className={`px-16 py-4 ${editingContractId ? "bg-secondary shadow-xl shadow-secondary/30" : "bg-primary shadow-xl shadow-primary/30"} text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all`}
+          >
+            {editingContractId ? "Lưu Cập Nhật" : "Tạo Hợp Đồng"}
+          </button>
+        </div>
+      </div>
+
+      {/* MODAL XEM PHÓNG TO ẢNH/VIDEO */}
+      {viewingMedia && (
+        <div
+          className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-300"
+          onClick={() => setViewingMedia(null)}
+        >
+          <button className="absolute top-6 right-6 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-full transition-all">
+            <span className="material-symbols-outlined text-3xl">close</span>
+          </button>
+          <div
+            className="max-w-5xl max-h-full flex items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {viewingMedia.type === "image" ? (
+              <img
+                src={viewingMedia.url}
+                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-300"
+              />
+            ) : (
+              <video
+                src={viewingMedia.url}
+                controls
+                autoPlay
+                className="max-w-full max-h-[90vh] rounded-lg shadow-2xl animate-in zoom-in-95 duration-300"
+              />
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
