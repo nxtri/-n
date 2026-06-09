@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import L from 'leaflet';
-import { MapContainer, Marker, TileLayer } from 'react-leaflet';
+import { AttributionControl, MapContainer, Marker, TileLayer } from 'react-leaflet';
 import { useNavigate, useParams } from 'react-router-dom';
 import roomApi from '../api/roomApi';
 
@@ -145,7 +145,14 @@ const RoomLocation = () => {
 
             {position ? (
               <section className="h-[68vh] min-h-[460px] rounded-3xl overflow-hidden border border-outline-variant/30 shadow-xl bg-white">
-                <MapContainer center={position} zoom={16} scrollWheelZoom className="w-full h-full">
+                <MapContainer
+                  center={position}
+                  zoom={16}
+                  scrollWheelZoom
+                  attributionControl={false}
+                  className="w-full h-full"
+                >
+                  <AttributionControl prefix={false} />
                   <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

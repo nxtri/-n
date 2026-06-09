@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import L from 'leaflet';
+import { AttributionControl, MapContainer, Marker, TileLayer } from 'react-leaflet';
 import roomApi from '../api/roomApi';
 import contractApi from '../api/contractApi';
 import reportApi from '../api/reportApi';
@@ -9,6 +11,42 @@ import ProfileModal from '../components/ProfileModal';
 
 import { formatDate } from '../utils/formatters';
 import { getMediaUrl } from '../utils/media';
+
+const roomDetailMarkerIcon = L.divIcon({
+  className: '',
+  html: `
+    <div style="
+      width: 42px;
+      height: 42px;
+      border-radius: 999px 999px 999px 0;
+      transform: rotate(-45deg);
+      background: #0052cc;
+      border: 3px solid #fff;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.28);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    ">
+      <span style="
+        transform: rotate(45deg);
+        color: #fff;
+        font-family: 'Material Symbols Outlined';
+        font-size: 24px;
+        line-height: 1;
+      ">home_pin</span>
+    </div>
+  `,
+  iconSize: [42, 42],
+  iconAnchor: [21, 42],
+});
+
+const parseCoordinate = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+
+  const parsedValue = Number(value);
+  return Number.isFinite(parsedValue) ? parsedValue : null;
+};
+
 const RoomDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -49,6 +87,11 @@ const RoomDetail = () => {
       <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
     </div>
   );
+
+  const latitude = parseCoordinate(room.latitude);
+  const longitude = parseCoordinate(room.longitude);
+  const mapPosition = latitude !== null && longitude !== null ? [latitude, longitude] : null;
+  const fullAddress = [room.houseNumber, room.address].filter(Boolean).join(', ');
 
   const totalReviews = reviews.length;
   const avgRating = totalReviews > 0 
@@ -420,6 +463,70 @@ const RoomDetail = () => {
                 <p className="text-on-surface-variant leading-relaxed whitespace-pre-wrap">
                   {room.description || 'Chưa có mô tả chi tiết cho phòng này.'}
                 </p>
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-outline-variant/20">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                  <div>
+                    <h4 className="m-0 text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[20px]">map</span>
+                      Vị trí phòng trên bản đồ
+                    </h4>
+                    <p className="m-0 mt-2 text-sm font-bold text-on-surface-variant flex items-start gap-2">
+                      <span className="material-symbols-outlined text-primary text-[18px] shrink-0">location_on</span>
+                      <span>{fullAddress || 'Chưa có địa chỉ'}</span>
+                    </p>
+                  </div>
+
+                  {mapPosition ? (
+                    <a
+                      href={`https://www.google.com/maps?q=${mapPosition[0]},${mapPosition[1]}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-primary text-on-primary font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">near_me</span>
+                      Mở bằng Google Maps
+                    </a>
+                  ) : fullAddress ? (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-primary text-on-primary font-black shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+                    >
+                      <span className="material-symbols-outlined text-[20px]">search</span>
+                      Tìm trên Google Maps
+                    </a>
+                  ) : null}
+                </div>
+
+                {mapPosition ? (
+                  <div className="h-[360px] md:h-[420px] rounded-3xl overflow-hidden border border-outline-variant/30 bg-surface-container-low shadow-sm">
+                    <MapContainer
+                      center={mapPosition}
+                      zoom={16}
+                      scrollWheelZoom={false}
+                      attributionControl={false}
+                      className="w-full h-full"
+                    >
+                      <AttributionControl prefix={false} />
+                      <TileLayer
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      />
+                      <Marker position={mapPosition} icon={roomDetailMarkerIcon} />
+                    </MapContainer>
+                  </div>
+                ) : (
+                  <div className="rounded-3xl border border-outline-variant/20 bg-surface-container-lowest/70 p-8 text-center">
+                    <span className="material-symbols-outlined text-5xl text-outline mb-3">wrong_location</span>
+                    <p className="m-0 text-base font-black text-on-surface">Phòng này chưa có tọa độ bản đồ</p>
+                    <p className="m-0 mt-2 text-sm text-on-surface-variant font-medium">
+                      Chủ nhà cần cập nhật tọa độ khi sửa hoặc đăng tin phòng để bản đồ hiển thị chính xác.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
