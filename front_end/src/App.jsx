@@ -11,6 +11,7 @@ import RoomLocation from './pages/RoomLocation';
 import AdminDashboard from './pages/AdminDashboard'; // Quản trị viên
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import InfoPage from './pages/InfoPage';
 
 function App() {
  return (
@@ -25,6 +26,12 @@ function App() {
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password/:token" element={<ResetPassword />} />
+            <Route path="/about" element={<InfoPage pageKey="about" />} />
+            <Route path="/terms" element={<InfoPage pageKey="terms" />} />
+            <Route path="/privacy" element={<InfoPage pageKey="privacy" />} />
+            <Route path="/help" element={<InfoPage pageKey="help" />} />
+            <Route path="/support" element={<InfoPage pageKey="support" />} />
+            <Route path="/faq" element={<InfoPage pageKey="faq" />} />
         </Routes>
     </Router>
  );

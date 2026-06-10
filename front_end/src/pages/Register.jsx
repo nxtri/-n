@@ -152,7 +152,7 @@ const Register = () => {
       <footer className="max-w-[1280px] mx-auto w-full py-12 px-8 flex flex-col md:flex-row justify-between items-center gap-6 border-t border-outline-variant/30 bg-background text-on-surface-variant">
         <div className="text-lg font-bold text-on-surface font-display-xl text-[18px]">PHONGTROSIEUCAP</div>
         <div className="font-body-sm text-body-sm tracking-wide text-center md:text-left">
-          © 2024 PHONGTROSIEUCAP Housing Management.
+          © 2026 PHONGTROSIEUCAP Housing Management.
         </div>
         <div className="flex flex-wrap justify-center gap-4 font-body-sm text-body-sm">
           <Link className="text-on-surface-variant hover:text-primary hover:underline transition-colors" to="#">Chính sách bảo mật</Link>
