@@ -15,7 +15,7 @@ const LandlordRevenueTabContent = ({
   setViewBillDetails,        // Hàm để xem chi tiết hóa đơn trong báo cáo
   setViewIncidentCostDetails // Hàm để xem chi tiết chi phí sửa chữa sự cố
 }) => {
-  const { user, bills, landlordIncidents, rooms, transactions = [] } = useDashboardContext();
+  const { user, bills, landlordIncidents, rooms } = useDashboardContext();
   const [reportMonth, setReportMonth] = useState(new Date().getMonth() + 1);
   const [reportYear, setReportYear] = useState(new Date().getFullYear());
   const [reportSearch, setReportSearch] = useState('');
@@ -45,18 +45,6 @@ const LandlordRevenueTabContent = ({
     );
   });
 
-  // 2.5 LỌC GIAO DỊCH MUA GÓI THEO THÁNG/NĂM
-  const filteredSubscriptions = transactions.filter(tx => {
-    if (tx.type !== 'SUBSCRIPTION' || tx.status !== 'COMPLETED') return false;
-    const txDate = new Date(tx.createdAt);
-    const txMonth = txDate.getMonth() + 1;
-    const txYear = txDate.getFullYear();
-    return (
-      (reportMonth === 'ALL' || Number(txMonth) === Number(reportMonth)) &&
-      (reportYear === 'ALL' || Number(txYear) === Number(reportYear))
-    );
-  });
-
   // 3. TÍNH TỔNG CÁC THẺ CHỈ SỐ
   let totalRoomRevenue = 0;
   let totalUtilityRevenue = 0;
@@ -75,11 +63,8 @@ const LandlordRevenueTabContent = ({
   // Tổng chi phí phát sinh
   const totalRepairCost = filteredIncidents.reduce((sum, inc) => sum + (Number(inc.repairCost) || 0), 0);
 
-  // Tổng chi phí mua gói
-  const totalSubscriptionCost = filteredSubscriptions.reduce((sum, tx) => sum + Math.abs(Number(tx.amount) || 0), 0);
-
-  // TỔNG DOANH THU = Tiền phòng + Điện nước - Chi phí phát sinh - Chi phí mua gói
-  const grandTotalRevenue = totalRoomRevenue + totalUtilityRevenue - totalRepairCost - totalSubscriptionCost;
+  // TỔNG DOANH THU = Tiền phòng + Điện nước - Chi phí phát sinh
+  const grandTotalRevenue = totalRoomRevenue + totalUtilityRevenue - totalRepairCost;
 
   // 4. GHÉP HÓA ĐƠN VÀO TỪNG PHÒNG DỰA TRÊN SNAPSHOT
   const roomGroups = {};
@@ -193,7 +178,7 @@ const LandlordRevenueTabContent = ({
       </div>
 
       {/* 5 THẺ TỔNG QUAN (Metrics Bento Grid) */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 lg:gap-6 mb-10">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-6 mb-10">
         <div className="bg-surface-container-lowest rounded-3xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-outline-variant/30 flex flex-col justify-between group hover:border-primary/30 transition-all col-span-2 md:col-span-1 lg:col-span-1 relative overflow-hidden">
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/5 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
           <div className="relative z-10">
@@ -202,7 +187,7 @@ const LandlordRevenueTabContent = ({
             </div>
             <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-60">Tổng Doanh Thu</p>
             <h3 className="text-2xl lg:text-xl xl:text-2xl font-black text-primary mt-1 tracking-tight">{grandTotalRevenue.toLocaleString('vi-VN')} đ</h3>
-            <p className="text-[10px] text-on-surface-variant mt-2 font-medium opacity-60">= Phòng + Điện nước - Chi phí</p>
+            <p className="text-[10px] text-on-surface-variant mt-2 font-medium opacity-60">= Phòng + Điện nước - Sửa chữa</p>
           </div>
         </div>
 
@@ -248,18 +233,6 @@ const LandlordRevenueTabContent = ({
             <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-60">Chi Phí Sửa Chữa</p>
             <h3 className="text-2xl lg:text-xl xl:text-2xl font-black text-[#f97316] mt-1 tracking-tight">{totalRepairCost.toLocaleString('vi-VN')} đ</h3>
             <p className="text-[10px] text-on-surface-variant mt-2 font-medium opacity-60">{filteredIncidents.length} sự cố</p>
-           </div>
-        </div>
-
-        <div className="bg-surface-container-lowest rounded-3xl p-6 shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-outline-variant/30 flex flex-col justify-between group hover:border-amber-600/30 transition-all relative overflow-hidden">
-           <div className="absolute -right-4 -top-4 w-24 h-24 bg-amber-600/5 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
-           <div className="relative z-10">
-            <div className="w-10 h-10 rounded-xl bg-amber-600/10 text-amber-600 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <span className="material-symbols-outlined text-[20px]">workspace_premium</span>
-            </div>
-            <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest opacity-60">Chi Phí Mua Gói</p>
-            <h3 className="text-2xl lg:text-xl xl:text-2xl font-black text-amber-600 mt-1 tracking-tight">{totalSubscriptionCost.toLocaleString('vi-VN')} đ</h3>
-            <p className="text-[10px] text-on-surface-variant mt-2 font-medium opacity-60">{filteredSubscriptions.length} lượt mua</p>
            </div>
         </div>
       </div>
