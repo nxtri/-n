@@ -106,6 +106,11 @@ const LandlordBillsTabContent = ({
                                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
                                 Chờ duyệt
                               </span>
+                            ) : bill.rejectionReason ? (
+                              <span className="inline-flex items-center px-3 py-1 rounded-full bg-error-container/50 text-error font-label-md text-[11px] font-bold uppercase tracking-wider border border-error/30 gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-error"></span>
+                                Đã từ chối
+                              </span>
                             ) : (
                               <span className="inline-flex items-center px-3 py-1 rounded-full bg-error-container/50 text-error font-label-md text-[11px] font-bold uppercase tracking-wider border border-error/30 gap-1.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-error"></span>

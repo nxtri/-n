@@ -175,6 +175,11 @@ const TenantBillsTab = ({
                         <span className="material-symbols-outlined text-[14px]">visibility</span>
                         Chờ duyệt
                       </span>
+                    ) : bill.rejectionReason ? (
+                      <span className="bg-error-container text-on-error-container font-label-md text-[11px] px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px]">replay</span>
+                        Cần gửi lại
+                      </span>
                     ) : (
                       <span className="bg-error-container text-on-error-container font-label-md text-[11px] px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
                         <span className="material-symbols-outlined text-[14px]">priority_high</span>
@@ -203,6 +208,11 @@ const TenantBillsTab = ({
                       <span className="text-on-surface font-medium">{formatDate(bill.createdAt)}</span>
                     </div>
                   </div>
+                  {bill.rejectionReason && (
+                    <div className="mt-5 rounded-2xl border border-error/20 bg-error-container/30 px-4 py-3 text-sm font-bold text-error">
+                      Lý do từ chối: <span className="font-medium text-on-surface-variant">{bill.rejectionReason}</span>
+                    </div>
+                  )}
                 </div>
                 {/* Phần tổng tiền và nút xem chi tiết */}
                 <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between w-full lg:w-auto gap-6 border-t lg:border-t-0 border-outline-variant/30 pt-6 lg:pt-0">

@@ -2,6 +2,23 @@ const { ServiceBill, RentalContract, Room, User, Notification } = require('../mo
 const notificationHelper = require('../utils/notificationHelper');
 const { uploadFilesToCloudinary } = require('../utils/cloudinaryUpload');
 
+const getBillWithContractRoom = (billId) => ServiceBill.findByPk(billId, {
+  include: [{
+    model: RentalContract,
+    as: 'contract',
+    include: [{ model: Room, as: 'room' }]
+  }]
+});
+
+const isLandlordOfBill = (bill, userId) => {
+  return Number(bill?.contract?.room?.landlordId) === Number(userId);
+};
+
+const isTenantOfBill = (bill, userId) => {
+  return Number(bill?.tenantIdSnapshot) === Number(userId)
+    || Number(bill?.contract?.tenantId) === Number(userId);
+};
+
 const serviceBillController = {
   // 1. Tạo hóa đơn (Chủ nhà nhập chỉ số -> Hệ thống tự tính tiền)
   // 1. Tạo hóa đơn (Chủ nhà nhập chỉ số -> Hệ thống tự tính tiền)
@@ -148,25 +165,28 @@ const serviceBillController = {
         return res.status(400).json({ message: 'Vui lòng tải lên ít nhất 1 ảnh bằng chứng!' });
       }
 
-      const imageUrls = await uploadFilesToCloudinary(files, 'phongtro/payment-proofs');
-
-
-      
-      const bill = await ServiceBill.findByPk(billId, {
-        include: [{
-          model: RentalContract,
-          as: 'contract',
-          include: [{ model: Room, as: 'room' }]
-        }]
-      });
+      const bill = await getBillWithContractRoom(billId);
 
       if (!bill) {
         return res.status(404).json({ message: 'Không tìm thấy hóa đơn!' });
       }
       
+      if (!isTenantOfBill(bill, req.user.id)) {
+        return res.status(403).json({ message: 'Bạn không có quyền gửi minh chứng cho hóa đơn này!' });
+      }
+
+      if (bill.status !== 'UNPAID') {
+        return res.status(400).json({ message: 'Chỉ có thể gửi minh chứng cho hóa đơn đang chờ thanh toán!' });
+      }
+
+      const imageUrls = await uploadFilesToCloudinary(files, 'phongtro/payment-proofs');
+
       await bill.update({
         proofImages: JSON.stringify(imageUrls), // Lưu mảng đường dẫn ảnh
-        status: 'PENDING_CONFIRM' // Đổi trạng thái sang "Chờ xác nhận"
+        status: 'PENDING_CONFIRM',
+        rejectionReason: null,
+        rejectedAt: null,
+        confirmedAt: null
       });
       // 2. 🔔 BẮN THÔNG BÁO CHO CHỦ NHÀ (Web + Email)
       if (bill.contract && bill.contract.room && bill.contract.room.landlordId) {
@@ -380,20 +400,85 @@ const serviceBillController = {
     }
   },
 
-  // Khách thuê thanh toán hóa đơn
+  // Chủ nhà từ chối minh chứng thanh toán
+  rejectProof: async (req, res) => {
+    try {
+      const billId = req.params.id;
+      const reason = (req.body?.reason || '').trim();
+
+      if (!reason) {
+        return res.status(400).json({ message: 'Vui lòng nhập lý do từ chối minh chứng!' });
+      }
+
+      if (reason.length > 500) {
+        return res.status(400).json({ message: 'Lý do từ chối không được vượt quá 500 ký tự!' });
+      }
+
+      const bill = await getBillWithContractRoom(billId);
+
+      if (!bill) {
+        return res.status(404).json({ message: 'Không tìm thấy hóa đơn!' });
+      }
+
+      if (!isLandlordOfBill(bill, req.user.id)) {
+        return res.status(403).json({ message: 'Bạn không có quyền từ chối minh chứng của hóa đơn này!' });
+      }
+
+      if (bill.status !== 'PENDING_CONFIRM') {
+        return res.status(400).json({ message: 'Chỉ có thể từ chối hóa đơn đang chờ xác nhận!' });
+      }
+
+      await bill.update({
+        status: 'UNPAID',
+        rejectionReason: reason,
+        rejectedAt: new Date()
+      });
+
+      const tenantId = bill.tenantIdSnapshot || bill.contract?.tenantId;
+      if (tenantId) {
+        try {
+          await notificationHelper.send(
+            tenantId,
+            'Minh chứng thanh toán bị từ chối',
+            `Chủ nhà đã từ chối minh chứng thanh toán hóa đơn tháng ${bill.month}/${bill.year}. Lý do: ${reason}. Vui lòng kiểm tra và gửi lại minh chứng.`
+          );
+        } catch (notiError) {
+          console.error("Lỗi gửi thông báo từ chối minh chứng:", notiError);
+        }
+      }
+
+      res.status(200).json({ message: 'Đã từ chối minh chứng và yêu cầu khách gửi lại!', bill });
+    } catch (error) {
+      console.error("Lỗi từ chối minh chứng thanh toán:", error);
+      res.status(500).json({ message: 'Lỗi khi từ chối minh chứng thanh toán!' });
+    }
+  },
+
+  // Chủ nhà xác nhận đã nhận tiền hóa đơn
   payBill: async (req, res) => {
     try {
       const billId = req.params.id;
-      const bill = await ServiceBill.findByPk(billId, {
-        include: [{ model: RentalContract, as: 'contract' }]
-        });
+      const bill = await getBillWithContractRoom(billId);
       
       if (!bill) {
         return res.status(404).json({ message: 'Không tìm thấy hóa đơn!' });
       }
 
+      if (!isLandlordOfBill(bill, req.user.id)) {
+        return res.status(403).json({ message: 'Bạn không có quyền xác nhận thanh toán hóa đơn này!' });
+      }
+
+      if (!['UNPAID', 'PENDING_CONFIRM'].includes(bill.status)) {
+        return res.status(400).json({ message: 'Hóa đơn này không còn ở trạng thái có thể xác nhận thanh toán!' });
+      }
+
       // Đổi trạng thái thành PAID (Thành công)
-      await bill.update({ status: 'PAID' });
+      await bill.update({
+        status: 'PAID',
+        confirmedAt: new Date(),
+        rejectionReason: null,
+        rejectedAt: null
+      });
       // 🔔 Bắn thông báo xác nhận thành công cho Khách (Web + Email)
       if (bill.contract && bill.contract.tenantId) {
         try {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { getMediaUrl } from '../../utils/media';
 
 /**
@@ -16,7 +16,10 @@ const BillDetailModal = ({
   setViewBillDetails, // Hàm để đóng modal (set về null)
   handleUploadProof,  // Hàm xử lý khi khách thuê gửi ảnh minh chứng
   handlePayBill,      // Hàm xử lý khi chủ nhà xác nhận đã thu tiền
+  handleRejectProof,
 }) => {
+  const [rejectionReason, setRejectionReason] = useState('');
+
   if (!bill) return null;
 
   const contract = bill.contract;
@@ -205,6 +208,17 @@ const BillDetailModal = ({
           {/* Action Section for TENANT - UNPAID */}
           {user.role === 'TENANT' && bill.status === 'UNPAID' && (
             <div className="bg-primary/5 rounded-[2rem] border-2 border-dashed border-primary/20 p-8 space-y-6">
+              {bill.rejectionReason && (
+                <div className="bg-error-container/40 border border-error/30 rounded-2xl p-4 text-left">
+                  <div className="flex items-start gap-3">
+                    <span className="material-symbols-outlined text-error text-xl mt-0.5">error</span>
+                    <div>
+                      <p className="text-sm font-black text-error">Minh chứng trước đó bị từ chối</p>
+                      <p className="text-xs font-bold text-on-surface-variant mt-1 leading-relaxed">{bill.rejectionReason}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="text-center space-y-2">
                 <h4 className="text-lg font-black text-primary tracking-tight">Thanh toán nhanh qua VietQR</h4>
                 <p className="text-xs font-bold text-on-surface-variant/70">Quét mã bằng ứng dụng Ngân hàng hoặc Ví điện tử để thanh toán tự động</p>
@@ -295,13 +309,46 @@ const BillDetailModal = ({
                   });
                 })()}
               </div>
-              <button
-                onClick={() => handlePayBill(bill.id).then(() => setViewBillDetails(null))}
-                className="w-full py-5 bg-tertiary text-on-tertiary font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-tertiary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
-              >
-                <span className="material-symbols-outlined text-2xl">check_circle</span>
-                Xác nhận đã nhận đủ tiền
-              </button>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest ml-1">Lý do từ chối nếu giao dịch chưa đúng</label>
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  maxLength={500}
+                  rows={3}
+                  placeholder="Ví dụ: Chưa nhận được tiền, khách chuyển thiếu 200.000đ, ảnh không đúng giao dịch..."
+                  className="w-full resize-none rounded-2xl border border-outline-variant/50 bg-white p-4 text-sm font-bold text-on-surface outline-none focus:border-error/60 focus:ring-4 focus:ring-error/10"
+                />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button
+                  onClick={async () => {
+                    if (!handleRejectProof) return;
+                    const ok = await handleRejectProof(bill.id, rejectionReason);
+                    if (ok) {
+                      setRejectionReason('');
+                      setViewBillDetails(null);
+                    }
+                  }}
+                  className="w-full py-5 bg-error text-on-error font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-error/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-2xl">cancel</span>
+                  Từ chối minh chứng
+                </button>
+                <button
+                  onClick={async () => {
+                    const ok = await handlePayBill(bill.id);
+                    if (ok) {
+                      setRejectionReason('');
+                      setViewBillDetails(null);
+                    }
+                  }}
+                  className="w-full py-5 bg-tertiary text-on-tertiary font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-tertiary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-2xl">check_circle</span>
+                  Xác nhận đã nhận đủ tiền
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -316,7 +363,10 @@ const BillDetailModal = ({
           </button>
           {bill.status === 'UNPAID' && user.role === 'LANDLORD' && (
             <button
-              onClick={() => handlePayBill(bill.id).then(() => setViewBillDetails(null))}
+              onClick={async () => {
+                const ok = await handlePayBill(bill.id);
+                if (ok) setViewBillDetails(null);
+              }}
               className="flex-[2] py-4 bg-secondary text-on-secondary font-black uppercase tracking-widest rounded-2xl shadow-lg shadow-secondary/20 hover:scale-[1.02] active:scale-95 transition-all"
             >
               Thu tiền mặt trực tiếp

@@ -327,6 +327,16 @@ const LandlordRevenueTabContent = ({
                                 <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
                                 Đã thu tiền
                               </span>
+                            ) : bill.status === 'PENDING_CONFIRM' ? (
+                              <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary-container/50 text-primary font-label-md text-[11px] font-bold uppercase tracking-wider border border-primary/30 gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                                Chờ duyệt
+                              </span>
+                            ) : bill.rejectionReason ? (
+                              <span className="inline-flex items-center px-3 py-1 rounded-full bg-error-container/50 text-error font-label-md text-[11px] font-bold uppercase tracking-wider border border-error/30 gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-error"></span>
+                                Đã từ chối
+                              </span>
                             ) : (
                               <span className="inline-flex items-center px-3 py-1 rounded-full bg-error-container/50 text-error font-label-md text-[11px] font-bold uppercase tracking-wider border border-error/30 gap-1.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-error"></span>

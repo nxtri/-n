@@ -19,12 +19,20 @@ router.get(
 );
 
 
-// Người thuê thanh toán hóa đơn (Cập nhật trạng thái)
+// Chủ nhà xác nhận đã nhận tiền hóa đơn (Cập nhật trạng thái)
 // Đường dẫn sẽ có dạng: PUT /api/bills/1/pay (với 1 là ID của hóa đơn)
 router.put(
   '/:id/pay', 
   authMiddleware.verifyToken, // Bắt buộc phải đăng nhập mới được thanh toán
+  authMiddleware.isLandlord,
   serviceBillController.payBill
+);
+
+router.put(
+  '/:id/reject-proof',
+  authMiddleware.verifyToken,
+  authMiddleware.isLandlord,
+  serviceBillController.rejectProof
 );
 
 // Cập nhật hóa đơn điện nước (Chỉ dành cho chủ nhà và trạng thái UNPAID)

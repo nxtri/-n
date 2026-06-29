@@ -10,6 +10,9 @@ const billApi = {
   payBill: (id) => {
     return axiosClient.put(`/bills/${id}/pay`);
   },
+  rejectProof: (id, data) => {
+    return axiosClient.put(`/bills/${id}/reject-proof`, data);
+  },
   updateBill: (id, data) => {
     return axiosClient.put(`/bills/${id}`, data);
   },

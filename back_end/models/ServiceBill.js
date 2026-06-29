@@ -13,6 +13,9 @@ const ServiceBill = sequelize.define('ServiceBill', {
   },
 
   proofImages: { type: DataTypes.TEXT, allowNull: true },
+  rejectionReason: { type: DataTypes.TEXT, allowNull: true },
+  rejectedAt: { type: DataTypes.DATE, allowNull: true },
+  confirmedAt: { type: DataTypes.DATE, allowNull: true },
   
   // Các chỉ số chủ nhà sẽ nhập hàng tháng
   electricityUsage: { type: DataTypes.FLOAT, defaultValue: 0 }, // Số ký điện đã dùng

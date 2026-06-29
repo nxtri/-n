@@ -564,9 +564,31 @@ const Dashboard = () => {
         await billApi.payBill(billId);
         alert("Thanh toán thành công!");
         fetchBills();
+        return true;
       } catch (e) {
         alert("Lỗi!");
+        return false;
       }
+    }
+    return false;
+  };
+
+  const handleRejectProof = async (billId, reason) => {
+    const cleanReason = reason.trim();
+    if (!cleanReason) {
+      alert("Vui lòng nhập lý do từ chối!");
+      return false;
+    }
+    if (!window.confirm("Từ chối minh chứng và yêu cầu khách gửi lại?")) return false;
+
+    try {
+      await billApi.rejectProof(billId, { reason: cleanReason });
+      alert("Đã từ chối minh chứng và gửi thông báo cho khách!");
+      fetchBills();
+      return true;
+    } catch (error) {
+      alert(error.response?.data?.message || "Lỗi khi từ chối minh chứng!");
+      return false;
     }
   };
 
@@ -1231,6 +1253,7 @@ const Dashboard = () => {
           setViewBillDetails={setViewBillDetails}
           handleUploadProof={handleUploadProof}
           handlePayBill={handlePayBill}
+          handleRejectProof={handleRejectProof}
         />
         <DepositModal
           depositModal={depositModal}
